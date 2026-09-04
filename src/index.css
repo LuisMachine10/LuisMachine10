@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-marino-950 text-pergamino font-sans antialiased;
+    /* El registro se hace con el pulgar: nada de zoom accidental al tocar. */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Números como en una terminal: alineados, tabulares, sin saltos. */
+  .cifra {
+    @apply font-mono tabular-nums;
+  }
+
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+@layer components {
+  .tarjeta {
+    @apply rounded-lg border border-marino-800/70 bg-marino-900/60 p-4;
+  }
+
+  .rotulo {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-humo;
+  }
+
+  .campo {
+    @apply w-full rounded-md border border-marino-700 bg-marino-950 px-3 py-3 text-lg
+           cifra text-pergamino outline-none focus:border-dorado-600;
+  }
+
+  .boton {
+    @apply min-h-[48px] rounded-md border border-marino-700 bg-marino-800/60 px-4
+           text-sm font-semibold text-pergamino active:scale-[0.98] transition;
+  }
+
+  .boton-dorado {
+    @apply min-h-[56px] rounded-md bg-dorado-600 px-4 text-base font-bold text-marino-950
+           active:scale-[0.98] transition;
+  }
+}
