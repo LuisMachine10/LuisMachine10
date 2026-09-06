@@ -6,7 +6,11 @@ import { fechaLarga, hoyISO } from '../dominio/dias'
 import { LB_POR_KG } from '../dominio/metas'
 import { mediaMovil } from '../dominio/promedios'
 
-export function PesoPantalla() {
+interface Props {
+  onVolver: () => void
+}
+
+export function PesoPantalla({ onVolver }: Props) {
   const pesos = usarPesos()
   const perfil = usarPerfil()
   const [fecha, setFecha] = useState(hoyISO())
@@ -36,11 +40,14 @@ export function PesoPantalla() {
 
   return (
     <div className="space-y-4 pb-28">
-      <header>
+      <header className="flex items-start justify-between gap-2">
+        <div>
         <h1 className="font-serif text-xl">Peso y composición</h1>
         <p className="text-[12px] text-humo">
           Sábado en la mañana, en ayunas, después del baño. La línea gruesa es la media de 4; el punto suelto es ruido.
         </p>
+        </div>
+        <button type="button" className="boton px-3" onClick={onVolver}>Volver</button>
       </header>
 
       <section className="tarjeta space-y-3">

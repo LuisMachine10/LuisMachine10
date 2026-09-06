@@ -9,7 +9,11 @@ import { PROHIBIDOS } from '../dominio/restricciones'
 const NOMBRES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 type Vista = 'horario' | 'liturgico' | 'alimentos' | 'gym'
 
-export function Plan() {
+interface Props {
+  onIr: (pantalla: 'ajustes') => void
+}
+
+export function Plan({ onIr }: Props) {
   const [vista, setVista] = useState<Vista>('horario')
   const [dia, setDia] = useState(diaSemana(hoyISO()) as number)
 
@@ -20,9 +24,12 @@ export function Plan() {
 
   return (
     <div className="space-y-4 pb-28">
-      <header>
-        <h1 className="font-serif text-xl">El plan</h1>
-        <p className="text-[12px] text-humo">Solo lectura. Esto es lo que dice el Excel.</p>
+      <header className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="font-serif text-xl">El plan</h1>
+          <p className="text-[12px] text-humo">Solo lectura. Esto es lo que dice el Excel.</p>
+        </div>
+        <button type="button" aria-label="Ajustes" className="boton px-3" onClick={() => onIr('ajustes')}>⚙</button>
       </header>
 
       <div className="grid grid-cols-4 gap-1.5">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aISO, diaSemana, diaSplit, hoyISO, semanaDelPlan, sumarDias, tipoDiaPorDefecto } from './dias'
+import { aISO, diaSemana, diaSplit, hoyISO, semanaDeReferencia, semanaDelPlan, sumarDias, tipoDiaPorDefecto } from './dias'
 
 describe('calendario', () => {
   it('no desplaza el día por zona horaria (RD = UTC−4)', () => {
@@ -42,5 +42,21 @@ describe('calendario', () => {
     expect(semanaDelPlan('2026-11-29', '2026-09-07')).toBe(12)
     expect(semanaDelPlan('2026-11-30', '2026-09-07')).toBeNull()
     expect(semanaDelPlan('2026-09-06', '2026-09-07')).toBeNull()
+  })
+})
+
+describe('semana de referencia para precargar cargas', () => {
+  it('dentro del ciclo devuelve la semana real', () => {
+    expect(semanaDeReferencia('2026-09-07', '2026-09-07')).toEqual({ semana: 1, dentroDelCiclo: true })
+    expect(semanaDeReferencia('2026-10-05', '2026-09-07')).toEqual({ semana: 5, dentroDelCiclo: true })
+  })
+
+  it('antes de arrancar precarga la semana 1, no deja la barra sin número', () => {
+    expect(semanaDeReferencia('2026-09-06', '2026-09-07')).toEqual({ semana: 1, dentroDelCiclo: false })
+    expect(semanaDeReferencia('2026-08-01', '2026-09-07')).toEqual({ semana: 1, dentroDelCiclo: false })
+  })
+
+  it('pasado el ciclo se queda en la semana 12 como referencia', () => {
+    expect(semanaDeReferencia('2026-12-25', '2026-09-07')).toEqual({ semana: 12, dentroDelCiclo: false })
   })
 })

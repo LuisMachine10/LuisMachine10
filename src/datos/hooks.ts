@@ -28,3 +28,43 @@ export function usarHorarioDelDia(dia: number) {
 export function usarAjuste(clave: string) {
   return useLiveQuery(() => db.ajustes.get(clave), [clave])
 }
+
+export function usarAlimentos() {
+  return useLiveQuery(() => db.alimentos.toArray(), [], [])
+}
+
+export function usarComidasDelDia(fecha: FechaISO) {
+  return useLiveQuery(() => db.comidas.where('fecha').equals(fecha).toArray(), [fecha], [])
+}
+
+export function usarMenus() {
+  return useLiveQuery(() => db.menus.toArray(), [], [])
+}
+
+export function usarEjercicios(dia: number) {
+  return useLiveQuery(() => db.ejercicios.where('dia').equals(dia).sortBy('orden'), [dia], [])
+}
+
+export function usarProgresion() {
+  return useLiveQuery(() => db.progresion.orderBy('semana').toArray(), [], [])
+}
+
+export function usarSesion(fecha: FechaISO) {
+  return useLiveQuery(() => db.sesiones.where('fecha').equals(fecha).first(), [fecha])
+}
+
+export function usarSesiones() {
+  return useLiveQuery(() => db.sesiones.orderBy('fecha').toArray(), [], [])
+}
+
+export function usarTodosLosRegistros() {
+  return useLiveQuery(() => db.registros.orderBy('fecha').toArray(), [], [])
+}
+
+export function usarAnaliticas() {
+  return useLiveQuery(() => db.analiticas.orderBy('fecha').toArray(), [], [])
+}
+
+export function usarTodosLosEjercicios() {
+  return useLiveQuery(() => db.ejercicios.orderBy('id').toArray(), [], [])
+}

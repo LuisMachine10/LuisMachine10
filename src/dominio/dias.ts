@@ -84,3 +84,15 @@ export function semanaDelPlan(f: FechaISO, inicio: FechaISO): number | null {
   const semana = Math.floor(dias / 7) + 1
   return semana <= 12 ? semana : null
 }
+
+/**
+ * La semana que la pantalla de gimnasio debe usar para precargar cargas.
+ * Antes de arrancar el ciclo, la referencia es la semana 1; después de la 12,
+ * la 12. Nunca deja la barra sin número: eso obligaría a recordar el plan.
+ */
+export function semanaDeReferencia(f: FechaISO, inicio: FechaISO): { semana: number; dentroDelCiclo: boolean } {
+  const exacta = semanaDelPlan(f, inicio)
+  if (exacta !== null) return { semana: exacta, dentroDelCiclo: true }
+  const dias = Math.floor((desdeISO(f).getTime() - desdeISO(inicio).getTime()) / 86_400_000)
+  return { semana: dias < 0 ? 1 : 12, dentroDelCiclo: false }
+}

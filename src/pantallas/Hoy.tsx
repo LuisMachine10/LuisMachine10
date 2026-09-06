@@ -5,7 +5,7 @@ import { BotonHabito } from '../componentes/BotonHabito'
 import { CampoNumero } from '../componentes/CampoNumero'
 import { ContadorAgua } from '../componentes/ContadorAgua'
 import { Hoja } from '../componentes/Hoja'
-import { usarHorarioDelDia, usarPerfil, usarRegistro, usarUltimosDias } from '../datos/hooks'
+import { usarComidasDelDia, usarHorarioDelDia, usarPerfil, usarRegistro, usarUltimosDias } from '../datos/hooks'
 import {
   alternarToggle, cambiarTipoDia, fijarVasos, guardarRegistro, vasosDesdeLitros,
 } from '../datos/registros'
@@ -19,7 +19,11 @@ import type { TipoDia } from '../dominio/tipos'
 
 const TIPOS: TipoDia[] = ['ENTRENO', 'LIGERO', 'AYUNO']
 
-export function Hoy() {
+interface Props {
+  onIr: (pantalla: 'comer' | 'entrenar' | 'ajustes') => void
+}
+
+export function Hoy({ onIr }: Props) {
   const [fecha, setFecha] = useState(hoyISO())
   const [verDesglose, setVerDesglose] = useState(false)
   const [verProcedencia, setVerProcedencia] = useState(false)
@@ -28,6 +32,14 @@ export function Hoy() {
   const registro = usarRegistro(fecha)
   const ultimos30 = usarUltimosDias(fecha, 30)
   const bloquesHoy = usarHorarioDelDia(diaSemana(fecha))
+  const comidasDelDia = usarComidasDelDia(fecha)
+
+  // Un solo dato, una sola vez: con comidas registradas, los macros ya no se escriben.
+  const comidasConItems = comidasDelDia.filter((c) => c.items.length > 0)
+  const macrosDesdeComidas = comidasConItems.length > 0
+  const notaMacros = macrosDesdeComidas
+    ? `Calculado desde ${comidasConItems.length} comida${comidasConItems.length > 1 ? 's' : ''}`
+    : undefined
 
   const tipoDia = registro?.tipoDia ?? tipoDiaPorDefecto(fecha)
   const meta = useMemo(() => metaDelDia(perfil, tipoDia), [perfil, tipoDia])
@@ -56,14 +68,19 @@ export function Hoy() {
           <h1 className="font-serif text-lg leading-tight">{fechaLarga(fecha)}</h1>
           <p className="text-[11px] text-humo">{tituloDelDia(fecha)}</p>
         </div>
-        <button
-          type="button"
-          className="boton px-3 disabled:opacity-30"
-          disabled={esHoy}
-          onClick={() => setFecha(sumarDias(fecha, 1))}
-        >
-          ›
-        </button>
+        <span className="flex gap-1.5">
+          <button
+            type="button"
+            className="boton px-3 disabled:opacity-30"
+            disabled={esHoy}
+            onClick={() => setFecha(sumarDias(fecha, 1))}
+          >
+            ›
+          </button>
+          <button type="button" aria-label="Ajustes" className="boton px-3" onClick={() => onIr('ajustes')}>
+            ⚙
+          </button>
+        </span>
       </header>
 
       {/* Puntaje + tipo de día */}
@@ -169,22 +186,28 @@ export function Hoy() {
           <CampoNumero
             etiqueta="Proteína" unidad="g" valor={registro?.proteinaG ?? null}
             onCambio={(v) => guardarRegistro(fecha, { proteinaG: v })}
+            soloLectura={macrosDesdeComidas} notaSoloLectura={notaMacros}
           />
           <CampoNumero
             etiqueta="Calorías" unidad="kcal" paso={10} valor={registro?.kcal ?? null}
             onCambio={(v) => guardarRegistro(fecha, { kcal: v })}
+            soloLectura={macrosDesdeComidas} notaSoloLectura={notaMacros}
           />
           <CampoNumero
             etiqueta="Carbs" unidad="g" valor={registro?.carbG ?? null}
             onCambio={(v) => guardarRegistro(fecha, { carbG: v })}
+            soloLectura={macrosDesdeComidas} notaSoloLectura={notaMacros}
           />
           <CampoNumero
             etiqueta="Grasa" unidad="g" valor={registro?.grasaG ?? null}
             onCambio={(v) => guardarRegistro(fecha, { grasaG: v })}
+            soloLectura={macrosDesdeComidas} notaSoloLectura={notaMacros}
           />
         </div>
         <p className="text-[11px] text-humo">
-          Fase 1: se escriben a mano, como en la BITÁCORA. En la Fase 2 los calcula el peso de la comida.
+          {macrosDesdeComidas
+            ? 'Salen del peso de la comida. Para corregirlos, edita los gramos en Comer.'
+            : 'Sin comidas registradas hoy: puedes escribirlos a mano, como en la BITÁCORA.'}
         </p>
       </section>
 
@@ -250,14 +273,13 @@ export function Hoy() {
 
       {/* Fases pendientes */}
       <section className="grid grid-cols-2 gap-2">
-        <button type="button" disabled className="boton-dorado opacity-40">
+        <button type="button" className="boton-dorado" onClick={() => onIr('comer')}>
           Registrar comida
         </button>
-        <button type="button" disabled className="boton-dorado opacity-40">
+        <button type="button" className="boton-dorado" onClick={() => onIr('entrenar')}>
           Entrenar
         </button>
       </section>
-      <p className="text-center text-[11px] text-humo">Comer llega en la Fase 2 · Entrenar en la Fase 3</p>
 
       <Hoja abierta={verDesglose} titulo="De dónde salen los puntos" onCerrar={() => setVerDesglose(false)}>
         <ul className="divide-y divide-marino-800">

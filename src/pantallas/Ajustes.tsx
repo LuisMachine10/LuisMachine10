@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
-import { db, exportarRespaldo, importarRespaldo } from '../datos/db'
-import { usarPerfil } from '../datos/hooks'
+import { INICIO_PLAN, db, exportarRespaldo, importarRespaldo } from '../datos/db'
+import { usarAjuste, usarPerfil } from '../datos/hooks'
 import { calcularMetas, trazabilidadMetas } from '../dominio/metas'
 import type { Perfil } from '../dominio/tipos'
 
@@ -30,8 +30,14 @@ const CAMPOS: CampoDef[] = [
     nota: 'Con 200 kcal, la cena de ruptura del propio menú (≈717 kcal) hace fallar proteína y calorías del viernes.' },
 ]
 
-export function Ajustes() {
+interface Props {
+  onVolver: () => void
+}
+
+export function Ajustes({ onVolver }: Props) {
   const perfil = usarPerfil()
+  const ajusteInicio = usarAjuste('inicioPlan')
+  const inicio = (ajusteInicio?.valor as string) ?? INICIO_PLAN
   const metas = calcularMetas(perfil)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const archivo = useRef<HTMLInputElement>(null)
@@ -64,10 +70,26 @@ export function Ajustes() {
 
   return (
     <div className="space-y-4 pb-28">
-      <header>
-        <h1 className="font-serif text-xl">Ajustes</h1>
-        <p className="text-[12px] text-humo">Las celdas azules de la hoja NUTRICION. Todo lo demás se calcula.</p>
+      <header className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="font-serif text-xl">Ajustes</h1>
+          <p className="text-[12px] text-humo">Las celdas azules de la hoja NUTRICION. Todo lo demás se calcula.</p>
+        </div>
+        <button type="button" className="boton px-3" onClick={onVolver}>Volver</button>
       </header>
+
+      <section className="tarjeta">
+        <label className="block">
+          <span className="rotulo">Primer día del plan de 12 semanas</span>
+          <input
+            className="campo mt-1.5" type="date" value={inicio}
+            onChange={(e) => e.target.value && db.ajustes.put({ clave: 'inicioPlan', valor: e.target.value })}
+          />
+        </label>
+        <p className="mt-1.5 text-[11px] text-humo">
+          De aquí sale la semana que la pantalla Entrenar usa para precargar las cargas de PROGRESION.
+        </p>
+      </section>
 
       <section className="tarjeta space-y-3">
         <span className="rotulo">Datos del panel</span>
