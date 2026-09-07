@@ -2,11 +2,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
 import { registrosEntre } from './registros'
 import { sumarDias } from '../dominio/dias'
-import { PERFIL_INICIAL } from '../dominio/metas'
+import { PERFIL_VACIO } from '../dominio/metas'
 import type { FechaISO } from '../dominio/tipos'
 
 export function usarPerfil() {
-  return useLiveQuery(async () => (await db.perfil.get('perfil')) ?? PERFIL_INICIAL, [], PERFIL_INICIAL)
+  return useLiveQuery(async () => (await db.perfil.get('perfil')) ?? PERFIL_VACIO, [], PERFIL_VACIO)
 }
 
 export function usarRegistro(fecha: FechaISO) {
@@ -67,4 +67,20 @@ export function usarAnaliticas() {
 
 export function usarTodosLosEjercicios() {
   return useLiveQuery(() => db.ejercicios.orderBy('id').toArray(), [], [])
+}
+
+export function usarMetas() {
+  return useLiveQuery(() => db.metas.toArray(), [], [])
+}
+
+export function usarLogros() {
+  return useLiveQuery(() => db.logros.orderBy('fecha').reverse().toArray(), [], [])
+}
+
+export function usarCondiciones() {
+  return useLiveQuery(() => db.condiciones.toArray(), [], [])
+}
+
+export function usarAreas() {
+  return useLiveQuery(() => db.areas.orderBy('orden').toArray(), [], [])
 }

@@ -5,7 +5,10 @@ import { BotonHabito } from '../componentes/BotonHabito'
 import { CampoNumero } from '../componentes/CampoNumero'
 import { ContadorAgua } from '../componentes/ContadorAgua'
 import { Hoja } from '../componentes/Hoja'
-import { usarComidasDelDia, usarHorarioDelDia, usarPerfil, usarRegistro, usarUltimosDias } from '../datos/hooks'
+import {
+  usarComidasDelDia, usarHorarioDelDia, usarMetas, usarPerfil, usarPesos, usarRegistro,
+  usarTodosLosRegistros, usarUltimosDias,
+} from '../datos/hooks'
 import {
   alternarToggle, cambiarTipoDia, fijarVasos, guardarRegistro, vasosDesdeLitros,
 } from '../datos/registros'
@@ -13,14 +16,15 @@ import { diaSemana, fechaLarga, hoyISO, sumarDias, tipoDiaPorDefecto, tituloDelD
 import { minutosDeAhora, siguienteBloque } from '../dominio/horario'
 import { metaDelDia, trazabilidadMetas } from '../dominio/metas'
 import { resumirPeriodo } from '../dominio/promedios'
-import { RENGLONES, calcularPuntaje, registroVacio } from '../dominio/puntaje'
+import { RENGLONES, calcularPuntaje, estaRegistrado, registroVacio } from '../dominio/puntaje'
+import { estadoDelSistema } from '../dominio/perfil'
 import type { ClaveToggle } from '../dominio/puntaje'
 import type { TipoDia } from '../dominio/tipos'
 
 const TIPOS: TipoDia[] = ['ENTRENO', 'LIGERO', 'AYUNO']
 
 interface Props {
-  onIr: (pantalla: 'comer' | 'entrenar' | 'ajustes') => void
+  onIr: (pantalla: 'comer' | 'entrenar' | 'ajustes' | 'metas' | 'peso') => void
 }
 
 export function Hoy({ onIr }: Props) {
@@ -33,6 +37,20 @@ export function Hoy({ onIr }: Props) {
   const ultimos30 = usarUltimosDias(fecha, 30)
   const bloquesHoy = usarHorarioDelDia(diaSemana(fecha))
   const comidasDelDia = usarComidasDelDia(fecha)
+  const metasGuardadas = usarMetas()
+  const pesajes = usarPesos()
+  const todosLosRegistros = usarTodosLosRegistros()
+
+  const sistema = useMemo(
+    () =>
+      estadoDelSistema(
+        perfil,
+        metasGuardadas.length,
+        pesajes.length,
+        todosLosRegistros.filter((r) => estaRegistrado(r)).length,
+      ),
+    [perfil, metasGuardadas.length, pesajes.length, todosLosRegistros],
+  )
 
   // Un solo dato, una sola vez: con comidas registradas, los macros ya no se escriben.
   const comidasConItems = comidasDelDia.filter((c) => c.items.length > 0)
@@ -82,6 +100,28 @@ export function Hoy({ onIr }: Props) {
           </button>
         </span>
       </header>
+
+      {sistema.paso !== 'monitoreo' && (
+        <section className="tarjeta border-dorado-600/50">
+          <span className="rotulo">Tu sistema, paso a paso</span>
+          <div className="mt-2 flex gap-1.5">
+            {(['perfil', 'metas', 'linea-base', 'monitoreo'] as const).map((paso, i) => {
+              const orden = ['perfil', 'metas', 'linea-base', 'monitoreo']
+              const hecho = orden.indexOf(sistema.paso) > i
+              return (
+                <div key={paso} className={`h-1 flex-1 rounded-full ${hecho ? 'bg-dorado-600' : 'bg-marino-800'}`} />
+              )
+            })}
+          </div>
+          <p className="mt-2 text-[13px]">{sistema.siguientePaso}</p>
+          <button
+            type="button" className="boton mt-2 w-full py-2 text-[12px]"
+            onClick={() => onIr(sistema.paso === 'linea-base' ? 'peso' : sistema.paso === 'metas' ? 'metas' : 'ajustes')}
+          >
+            {sistema.paso === 'metas' ? 'Definir metas' : sistema.paso === 'linea-base' ? 'Registrar el punto de partida' : 'Completar mi información'}
+          </button>
+        </section>
+      )}
 
       {/* Puntaje + tipo de día */}
       <section className="tarjeta flex items-center gap-4">

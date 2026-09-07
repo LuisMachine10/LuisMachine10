@@ -2,12 +2,46 @@ import type { MetaDelDia, MetasDiarias, Perfil, TipoDia } from './tipos'
 
 export const LB_POR_KG = 2.2046
 
-/** Perfil de arranque: hoja NUTRICION del Excel, celdas azules. */
-export const PERFIL_INICIAL: Perfil = {
+/**
+ * Punto de partida en blanco. Los valores del panel son los del Excel
+ * porque son fórmulas, no datos tuyos; lo tuyo empieza vacío y lo llenas tú.
+ */
+export const PERFIL_VACIO: Perfil = {
   id: 'perfil',
+  nombre: '',
+  fechaNacimiento: null,
+  edad: 0,
+  ciudad: '',
+  ocupacion: '',
+  pesoLb: 0,
+  estaturaCm: 0,
+  pctGrasaEstimado: 0,
+  factorActividad: 1.55,
+  deficitEntreno: 400,
+  deficitLigero: 700,
+  aguaMetaL: 5,
+  estudioMetaMin: 120,
+  suenoMetaH: 6.5,
+  toleranciaKcal: 150,
+  techoKcalAyuno: 200,
+  completado: false,
+  creadoEn: 0,
+}
+
+/**
+ * Los valores que trae el Excel, como SUGERENCIA para la entrada de datos.
+ * No se guardan hasta que los confirmes: son de septiembre de 2026 y pueden
+ * estar viejos.
+ */
+export const PERFIL_SUGERIDO: Perfil = {
+  id: 'perfil',
+  nombre: '',
+  fechaNacimiento: null,
+  edad: 22,
+  ciudad: 'Santiago, República Dominicana',
+  ocupacion: 'Analista comercial y financiero',
   pesoLb: 220,
   estaturaCm: 180,
-  edad: 22,
   pctGrasaEstimado: 0.21,
   factorActividad: 1.55,
   deficitEntreno: 400,
@@ -17,6 +51,8 @@ export const PERFIL_INICIAL: Perfil = {
   suenoMetaH: 6.5,
   toleranciaKcal: 150,
   techoKcalAyuno: 200,
+  completado: false,
+  creadoEn: 0,
 }
 
 /** Redondeo de Excel (ROUND): medio hacia arriba en valor absoluto. */

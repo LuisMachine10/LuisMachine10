@@ -11,22 +11,113 @@ export type TipoDia = 'ENTRENO' | 'LIGERO' | 'AYUNO'
 /** 1 = lunes … 7 = domingo (ISO-8601). */
 export type DiaSemana = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
+/**
+ * Tu información. Nada de esto se asume: hasta que lo confirmes,
+ * `completado` es false y la app abre la entrada de datos, no el registro.
+ */
 export interface Perfil {
   id: 'perfil'
+  // --- Identidad
+  nombre: string
+  fechaNacimiento: FechaISO | null
+  /** Solo se usa si no hay fecha de nacimiento. Con fecha, la edad se calcula. */
+  edad: number
+  ciudad: string
+  ocupacion: string
+  // --- Cuerpo
   pesoLb: number
   estaturaCm: number
-  edad: number
   pctGrasaEstimado: number
+  // --- Panel de cálculo (hoja NUTRICION)
   factorActividad: number
   deficitEntreno: number
   deficitLigero: number
-  /** Metas de hábito, todas editables. Vienen de la hoja NUTRICION. */
+  // --- Metas de hábito, todas editables
   aguaMetaL: number
   estudioMetaMin: number
   suenoMetaH: number
   toleranciaKcal: number
   /** kcal máximas para que un día de AYUNO siga contando como ayuno. */
   techoKcalAyuno: number
+  // --- Estado de la entrada de datos
+  completado: boolean
+  creadoEn: number
+}
+
+/** Las áreas en las que se divide el seguimiento. Se pueden agregar más. */
+export type AreaVida = string
+
+export interface Area {
+  id: string
+  nombre: string
+  orden: number
+  /** Si aparece como renglón del estado de resultados diario. */
+  enPuntajeDiario: boolean
+}
+
+/**
+ * Una condición de salud tuya. Vive en la base, no en el código:
+ * las hernias discales son un dato personal, no una constante del programa.
+ */
+export interface CondicionSalud {
+  id?: number
+  nombre: string
+  detalle: string
+  activa: boolean
+  desde: FechaISO | null
+}
+
+/** De dónde sale sola la medición de una meta. 'manual' = la actualizas tú. */
+export type FuenteMeta =
+  | 'manual'
+  | 'peso'
+  | 'pctGrasa'
+  | 'cintura'
+  | 'analitica:colTotal'
+  | 'analitica:ldl'
+  | 'analitica:hdl'
+  | 'analitica:trigliceridos'
+  | 'analitica:alt'
+  | 'analitica:ast'
+  | 'margenCumplimiento'
+  | 'promedioEstudioMin'
+  | 'promedioSuenoH'
+  | `ejercicio:${number}`
+
+export type EstadoMeta = 'activa' | 'lograda' | 'pausada'
+
+/** Una meta con fecha. Sin fecha límite es un deseo, no una meta. */
+export interface MetaPersonal {
+  id?: number
+  area: AreaVida
+  nombre: string
+  /** 'numerica' llega a un número; 'hito' se cumple o no se cumple. */
+  tipo: 'numerica' | 'hito'
+  fuente: FuenteMeta
+  valorInicial: number | null
+  valorMeta: number | null
+  /** Solo para fuente 'manual': lo que reportaste la última vez. */
+  valorManual: number | null
+  unidad: string
+  direccion: 'bajar' | 'subir'
+  fechaInicio: FechaISO
+  fechaLimite: FechaISO | null
+  estado: EstadoMeta
+  nota: string
+  creadaEn: number
+}
+
+/** Algo que ya pasó y vale la pena guardar. */
+export interface Logro {
+  id?: number
+  fecha: FechaISO
+  area: AreaVida
+  titulo: string
+  detalle: string
+  metaId: number | null
+  valor: number | null
+  unidad: string
+  origen: 'manual' | 'automatico'
 }
 
 /** Resultado del panel de cálculo (hoja NUTRICION), con su trazabilidad. */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EJERCICIOS } from '../datos/seed/ejercicios'
 import { bitacoraCSV, pesosCSV, sesionesCSV } from './exportar'
-import { PERFIL_INICIAL } from './metas'
+import { PERFIL_SUGERIDO } from './metas'
 import { registroVacio } from './puntaje'
 import type { Ejercicio } from './tipos'
 
@@ -11,7 +11,7 @@ describe('exportación a CSV', () => {
   it('la bitácora incluye el puntaje ya calculado', () => {
     const csv = bitacoraCSV(
       [{ ...registroVacio('2026-09-07', 'ENTRENO'), levantar5am: true, camaBulto: true }],
-      PERFIL_INICIAL,
+      PERFIL_SUGERIDO,
     )
     const [cabecera, fila] = csv.split('\n')
     expect(cabecera).toContain('puntaje')
@@ -20,7 +20,7 @@ describe('exportación a CSV', () => {
   })
 
   it('un día sin registrar sale vacío, no como cero', () => {
-    const csv = bitacoraCSV([registroVacio('2026-09-07', 'ENTRENO')], PERFIL_INICIAL)
+    const csv = bitacoraCSV([registroVacio('2026-09-07', 'ENTRENO')], PERFIL_SUGERIDO)
     const columnas = csv.split('\n')[1].split(',')
     const idx = csv.split('\n')[0].split(',').indexOf('puntaje')
     expect(columnas[idx]).toBe('')
@@ -29,7 +29,7 @@ describe('exportación a CSV', () => {
   it('escapa comas y comillas de las notas', () => {
     const csv = bitacoraCSV(
       [{ ...registroVacio('2026-09-07', 'ENTRENO'), rosario: true, notas: 'Comí "mucho", dormí poco' }],
-      PERFIL_INICIAL,
+      PERFIL_SUGERIDO,
     )
     expect(csv).toContain('"Comí ""mucho"", dormí poco"')
     expect(csv.split('\n')).toHaveLength(2)

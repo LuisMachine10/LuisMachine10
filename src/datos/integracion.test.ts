@@ -4,7 +4,7 @@ import { db, sembrar } from './db'
 import { agregarItem, cargarMenu, quitarItem } from './comidas'
 import { alternarToggle, fijarVasos, guardarRegistro } from './registros'
 import { guardarSerie, ultimoPeso } from './sesiones'
-import { PERFIL_INICIAL } from '../dominio/metas'
+import { PERFIL_SUGERIDO } from '../dominio/metas'
 import { calcularPuntaje } from '../dominio/puntaje'
 
 const LUNES = '2026-09-07'
@@ -24,7 +24,7 @@ describe('registrar comidas alimenta el puntaje del día', () => {
     expect(r.proteinaG).toBeGreaterThanOrEqual(189)
     expect(r.kcal).toBeGreaterThan(2000)
 
-    const renglones = calcularPuntaje(r, PERFIL_INICIAL).renglones
+    const renglones = calcularPuntaje(r, PERFIL_SUGERIDO).renglones
     expect(renglones.find((x) => x.clave === 'proteina')!.cumplido).toBe(true)
   })
 
@@ -104,7 +104,7 @@ describe('un día completo de punta a punta', () => {
     await db.open()
 
     const r = (await db.registros.get(LUNES))!
-    const p = calcularPuntaje(r, PERFIL_INICIAL)
+    const p = calcularPuntaje(r, PERFIL_SUGERIDO)
     const fallidos = p.renglones.filter((x) => !x.cumplido).map((x) => `${x.etiqueta}: ${x.detalle}`)
     expect(fallidos).toEqual([])
     expect(p.puntaje).toBe(100)

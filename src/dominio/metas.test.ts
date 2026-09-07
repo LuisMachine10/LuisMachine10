@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { PERFIL_INICIAL, calcularMetas, metaDelDia } from './metas'
+import { PERFIL_SUGERIDO, calcularMetas, metaDelDia } from './metas'
 
 describe('panel de cálculo nutricional (hoja NUTRICION)', () => {
-  const m = calcularMetas(PERFIL_INICIAL)
+  const m = calcularMetas(PERFIL_SUGERIDO)
 
   it('reproduce exacto los valores de referencia del Excel', () => {
     expect(m.tmb).toBe(2018)
@@ -26,14 +26,14 @@ describe('panel de cálculo nutricional (hoja NUTRICION)', () => {
 
   it('las kcal siempre caen en múltiplos de 50', () => {
     for (let lb = 180; lb <= 260; lb += 1) {
-      const x = calcularMetas({ ...PERFIL_INICIAL, pesoLb: lb })
+      const x = calcularMetas({ ...PERFIL_SUGERIDO, pesoLb: lb })
       expect(x.kcalEntreno % 50).toBe(0)
       expect(x.kcalLigero % 50).toBe(0)
     }
   })
 
   it('al bajar de peso bajan la meta de kcal, de proteína y de grasa', () => {
-    const menos = calcularMetas({ ...PERFIL_INICIAL, pesoLb: 200 })
+    const menos = calcularMetas({ ...PERFIL_SUGERIDO, pesoLb: 200 })
     expect(menos.kcalEntreno).toBeLessThan(m.kcalEntreno)
     expect(menos.proteinaG).toBeLessThan(m.proteinaG)
     expect(menos.grasaG).toBeLessThan(m.grasaG)
@@ -45,8 +45,8 @@ describe('panel de cálculo nutricional (hoja NUTRICION)', () => {
   })
 
   it('la meta del día de ayuno es cero, no la del día ligero', () => {
-    expect(metaDelDia(PERFIL_INICIAL, 'AYUNO').kcal).toBe(0)
-    expect(metaDelDia(PERFIL_INICIAL, 'LIGERO').kcal).toBe(2450)
-    expect(metaDelDia(PERFIL_INICIAL, 'ENTRENO').kcal).toBe(2750)
+    expect(metaDelDia(PERFIL_SUGERIDO, 'AYUNO').kcal).toBe(0)
+    expect(metaDelDia(PERFIL_SUGERIDO, 'LIGERO').kcal).toBe(2450)
+    expect(metaDelDia(PERFIL_SUGERIDO, 'ENTRENO').kcal).toBe(2750)
   })
 })

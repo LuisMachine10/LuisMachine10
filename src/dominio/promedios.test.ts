@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { PERFIL_INICIAL } from './metas'
+import { PERFIL_SUGERIDO } from './metas'
 import { estadoDeResultados, mediaMovil, resumirPeriodo } from './promedios'
 import { registroVacio } from './puntaje'
 import type { RegistroDiario } from './tipos'
 
-const P = PERFIL_INICIAL
+const P = PERFIL_SUGERIDO
 
 function dia(fecha: string, parche: Partial<RegistroDiario> = {}): RegistroDiario {
   return { ...registroVacio(fecha, 'ENTRENO'), ...parche }

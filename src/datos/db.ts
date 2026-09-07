@@ -1,10 +1,11 @@
 import Dexie, { type Table } from 'dexie'
-import { PERFIL_INICIAL } from '../dominio/metas'
+import { PERFIL_VACIO } from '../dominio/metas'
 import type {
-  Alimento, Analitica, BloqueHorario, CargaSemana, Comida, Ejercicio, EventoLiturgico,
-  MenuGuardado, Peso, Perfil, RegistroDiario, SesionGym,
+  Alimento, Analitica, Area, BloqueHorario, CargaSemana, Comida, CondicionSalud, Ejercicio,
+  EventoLiturgico, Logro, MenuGuardado, MetaPersonal, Peso, Perfil, RegistroDiario, SesionGym,
 } from '../dominio/tipos'
 import { ALIMENTOS } from './seed/alimentos'
+import { AREAS } from './seed/areas'
 import { EJERCICIOS } from './seed/ejercicios'
 import { HORARIO } from './seed/horario'
 import { LITURGICO } from './seed/liturgico'
@@ -12,7 +13,7 @@ import { MENUS } from './seed/menus'
 import { PROGRESION } from './seed/progresion'
 
 /** Subir esto vuelve a sembrar los catálogos (no toca lo que el usuario registró). */
-const VERSION_SEED = 2
+const VERSION_SEED = 3
 
 /** Primer día de la BITACORA del Excel. */
 export const INICIO_PLAN = '2026-09-07'
@@ -36,6 +37,10 @@ export class BaseMena extends Dexie {
   sesiones!: Table<SesionGym, number>
   analiticas!: Table<Analitica, string>
   ajustes!: Table<Ajuste, string>
+  areas!: Table<Area, string>
+  metas!: Table<MetaPersonal, number>
+  logros!: Table<Logro, number>
+  condiciones!: Table<CondicionSalud, number>
 
   constructor() {
     super('sistema-mena')
@@ -54,6 +59,14 @@ export class BaseMena extends Dexie {
       analiticas: 'fecha',
       ajustes: 'clave',
     })
+
+    // v2 — el seguimiento deja de ser solo diario: metas con fecha y logros.
+    this.version(2).stores({
+      areas: 'id, orden',
+      metas: '++id, area, estado, fechaLimite',
+      logros: '++id, fecha, area, metaId',
+      condiciones: '++id, activa',
+    })
   }
 }
 
@@ -69,9 +82,9 @@ export async function sembrar(): Promise<void> {
 
   await db.transaction(
     'rw',
-    [db.perfil, db.alimentos, db.menus, db.ejercicios, db.progresion, db.horario, db.liturgico, db.ajustes],
+    [db.perfil, db.alimentos, db.menus, db.ejercicios, db.progresion, db.horario, db.liturgico, db.ajustes, db.areas],
     async () => {
-      if (!(await db.perfil.get('perfil'))) await db.perfil.put(PERFIL_INICIAL)
+      if (!(await db.perfil.get('perfil'))) await db.perfil.put({ ...PERFIL_VACIO, creadoEn: Date.now() })
       if (yaSembrado) return
       await db.alimentos.bulkPut(ALIMENTOS)
       await db.menus.bulkPut(MENUS)
@@ -79,6 +92,7 @@ export async function sembrar(): Promise<void> {
       await db.progresion.bulkPut(PROGRESION)
       await db.horario.bulkPut(HORARIO)
       await db.liturgico.bulkPut(LITURGICO)
+      await db.areas.bulkPut(AREAS)
       await db.ajustes.put({ clave: 'versionSeed', valor: VERSION_SEED })
       if (!(await db.ajustes.get('inicioPlan'))) {
         await db.ajustes.put({ clave: 'inicioPlan', valor: INICIO_PLAN })
@@ -98,33 +112,43 @@ export interface Respaldo {
   sesiones: SesionGym[]
   analiticas: Analitica[]
   ajustes: Ajuste[]
+  metas: MetaPersonal[]
+  logros: Logro[]
+  condiciones: CondicionSalud[]
 }
 
 /** Respaldo: solo lo que el usuario produjo. Los catálogos se resiembran solos. */
 export async function exportarRespaldo(): Promise<Respaldo> {
-  const [perfil, registros, pesos, comidas, sesiones, analiticas, ajustes] = await Promise.all([
-    db.perfil.toArray(),
-    db.registros.toArray(),
-    db.pesos.toArray(),
-    db.comidas.toArray(),
-    db.sesiones.toArray(),
-    db.analiticas.toArray(),
-    db.ajustes.toArray(),
-  ])
+  const [perfil, registros, pesos, comidas, sesiones, analiticas, ajustes, metas, logros, condiciones] =
+    await Promise.all([
+      db.perfil.toArray(),
+      db.registros.toArray(),
+      db.pesos.toArray(),
+      db.comidas.toArray(),
+      db.sesiones.toArray(),
+      db.analiticas.toArray(),
+      db.ajustes.toArray(),
+      db.metas.toArray(),
+      db.logros.toArray(),
+      db.condiciones.toArray(),
+    ])
   return {
     app: 'sistema-mena',
-    version: 1,
+    version: 2,
     exportadoEn: new Date().toISOString(),
-    perfil, registros, pesos, comidas, sesiones, analiticas, ajustes,
+    perfil, registros, pesos, comidas, sesiones, analiticas, ajustes, metas, logros, condiciones,
   }
 }
 
-export async function importarRespaldo(datos: unknown): Promise<{ registros: number; pesos: number }> {
+export async function importarRespaldo(
+  datos: unknown,
+): Promise<{ registros: number; pesos: number; metas: number; logros: number }> {
   const r = datos as Partial<Respaldo>
   if (!r || r.app !== 'sistema-mena') throw new Error('Ese archivo no es un respaldo de Sistema Mena.')
   await db.transaction(
     'rw',
-    [db.perfil, db.registros, db.pesos, db.comidas, db.sesiones, db.analiticas, db.ajustes],
+    [db.perfil, db.registros, db.pesos, db.comidas, db.sesiones, db.analiticas, db.ajustes,
+     db.metas, db.logros, db.condiciones],
     async () => {
       if (r.perfil?.length) await db.perfil.bulkPut(r.perfil)
       if (r.registros?.length) await db.registros.bulkPut(r.registros)
@@ -133,7 +157,15 @@ export async function importarRespaldo(datos: unknown): Promise<{ registros: num
       if (r.sesiones?.length) await db.sesiones.bulkPut(r.sesiones)
       if (r.analiticas?.length) await db.analiticas.bulkPut(r.analiticas)
       if (r.ajustes?.length) await db.ajustes.bulkPut(r.ajustes)
+      if (r.metas?.length) await db.metas.bulkPut(r.metas)
+      if (r.logros?.length) await db.logros.bulkPut(r.logros)
+      if (r.condiciones?.length) await db.condiciones.bulkPut(r.condiciones)
     },
   )
-  return { registros: r.registros?.length ?? 0, pesos: r.pesos?.length ?? 0 }
+  return {
+    registros: r.registros?.length ?? 0,
+    pesos: r.pesos?.length ?? 0,
+    metas: r.metas?.length ?? 0,
+    logros: r.logros?.length ?? 0,
+  }
 }

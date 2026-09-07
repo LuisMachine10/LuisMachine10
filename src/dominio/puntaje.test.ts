@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { PERFIL_INICIAL } from './metas'
+import { PERFIL_SUGERIDO } from './metas'
 import { PUNTOS_TOTALES, RENGLONES, calcularPuntaje, diagnosticar, estaRegistrado, registroVacio } from './puntaje'
 import type { RegistroDiario } from './tipos'
 
-const P = PERFIL_INICIAL
+const P = PERFIL_SUGERIDO
 
 /** Un lunes de entreno perfecto. */
 function diaPerfecto(fecha = '2026-09-07'): RegistroDiario {

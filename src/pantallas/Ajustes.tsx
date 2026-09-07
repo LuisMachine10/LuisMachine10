@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { INICIO_PLAN, db, exportarRespaldo, importarRespaldo } from '../datos/db'
-import { usarAjuste, usarPerfil } from '../datos/hooks'
+import { usarAjuste, usarCondiciones, usarPerfil } from '../datos/hooks'
+import { borrarCondicion, guardarCondicion } from '../datos/metas'
+import { edadDe } from '../dominio/perfil'
 import { calcularMetas, trazabilidadMetas } from '../dominio/metas'
 import type { Perfil } from '../dominio/tipos'
 
@@ -36,6 +38,7 @@ interface Props {
 
 export function Ajustes({ onVolver }: Props) {
   const perfil = usarPerfil()
+  const condiciones = usarCondiciones()
   const ajusteInicio = usarAjuste('inicioPlan')
   const inicio = (ajusteInicio?.valor as string) ?? INICIO_PLAN
   const metas = calcularMetas(perfil)
@@ -77,6 +80,70 @@ export function Ajustes({ onVolver }: Props) {
         </div>
         <button type="button" className="boton px-3" onClick={onVolver}>Volver</button>
       </header>
+
+      <section className="tarjeta space-y-3">
+        <span className="rotulo">Tu información</span>
+        <label className="block">
+          <span className="text-sm">Nombre</span>
+          <input className="campo mt-1 font-sans text-base" defaultValue={perfil.nombre}
+            onBlur={(e) => db.perfil.put({ ...perfil, nombre: e.target.value })} />
+        </label>
+        <label className="block">
+          <span className="flex items-baseline justify-between">
+            <span className="text-sm">Fecha de nacimiento</span>
+            <span className="text-[11px] text-humo">
+              {perfil.fechaNacimiento ? `${edadDe(perfil)} años` : 'sin fecha'}
+            </span>
+          </span>
+          <input className="campo mt-1" type="date" defaultValue={perfil.fechaNacimiento ?? ''}
+            onBlur={(e) => db.perfil.put({ ...perfil, fechaNacimiento: e.target.value || null })} />
+        </label>
+        <label className="block">
+          <span className="text-sm">Ciudad</span>
+          <input className="campo mt-1 font-sans text-base" defaultValue={perfil.ciudad}
+            onBlur={(e) => db.perfil.put({ ...perfil, ciudad: e.target.value })} />
+        </label>
+        <label className="block">
+          <span className="text-sm">A qué te dedicas</span>
+          <input className="campo mt-1 font-sans text-base" defaultValue={perfil.ocupacion}
+            onBlur={(e) => db.perfil.put({ ...perfil, ocupacion: e.target.value })} />
+        </label>
+      </section>
+
+      <section className="tarjeta">
+        <span className="rotulo">Condiciones de salud</span>
+        <p className="mt-1 text-[11px] text-humo">
+          De aquí sale por qué el gimnasio bloquea ciertos movimientos.
+        </p>
+        <ul className="mt-2 divide-y divide-marino-800">
+          {condiciones.map((c) => (
+            <li key={c.id} className="flex items-start justify-between gap-2 py-2.5">
+              <span className="min-w-0">
+                <span className="block text-sm">{c.nombre}</span>
+                <span className="block text-[11px] text-humo">{c.detalle}</span>
+              </span>
+              <button type="button" className="shrink-0 text-[11px] text-humo underline"
+                onClick={() => borrarCondicion(c.id!)}>
+                quitar
+              </button>
+            </li>
+          ))}
+          {condiciones.length === 0 && (
+            <li className="py-2 text-[12px] text-humo">Ninguna registrada.</li>
+          )}
+        </ul>
+        <input
+          className="campo mt-2 font-sans text-sm"
+          placeholder="Agregar una condición y presionar Enter"
+          onKeyDown={(e) => {
+            const v = (e.target as HTMLInputElement).value.trim()
+            if (e.key === 'Enter' && v) {
+              guardarCondicion({ nombre: v, detalle: '', activa: true, desde: null })
+              ;(e.target as HTMLInputElement).value = ''
+            }
+          }}
+        />
+      </section>
 
       <section className="tarjeta">
         <label className="block">

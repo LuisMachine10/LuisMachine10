@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, exportarRespaldo, importarRespaldo, sembrar } from './db'
 import { alternarToggle, fijarVasos, guardarPeso, guardarRegistro, registrosEntre, vasosDesdeLitros } from './registros'
-import { PERFIL_INICIAL } from '../dominio/metas'
+import { PERFIL_SUGERIDO } from '../dominio/metas'
 import { calcularPuntaje } from '../dominio/puntaje'
 
 const FECHA = '2026-09-07'
@@ -14,12 +14,20 @@ beforeEach(async () => {
 })
 
 describe('siembra desde el Excel', () => {
-  it('deja los catálogos completos y el perfil de arranque', async () => {
-    expect(await db.alimentos.count()).toBe(44)
-    expect(await db.ejercicios.count()).toBe(46)
-    expect(await db.progresion.count()).toBe(12)
-    expect(await db.menus.count()).toBe(9)
-    expect((await db.perfil.get('perfil'))!.pesoLb).toBe(220)
+  it('deja los catálogos completos', () => {
+    return Promise.all([
+      db.alimentos.count().then((n) => expect(n).toBe(44)),
+      db.ejercicios.count().then((n) => expect(n).toBe(46)),
+      db.progresion.count().then((n) => expect(n).toBe(12)),
+      db.menus.count().then((n) => expect(n).toBe(9)),
+    ])
+  })
+
+  it('pero NO inventa tus datos: el perfil arranca en blanco', async () => {
+    const p = (await db.perfil.get('perfil'))!
+    expect(p.pesoLb).toBe(0)
+    expect(p.nombre).toBe('')
+    expect(p.completado).toBe(false)
   })
 
   it('sembrar dos veces no duplica nada', async () => {
@@ -55,7 +63,7 @@ describe('registro diario', () => {
       alternarToggle(FECHA, 'suplementos'),
     ])
     const r = (await db.registros.get(FECHA))!
-    expect(calcularPuntaje(r, PERFIL_INICIAL).puntaje).toBe(51)
+    expect(calcularPuntaje(r, PERFIL_SUGERIDO).puntaje).toBe(51)
   })
 
   it('un día completo registrado da 100 y sobrevive a releer la base', async () => {
@@ -68,7 +76,7 @@ describe('registro diario', () => {
     await db.close()
     await db.open()
     const r = (await db.registros.get(FECHA))!
-    expect(calcularPuntaje(r, PERFIL_INICIAL).puntaje).toBe(100)
+    expect(calcularPuntaje(r, PERFIL_SUGERIDO).puntaje).toBe(100)
   })
 
   it('el contador de agua traduce vasos a litros y de vuelta', async () => {
@@ -105,7 +113,7 @@ describe('respaldo JSON', () => {
     await db.registros.clear()
     await db.pesos.clear()
     const r = await importarRespaldo(JSON.parse(JSON.stringify(respaldo)))
-    expect(r).toEqual({ registros: 1, pesos: 1 })
+    expect(r).toEqual({ registros: 1, pesos: 1, metas: 0, logros: 0 })
     expect((await db.registros.get(FECHA))!.proteinaG).toBe(195)
     expect((await db.pesos.get('2026-09-05'))!.pesoLb).toBe(220)
   })

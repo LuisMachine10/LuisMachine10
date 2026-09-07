@@ -1,10 +1,26 @@
 # Sistema Mena
 
-App personal para operar el plan de 12 semanas: disciplina, cuerpo, estudio y vida espiritual.
-La especificación funcional es `Sistema_Mena_Plan_Integral.xlsx` — todos los números y reglas
-salen de ahí, ninguno se inventó.
+Sistema personal de seguimiento de vida: disciplina, cuerpo, nutrición, estudio, vida
+espiritual, salud y carrera. El registro diario mide; las metas con fecha y los logros
+convierten esa medición en monitoreo.
 
-**Estado: las cuatro fases terminadas.** 110 pruebas.
+`Sistema_Mena_Plan_Integral.xlsx` fue el primer insumo, no la fuente de verdad. Lo que
+trae aparece como **sugerencia con su procedencia**, y no se guarda hasta que lo confirmes.
+
+**Estado: monitoreo completo funcionando.** 150 pruebas.
+
+## Cómo se arma, paso a paso
+
+La app arranca vacía y no deja registrar nada hasta saber de quién habla:
+
+1. **Tu información** — nombre, fecha de nacimiento (la edad se calcula sola), cuerpo y
+   condiciones de salud. Nada viene puesto.
+2. **Metas** — 16 propuestas sacadas del Excel, cada una diciendo de qué hoja salió.
+   Adoptas las que sirvan y escribes las tuyas. Sin fecha límite es un deseo, no una meta.
+3. **Línea base** — el primer pesaje y, si la tienes, la analítica de partida.
+4. **Monitoreo** — el registro diario, que alimenta todo lo anterior.
+
+HOY muestra en qué paso vas y cuál es el siguiente, hasta que el sistema esté montado.
 
 ## Cómo correrla
 
@@ -27,6 +43,7 @@ pantalla de gimnasio, que es donde no hay señal.
 | **COMER** | Buscador con favoritos arriba, gramos → macros en vivo, medidas caseras, y los menús modelo del Excel cargados de un toque. |
 | **ENTRENAR** | El día del split que toca, con el peso de la semana ya precargado desde PROGRESION. Dos toques por serie, temporizador de descanso automático, anclas destacadas y bloqueo de movimientos prohibidos. |
 | **PROGRESO** | Estado de resultados de la disciplina, peso con media móvil de 4, progresión de los levantamientos ancla, analítica de lípidos y exportación a CSV. |
+| **METAS** | Metas con fecha que se miden solas desde los datos que ya existen, con semáforo contra el plazo. Y los logros, que se escriben solos al cumplir una meta. |
 | **PLAN** | Solo lectura: horario, gimnasio, tabla de alimentos y calendario litúrgico. |
 
 Ajustes está detrás del ⚙ en HOY y en PROGRESO.
@@ -43,6 +60,8 @@ src/
     cargas.ts         Lectura de la hoja PROGRESION ("225 lb x 5", "5.0 x 10"…)
     promedios.ts      Promedios, estado de resultados, media móvil
     restricciones.ts  Bloqueo duro de movimientos prohibidos (§4.6)
+    perfil.ts         Edad calculada, qué falta por llenar, en qué paso va el sistema
+    metas-personales.ts  Medición automática de metas, semáforo y logros
     dias.ts           Tipo de día, split, semana del plan, fechas sin líos de zona horaria
     horario.ts        El siguiente bloque del día
     exportar.ts       CSV de bitácora, peso y sesiones
@@ -80,6 +99,11 @@ herramientas/
   cada alimento y aparece al pesarlo.
 - **Nada de gamificación**: sin insignias, sin rachas, sin notificaciones. La métrica es el
   promedio, no el día suelto.
+- **Las metas se miden solas**: una meta de peso lee tus pesajes, una de LDL lee tu analítica,
+  una de banca lee el mejor peso que completaste en el gimnasio. Cada una muestra de dónde
+  salió el número. Cuando se cumple, se cierra sola y deja el logro escrito.
+- **El semáforo compara avance contra plazo**, no contra el deseo: ir al 40% no dice nada si
+  ya se te fue el 80% del tiempo. Con 10% de holgura, porque el progreso no es lineal.
 
 ## Decisiones de gráfica
 

@@ -3,7 +3,7 @@ import { ALIMENTOS } from '../datos/seed/alimentos'
 import { MENUS } from '../datos/seed/menus'
 import { buscarAlimentos, comidaPorHora, macrosDelDia, macrosParaRegistro } from './comidas'
 import { aMinutos } from './horario'
-import { PERFIL_INICIAL, calcularMetas } from './metas'
+import { PERFIL_SUGERIDO, calcularMetas } from './metas'
 import type { Alimento, Comida } from './tipos'
 
 const mapa = new Map<number, Alimento>(ALIMENTOS.map((a) => [a.id, a]))
@@ -47,7 +47,7 @@ describe('un menú modelo cargado de una vez', () => {
     const comidas: Comida[] = MENUS.filter((m) => m.tipoDia === 'ENTRENO')
       .map((m, i) => ({ id: i, fecha: '2026-09-07', tipo: m.tipo, items: m.items }))
     const total = macrosDelDia(comidas, mapa)
-    expect(total.proteinaG).toBeGreaterThanOrEqual(calcularMetas(PERFIL_INICIAL).proteinaG)
+    expect(total.proteinaG).toBeGreaterThanOrEqual(calcularMetas(PERFIL_SUGERIDO).proteinaG)
   })
 })
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ALIMENTOS } from '../datos/seed/alimentos'
 import { MENUS } from '../datos/seed/menus'
 import { avisoDePesaje, macrosDeItem, macrosDeItems } from './macros'
-import { PERFIL_INICIAL, calcularMetas } from './metas'
+import { PERFIL_SUGERIDO, calcularMetas } from './metas'
 import type { Alimento } from './tipos'
 
 const porNombre = (n: string) => ALIMENTOS.find((a) => a.nombre === n)!
@@ -63,7 +63,7 @@ describe('menús modelo del Excel', () => {
 
   it('el día ENTRENO llega a la meta de proteína y queda cerca de las 2,750 kcal', () => {
     const t = macrosDeItems(totalDia('ENTRENO'), mapa)
-    const meta = calcularMetas(PERFIL_INICIAL)
+    const meta = calcularMetas(PERFIL_SUGERIDO)
     expect(t.proteinaG).toBeGreaterThanOrEqual(meta.proteinaG)
     expect(Math.abs(t.kcal - meta.kcalEntreno)).toBeLessThanOrEqual(300)
   })
@@ -72,11 +72,11 @@ describe('menús modelo del Excel', () => {
     const entreno = macrosDeItems(totalDia('ENTRENO'), mapa)
     const ligero = macrosDeItems(totalDia('LIGERO'), mapa)
     expect(ligero.carbG).toBeLessThan(entreno.carbG)
-    expect(ligero.proteinaG).toBeGreaterThanOrEqual(calcularMetas(PERFIL_INICIAL).proteinaG)
+    expect(ligero.proteinaG).toBeGreaterThanOrEqual(calcularMetas(PERFIL_SUGERIDO).proteinaG)
   })
 
   it('la cena de ruptura del viernes pasa del techo de 200 kcal del ayuno', () => {
     const t = macrosDeItems(totalDia('AYUNO'), mapa)
-    expect(t.kcal).toBeGreaterThan(PERFIL_INICIAL.techoKcalAyuno)
+    expect(t.kcal).toBeGreaterThan(PERFIL_SUGERIDO.techoKcalAyuno)
   })
 })
