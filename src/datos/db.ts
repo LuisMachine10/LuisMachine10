@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import type { Cuenta, LineaPresupuesto, Movimiento } from '../dominio/capital/tipos'
 import { PERFIL_VACIO } from '../dominio/metas'
 import type {
   Alimento, Analitica, Area, BloqueHorario, CargaSemana, Comida, CondicionSalud, Ejercicio,
@@ -41,6 +42,10 @@ export class BaseMena extends Dexie {
   metas!: Table<MetaPersonal, number>
   logros!: Table<Logro, number>
   condiciones!: Table<CondicionSalud, number>
+  // Mena Capital — un solo libro; los estados son lecturas de él.
+  cuentas!: Table<Cuenta, number>
+  movimientos!: Table<Movimiento, number>
+  presupuesto!: Table<LineaPresupuesto, number>
 
   constructor() {
     super('sistema-mena')
@@ -66,6 +71,13 @@ export class BaseMena extends Dexie {
       metas: '++id, area, estado, fechaLimite',
       logros: '++id, fecha, area, metaId',
       condiciones: '++id, activa',
+    })
+
+    // v3 — Mena Capital. Las cuentas y el libro de movimientos.
+    this.version(3).stores({
+      cuentas: '++id, clase, grupo, activa',
+      movimientos: '++id, fecha, debe, haber, origen',
+      presupuesto: '++id, mes, cuentaId',
     })
   }
 }
@@ -115,11 +127,15 @@ export interface Respaldo {
   metas: MetaPersonal[]
   logros: Logro[]
   condiciones: CondicionSalud[]
+  cuentas: Cuenta[]
+  movimientos: Movimiento[]
+  presupuesto: LineaPresupuesto[]
 }
 
 /** Respaldo: solo lo que el usuario produjo. Los catálogos se resiembran solos. */
 export async function exportarRespaldo(): Promise<Respaldo> {
-  const [perfil, registros, pesos, comidas, sesiones, analiticas, ajustes, metas, logros, condiciones] =
+  const [perfil, registros, pesos, comidas, sesiones, analiticas, ajustes, metas, logros, condiciones,
+         cuentas, movimientos, presupuesto] =
     await Promise.all([
       db.perfil.toArray(),
       db.registros.toArray(),
@@ -131,24 +147,28 @@ export async function exportarRespaldo(): Promise<Respaldo> {
       db.metas.toArray(),
       db.logros.toArray(),
       db.condiciones.toArray(),
+      db.cuentas.toArray(),
+      db.movimientos.toArray(),
+      db.presupuesto.toArray(),
     ])
   return {
     app: 'sistema-mena',
-    version: 2,
+    version: 3,
     exportadoEn: new Date().toISOString(),
     perfil, registros, pesos, comidas, sesiones, analiticas, ajustes, metas, logros, condiciones,
+    cuentas, movimientos, presupuesto,
   }
 }
 
 export async function importarRespaldo(
   datos: unknown,
-): Promise<{ registros: number; pesos: number; metas: number; logros: number }> {
+): Promise<{ registros: number; pesos: number; metas: number; logros: number; movimientos: number }> {
   const r = datos as Partial<Respaldo>
   if (!r || r.app !== 'sistema-mena') throw new Error('Ese archivo no es un respaldo de Sistema Mena.')
   await db.transaction(
     'rw',
     [db.perfil, db.registros, db.pesos, db.comidas, db.sesiones, db.analiticas, db.ajustes,
-     db.metas, db.logros, db.condiciones],
+     db.metas, db.logros, db.condiciones, db.cuentas, db.movimientos, db.presupuesto],
     async () => {
       if (r.perfil?.length) await db.perfil.bulkPut(r.perfil)
       if (r.registros?.length) await db.registros.bulkPut(r.registros)
@@ -160,6 +180,9 @@ export async function importarRespaldo(
       if (r.metas?.length) await db.metas.bulkPut(r.metas)
       if (r.logros?.length) await db.logros.bulkPut(r.logros)
       if (r.condiciones?.length) await db.condiciones.bulkPut(r.condiciones)
+      if (r.cuentas?.length) await db.cuentas.bulkPut(r.cuentas)
+      if (r.movimientos?.length) await db.movimientos.bulkPut(r.movimientos)
+      if (r.presupuesto?.length) await db.presupuesto.bulkPut(r.presupuesto)
     },
   )
   return {
@@ -167,5 +190,6 @@ export async function importarRespaldo(
     pesos: r.pesos?.length ?? 0,
     metas: r.metas?.length ?? 0,
     logros: r.logros?.length ?? 0,
+    movimientos: r.movimientos?.length ?? 0,
   }
 }

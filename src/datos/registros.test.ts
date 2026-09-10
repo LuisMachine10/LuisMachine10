@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { crearCuenta, guardarPresupuesto, registrarMovimiento } from './capital'
 import { db, exportarRespaldo, importarRespaldo, sembrar } from './db'
 import { alternarToggle, fijarVasos, guardarPeso, guardarRegistro, registrosEntre, vasosDesdeLitros } from './registros'
 import { PERFIL_SUGERIDO } from '../dominio/metas'
@@ -113,12 +114,63 @@ describe('respaldo JSON', () => {
     await db.registros.clear()
     await db.pesos.clear()
     const r = await importarRespaldo(JSON.parse(JSON.stringify(respaldo)))
-    expect(r).toEqual({ registros: 1, pesos: 1, metas: 0, logros: 0 })
+    expect(r).toEqual({ registros: 1, pesos: 1, metas: 0, logros: 0, movimientos: 0 })
     expect((await db.registros.get(FECHA))!.proteinaG).toBe(195)
     expect((await db.pesos.get('2026-09-05'))!.pesoLb).toBe(220)
   })
 
   it('rechaza un archivo que no es un respaldo de la app', async () => {
     await expect(importarRespaldo({ app: 'otra-cosa' })).rejects.toThrow('Sistema Mena')
+  })
+
+  it('el libro de Mena Capital también entra al respaldo', async () => {
+    // Una tabla que no está en el respaldo hace que el respaldo mienta: se
+    // restaura "todo" y las cuentas no vuelven.
+    const cuentaId = await crearCuenta(
+      { nombre: 'Banco', clase: 'ACTIVO', grupo: 'EFECTIVO', moneda: 'DOP',
+        seValuaAMercado: false, ticker: '', activa: true, nota: '' },
+      180_000, '2026-08-31',
+    )
+    const gastoId = await crearCuenta(
+      { nombre: 'Vivienda', clase: 'GASTO', grupo: 'GASTO FIJO', moneda: 'DOP',
+        seValuaAMercado: false, ticker: '', activa: true, nota: '' },
+      0, '2026-08-31',
+    )
+    await registrarMovimiento({
+      fecha: '2026-09-01', descripcion: 'Alquiler', monto: 35_000,
+      debe: gastoId, haber: cuentaId, origen: 'manual', conciliado: false,
+    })
+    await guardarPresupuesto('2026-09', [{ mes: '2026-09', cuentaId: gastoId, monto: 35_000, nota: '' }])
+
+    const respaldo = await exportarRespaldo()
+    expect(respaldo.cuentas).toHaveLength(2)
+    expect(respaldo.movimientos).toHaveLength(1)
+    expect(respaldo.presupuesto).toHaveLength(1)
+
+    await db.cuentas.clear()
+    await db.movimientos.clear()
+    await db.presupuesto.clear()
+    const r = await importarRespaldo(JSON.parse(JSON.stringify(respaldo)))
+    expect(r.movimientos).toBe(1)
+    expect(await db.cuentas.count()).toBe(2)
+    expect((await db.movimientos.get(1))!.monto).toBe(35_000)
+    expect((await db.presupuesto.count())).toBe(1)
+  })
+
+  it('no deja guardar un asiento roto: la validación vive antes de la base', async () => {
+    const banco = await crearCuenta(
+      { nombre: 'Banco', clase: 'ACTIVO', grupo: 'EFECTIVO', moneda: 'DOP',
+        seValuaAMercado: false, ticker: '', activa: true, nota: '' },
+      0, '2026-08-31',
+    )
+    await expect(registrarMovimiento({
+      fecha: '2026-09-01', descripcion: 'Contra sí misma', monto: 100,
+      debe: banco, haber: banco, origen: 'manual', conciliado: false,
+    })).rejects.toThrow(/sí misma/)
+    await expect(registrarMovimiento({
+      fecha: '2026-09-01', descripcion: 'Monto cero', monto: 0,
+      debe: banco, haber: 999, origen: 'manual', conciliado: false,
+    })).rejects.toThrow(/mayor que cero/)
+    expect(await db.movimientos.count()).toBe(0)
   })
 })

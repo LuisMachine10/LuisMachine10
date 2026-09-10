@@ -84,3 +84,23 @@ export function usarCondiciones() {
 export function usarAreas() {
   return useLiveQuery(() => db.areas.orderBy('orden').toArray(), [], [])
 }
+
+// --- Mena Capital
+
+export function usarCuentas() {
+  return useLiveQuery(() => db.cuentas.toArray(), [], [])
+}
+
+export function usarMovimientos() {
+  return useLiveQuery(() => db.movimientos.orderBy('fecha').toArray(), [], [])
+}
+
+export function usarPresupuesto() {
+  return useLiveQuery(() => db.presupuesto.toArray(), [], [])
+}
+
+export function usarTasaUSD(porDefecto: number) {
+  const guardada = useLiveQuery(() => db.ajustes.get('tasaUSD'), [])
+  const usd = Number(guardada?.valor)
+  return Number.isFinite(usd) && usd > 0 ? usd : porDefecto
+}

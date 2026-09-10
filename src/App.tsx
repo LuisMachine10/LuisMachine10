@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Ajustes } from './pantallas/Ajustes'
+import { Capital } from './pantallas/Capital'
 import { Comer } from './pantallas/Comer'
 import { Entrenar } from './pantallas/Entrenar'
 import { Hoy } from './pantallas/Hoy'
@@ -15,7 +16,7 @@ import { perfilUsable } from './dominio/perfil'
 
 export type Pantalla =
   | 'hoy' | 'comer' | 'entrenar' | 'metas' | 'progreso'
-  | 'plan' | 'peso' | 'ajustes' | 'logros'
+  | 'plan' | 'peso' | 'ajustes' | 'logros' | 'capital'
 
 const PESTANAS: { clave: Pantalla; etiqueta: string }[] = [
   { clave: 'hoy', etiqueta: 'Hoy' },
@@ -23,6 +24,7 @@ const PESTANAS: { clave: Pantalla; etiqueta: string }[] = [
   { clave: 'entrenar', etiqueta: 'Entrenar' },
   { clave: 'metas', etiqueta: 'Metas' },
   { clave: 'progreso', etiqueta: 'Progreso' },
+  { clave: 'capital', etiqueta: 'Capital' },
   { clave: 'plan', etiqueta: 'Plan' },
 ]
 
@@ -53,13 +55,14 @@ export default function App() {
         {pantalla === 'metas' && <Metas onIr={setPantalla} />}
         {pantalla === 'logros' && <Logros onVolver={() => setPantalla('metas')} />}
         {pantalla === 'progreso' && <Progreso onIr={setPantalla} />}
+        {pantalla === 'capital' && <Capital />}
         {pantalla === 'plan' && <Plan onIr={setPantalla} />}
         {pantalla === 'peso' && <PesoPantalla onVolver={() => setPantalla('progreso')} />}
         {pantalla === 'ajustes' && <Ajustes onVolver={() => setPantalla('hoy')} />}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-marino-800 bg-marino-950/95 backdrop-blur">
-        <div className="mx-auto grid max-w-md grid-cols-6">
+        <div className="mx-auto grid max-w-md grid-cols-7">
           {PESTANAS.map((p) => (
             <button
               key={p.clave}
