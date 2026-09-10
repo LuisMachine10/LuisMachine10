@@ -97,8 +97,9 @@ herramientas/
   entra. Nunca se bloquea en silencio.
 - **Pesaje**: crudo para carne y pescado, seco para arroz, pasta y avena. El aviso viaja con
   cada alimento y aparece al pesarlo.
-- **Nada de gamificación**: sin insignias, sin rachas, sin notificaciones. La métrica es el
-  promedio, no el día suelto.
+- **Nada de gamificación**: sin insignias, sin rachas, sin notificaciones motivacionales. La
+  métrica es el promedio, no el día suelto. El briefing es la excepción explícita: avisar que
+  salió el de las 6:00 o el de las 17:00 es entregar información, no empujar una racha.
 - **Las metas se miden solas**: una meta de peso lee tus pesajes, una de LDL lee tu analítica,
   una de banca lee el mejor peso que completaste en el gimnasio. Cada una muestra de dónde
   salió el número. Cuando se cumple, se cierra sola y deja el logro escrito.

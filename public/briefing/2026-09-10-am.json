@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "id": "2026-09-10-am",
+  "fecha": "2026-09-10",
+  "sesion": "AM",
+  "generadoEn": "2026-09-10T15:25:30-04:00",
+  "mercados": [
+    {
+      "nombre": "S&P 500",
+      "valor": "7,636.36",
+      "cambio": "−0.48%",
+      "direccion": "baja",
+      "comoDe": "cierre del 9 sep 2026",
+      "fuenteId": 1
+    },
+    {
+      "nombre": "Nasdaq Composite",
+      "valor": "26,253.34",
+      "cambio": "−0.64%",
+      "direccion": "baja",
+      "comoDe": "cierre del 9 sep 2026",
+      "fuenteId": 1
+    },
+    {
+      "nombre": "Dow Jones",
+      "valor": "52,380.66",
+      "cambio": "−0.77%",
+      "direccion": "baja",
+      "comoDe": "cierre del 9 sep 2026",
+      "fuenteId": 1
+    },
+    {
+      "nombre": "Tesoro 10 años",
+      "valor": "4.857%",
+      "cambio": "máx. desde nov 2023",
+      "direccion": "sube",
+      "comoDe": "cierre del 9 sep 2026",
+      "fuenteId": 1
+    },
+    {
+      "nombre": "WTI",
+      "valor": "US$102.48",
+      "cambio": "+6.7%",
+      "direccion": "sube",
+      "comoDe": "cierre del 9 sep 2026",
+      "fuenteId": 1
+    },
+    {
+      "nombre": "TPM del BCRD",
+      "valor": "5.25%",
+      "cambio": "sin cambio",
+      "direccion": "igual",
+      "comoDe": "reunión de agosto 2026",
+      "fuenteId": 3
+    }
+  ],
+  "bloques": [
+    {
+      "titulo": "Lo que mueve tu capital",
+      "puntos": [
+        {
+          "titulo": "El petróleo sobre US$100 empuja las tasas largas",
+          "detalle": "El WTI cerró en US$102.48, +6.7%, el nivel más alto desde el 19 de mayo, con el Brent pasando de US$105 intradía. El Tesoro a 10 años subió a 4.857%, su máximo desde noviembre de 2023. La guerra entre Estados Unidos e Irán va por el séptimo mes.",
+          "quePide": "Si tienes o piensas tomar deuda a tasa variable, este es el momento de mirar el vencimiento y el spread: la parte larga de la curva ya se movió.",
+          "tipo": "HECHO",
+          "fuenteId": 1
+        },
+        {
+          "titulo": "El mercado empezó a descontar alza de tasas, no recorte",
+          "detalle": "Los tres índices cerraron en rojo. La nómina de agosto salió más caliente de lo esperado y Kevin Warsh, presidente de la Fed, insinuó la posibilidad de subir tasas para atacar la inflación persistente. La decisión de la próxima semana depende de datos de precios al productor y al consumidor que los funcionarios verán después de votar.",
+          "quePide": "Nada hoy. Pero define el escenario: si la Fed sube, el diferencial de tasas con RD se estrecha y el peso pierde el viento a favor que trae del dólar débil.",
+          "tipo": "PRONOSTICO",
+          "fuenteId": 1
+        }
+      ]
+    },
+    {
+      "titulo": "República Dominicana",
+      "puntos": [
+        {
+          "titulo": "El BCRD mantuvo la TPM en 5.25% por otro mes",
+          "detalle": "La tasa de política monetaria sigue en 5.25%. Repos a 1 día en 5.75% y depósitos remunerados overnight en 4.50%. Los modelos del Banco Central proyectan que la inflación converja al rango meta de 4.0% ± 1.0% al cierre de 2026.",
+          "quePide": "Compara el rendimiento de tu certificado contra la TPM. Un instrumento en pesos que rinde por debajo del 5.47% de inflación interanual está perdiendo poder de compra, aunque el número nominal se vea bien.",
+          "tipo": "HECHO",
+          "fuenteId": 3
+        },
+        {
+          "titulo": "La inflación cede y el peso se aprecia más de 7% en el año",
+          "detalle": "La inflación interanual bajó de 5.67% en junio a 5.47% en julio; la subyacente quedó en 4.96%, ya dentro de la meta. El peso acumula una apreciación superior al 7% al cierre de agosto, apoyada en la debilidad del dólar en los mercados internacionales.",
+          "quePide": "Si tienes que convertir pesos a dólares para el corretaje, el tipo de cambio lleva siete meses a tu favor. Registra a qué tasa conviertes: es un dato, no un detalle.",
+          "tipo": "HECHO",
+          "fuenteId": 2
+        },
+        {
+          "titulo": "La actividad económica creció 4.6% interanual en julio",
+          "detalle": "El IMAE acumula una expansión de 4.5% en los primeros siete meses de 2026, con 4.6% interanual en julio.",
+          "quePide": "Contexto para tu trabajo: una economía creciendo a 4.5% con crédito a 5.25% no es un entorno de contracción. Si un cliente tuyo alega que 'el mercado está malo', el dato macro no lo respalda — el problema es de él, no del país.",
+          "tipo": "HECHO",
+          "fuenteId": 2
+        }
+      ]
+    }
+  ],
+  "lectura": [
+    "Hay una contradicción que vale la pena mirar de frente: afuera todo apunta a inflación —petróleo en US$102, +78% en el año, y el Tesoro a 10 años en máximos de dos años— mientras que aquí la inflación baja y el peso se aprecia 7%.",
+    "Esa apreciación no viene de fortaleza dominicana: viene de debilidad del dólar. Y República Dominicana importa el petróleo que está a US$102. Es decir, la desinflación que estás viendo es un dólar débil tapando un choque energético que todavía no ha pasado a los precios locales.",
+    "La pregunta que se cae de esto: ¿qué pasa con la meta de 4.0% ± 1.0% del BCRD si el dólar deja de debilitarse mientras el petróleo se queda arriba? El escenario que sostiene la TPM en 5.25% depende de una de las dos cosas cediendo."
+  ],
+  "decisiones": [
+    {
+      "texto": "Verifica el rendimiento real de tu certificado en pesos",
+      "porQue": "Con inflación interanual en 5.47% y TPM en 5.25%, un certificado que rinda cerca de la política monetaria tiene rendimiento real negativo. El número nominal se ve bien y aun así pierdes poder de compra."
+    },
+    {
+      "texto": "Anota la tasa de cambio a la que conviertas, si conviertes",
+      "porQue": "El peso lleva siete meses apreciándose por debilidad del dólar, no por fundamento local. Registrar la tasa de cada conversión es lo que después permite saber si ganaste o perdiste en el cambio, en vez de adivinarlo."
+    }
+  ],
+  "fuentes": [
+    {
+      "id": 1,
+      "medio": "CNBC",
+      "titulo": "Stock market news for Sept. 9, 2026 — cierre de índices, Tesoro y crudo",
+      "url": "https://www.cnbc.com/2026/09/08/stock-market-today-live-updates.html",
+      "fecha": "2026-09-09"
+    },
+    {
+      "id": 2,
+      "medio": "Diario Libre",
+      "titulo": "El Banco Central mantiene su tasa de política monetaria en 5.25 % anual",
+      "url": "https://www.diariolibre.com/economia/macroeconomia/2026/08/31/el-bcrd-mantiene-su-tasa-de-politica-monetaria-en-525--anual/3644652",
+      "fecha": "2026-08-31"
+    },
+    {
+      "id": 3,
+      "medio": "Banco Central de la República Dominicana",
+      "titulo": "Tasa de política monetaria y proyecciones de inflación",
+      "url": "https://www.bancentral.gov.do/",
+      "fecha": "2026-08-31"
+    }
+  ],
+  "faltantes": [
+    "Oro: la búsqueda no devolvió cierre confirmado del 9 de septiembre. No se inventa un número.",
+    "Reuters, Financial Times y MarketWatch bloquean el rastreador; WSJ y CNBC no responden por descarga directa desde el contenedor. Todo lo de arriba salió por búsqueda web.",
+    "Tu portafolio: las acciones están liquidadas, así que no hay posiciones que seguir todavía. Cuando las haya, este bloque las incluye."
+  ]
+}

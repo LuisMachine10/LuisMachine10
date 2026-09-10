@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import type { BriefingGuardado } from '../dominio/briefing/tipos'
 import type { Cuenta, LineaPresupuesto, Movimiento } from '../dominio/capital/tipos'
 import { PERFIL_VACIO } from '../dominio/metas'
 import type {
@@ -46,6 +47,8 @@ export class BaseMena extends Dexie {
   cuentas!: Table<Cuenta, number>
   movimientos!: Table<Movimiento, number>
   presupuesto!: Table<LineaPresupuesto, number>
+  /** El briefing bajado. Guardado para que el gimnasio y el avión no lo dejen en blanco. */
+  briefings!: Table<BriefingGuardado, string>
 
   constructor() {
     super('sistema-mena')
@@ -78,6 +81,11 @@ export class BaseMena extends Dexie {
       cuentas: '++id, clase, grupo, activa',
       movimientos: '++id, fecha, debe, haber, origen',
       presupuesto: '++id, mes, cuentaId',
+    })
+
+    // v4 — el briefing se guarda al bajarlo: sin señal se muestra el último.
+    this.version(4).stores({
+      briefings: 'id, descargadoEn',
     })
   }
 }

@@ -24,12 +24,15 @@ export async function guardarTasaUSD(usd: number): Promise<void> {
   await db.ajustes.put({ clave: 'tasaUSD', valor: usd })
 }
 
+/** Lo que define una cuenta. El saldo y la fecha de apertura van aparte: son del usuario. */
+export type DatosCuenta = Omit<Cuenta, 'id' | 'saldoInicial' | 'fechaApertura'>
+
 export async function crearCuenta(
-  propuesta: CuentaPropuesta | Omit<Cuenta, 'id'>,
+  datos: DatosCuenta | CuentaPropuesta,
   saldoInicial: number,
   fechaApertura: string,
 ): Promise<number> {
-  const { nombre, clase, grupo, moneda, seValuaAMercado, ticker, activa, nota } = propuesta as Cuenta
+  const { nombre, clase, grupo, moneda, seValuaAMercado, ticker, activa, nota } = datos
   return (await db.cuentas.add({
     nombre, clase, grupo, moneda,
     seValuaAMercado: seValuaAMercado ?? false,

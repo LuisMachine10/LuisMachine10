@@ -97,6 +97,9 @@ fue, nunca una pantalla en blanco ni un error.
 - `touch-action: manipulation` ya está puesto: nada de zoom accidental al registrar una serie.
 - **Cero gamificación**: sin insignias, sin rachas, sin notificaciones motivacionales. La
   métrica es el promedio, no el día suelto. Si una propuesta suena a Duolingo, no entra.
+  Esto no bloquea las notificaciones del briefing: avisar que salió el de las 6:00 o el de
+  las 17:00 entrega información, no empuja una racha. La regla es contra la gamificación,
+  no contra las notificaciones.
 
 ## Comandos
 
