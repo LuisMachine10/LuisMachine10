@@ -1,0 +1,472 @@
+/* Mena Capital · mismos tokens que app/globals.css (terminal oscura). Prefijo cap- para no chocar. */
+
+.cap-encabezado {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 16px;
+  background: var(--fondo);
+  border-bottom: 1px solid var(--borde);
+}
+.cap-encabezado .marca {
+  color: var(--ambar);
+}
+.cap-titulo {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+.cap-encabezado form {
+  margin-left: auto;
+}
+.cap-mes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.cap-mes select,
+.cap-campo input,
+.cap-campo select,
+.cap-campo textarea,
+.cap-tabla-form input,
+.cap-tabla-form select {
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 6px 8px;
+  background: var(--fondo);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  min-width: 0;
+}
+.cap-mes select {
+  font-size: 13px;
+  padding: 3px 6px;
+}
+.cap-campo textarea {
+  font-family: var(--sans);
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+}
+.cap-campo input:focus,
+.cap-campo select:focus,
+.cap-campo textarea:focus,
+.cap-tabla-form input:focus {
+  border-color: var(--ambar);
+  outline: none;
+}
+
+/* Pestañas: desplazables en celular, sin scroll horizontal de página */
+.cap-pestanas {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--borde);
+  scrollbar-width: none;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.cap-pestanas a {
+  flex: none;
+  padding: 9px 10px 8px;
+  font-size: 13px;
+  color: var(--texto-2);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.cap-pestanas a[aria-current="page"] {
+  color: var(--texto);
+  border-bottom-color: var(--ambar);
+}
+.cap-pestanas a:hover {
+  text-decoration: none;
+  color: var(--texto);
+}
+
+.cap-principal {
+  display: grid;
+  gap: 12px;
+  padding: 12px 16px 28px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+@media (min-width: 900px) {
+  .cap-principal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cap-principal > .cap-ancho {
+    grid-column: 1 / -1;
+  }
+}
+
+.cap-aviso {
+  padding: 8px 12px;
+  border: 1px solid currentColor;
+  font-size: 13px;
+}
+.cap-aviso.ok {
+  color: var(--sube);
+}
+.cap-aviso.error {
+  color: var(--baja);
+}
+.cap-aviso.info {
+  color: var(--texto-2);
+  border-color: var(--borde);
+}
+
+/* Cifra principal */
+.cap-heroe {
+  padding: 12px;
+}
+.cap-heroe .rotulo,
+.cap-rotulo {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+}
+.cap-heroe .valor {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.cap-heroe .valor small {
+  font-size: 15px;
+  color: var(--texto-3);
+  margin-right: 6px;
+}
+.cap-heroe .sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+
+/* Indicadores en rejilla */
+.cap-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--borde);
+}
+@media (min-width: 700px) {
+  .cap-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.cap-kpi {
+  background: var(--panel);
+  padding: 9px 12px 10px;
+  border-left: 3px solid var(--texto-3);
+  min-width: 0;
+}
+.cap-kpi.ok {
+  border-left-color: var(--sube);
+}
+.cap-kpi.alerta {
+  border-left-color: var(--ambar);
+}
+.cap-kpi.error {
+  border-left-color: var(--baja);
+}
+.cap-kpi .k {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 19px;
+  font-weight: 600;
+  margin: 2px 0;
+  overflow-wrap: anywhere;
+}
+.cap-kpi .m {
+  font-size: 11px;
+  color: var(--texto-3);
+}
+
+.cap-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.cap-dato {
+  background: var(--panel-alto);
+  padding: 8px 10px;
+  min-width: 0;
+}
+.cap-dato .n {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Hallazgos */
+.cap-hallazgos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cap-hallazgos li {
+  display: flex;
+  gap: 10px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--borde);
+}
+.cap-hallazgos li:first-child {
+  border-top: 0;
+}
+.cap-hallazgos .marca-nivel {
+  flex: none;
+  width: 18px;
+  font-family: var(--mono);
+  font-weight: 600;
+}
+.cap-hallazgos .error .marca-nivel {
+  color: var(--baja);
+}
+.cap-hallazgos .alerta .marca-nivel {
+  color: var(--ambar);
+}
+.cap-hallazgos .ok .marca-nivel {
+  color: var(--sube);
+}
+.cap-hallazgos strong {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+}
+.cap-hallazgos p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+
+/* Barras de progreso / asignación */
+.cap-barra {
+  position: relative;
+  height: 6px;
+  background: var(--panel-alto);
+  margin-top: 4px;
+}
+.cap-barra > span {
+  display: block;
+  height: 100%;
+  background: var(--rd);
+}
+.cap-barra > span.alerta {
+  background: var(--ambar);
+}
+.cap-barra > span.error {
+  background: var(--baja);
+}
+.cap-barra > i {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--texto);
+  opacity: 0.6;
+}
+
+.cap-nota {
+  font-size: 13px;
+  color: var(--texto-2);
+  margin: 8px 0 0;
+}
+.cap-nota strong {
+  color: var(--texto);
+}
+
+/* Formularios */
+.cap-form {
+  display: grid;
+  gap: 10px;
+}
+.cap-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px 10px;
+}
+.cap-campo {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--texto-2);
+  min-width: 0;
+}
+.cap-campo input,
+.cap-campo select {
+  width: 100%;
+}
+.cap-campo.casilla {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.cap-campo.casilla input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ambar);
+}
+.cap-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cap-boton {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  background: var(--panel-alto);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  cursor: pointer;
+}
+.cap-boton:hover {
+  border-color: var(--texto-3);
+}
+.cap-boton.primario {
+  background: var(--ambar);
+  color: #111;
+  border-color: var(--ambar);
+}
+.cap-boton.peligro {
+  color: var(--baja);
+}
+.cap-boton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cap-grupo {
+  border: 1px solid var(--borde);
+  background: var(--panel);
+  min-width: 0;
+}
+.cap-grupo + .cap-grupo {
+  margin-top: 8px;
+}
+.cap-grupo > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+.cap-grupo > summary::-webkit-details-marker {
+  display: none;
+}
+.cap-grupo > summary::before {
+  content: "▸";
+  color: var(--texto-3);
+  font-family: var(--mono);
+}
+.cap-grupo[open] > summary::before {
+  content: "▾";
+}
+.cap-grupo > summary .total {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.cap-grupo > .cuerpo {
+  padding: 4px 12px 12px;
+  border-top: 1px solid var(--borde);
+}
+
+/* Filas de partidas del cierre: etiqueta + desvío + monto, en una línea también a 390 px */
+.cap-partida {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 112px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.cap-partida:last-child {
+  border-bottom: 0;
+}
+.cap-partida label {
+  font-size: 13px;
+  min-width: 0;
+}
+.cap-partida label i {
+  display: block;
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.cap-partida input {
+  width: 100%;
+  text-align: right;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 6px 8px;
+  background: var(--fondo);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+}
+.cap-partida .desvio {
+  font-family: var(--mono);
+  font-size: 11px;
+  min-width: 56px;
+  text-align: right;
+}
+
+.cap-tabla-form td input {
+  width: 100%;
+  min-width: 80px;
+}
+
+.cap-tornado .neg {
+  fill: var(--baja);
+}
+.cap-tornado .pos {
+  fill: var(--sube);
+}
+.cap-grafico {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.cap-grafico text {
+  fill: var(--texto-3);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.cap-grafico .rejilla {
+  stroke: var(--rejilla);
+}
+
+.cap-texto-ips {
+  white-space: pre-wrap;
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+
+.cap-resumen-terminal .cap-kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
