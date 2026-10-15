@@ -1,0 +1,211 @@
+/* Strategya · módulo República Dominicana. Usa los tokens de app/globals.css. */
+
+.rd-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 10px 16px 0;
+  font-size: 13px;
+}
+.rd-subnav a {
+  color: var(--texto-2);
+}
+.rd-subnav a[aria-current="page"] {
+  color: var(--rd);
+  border-bottom: 2px solid var(--rd);
+}
+
+.rd-marca {
+  color: var(--rd);
+}
+
+/* Cifras grandes del panel principal */
+.rd-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.rd-cifra {
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--rd);
+}
+.rd-cifra dt {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+}
+.rd-cifra dd {
+  margin: 0;
+}
+.rd-valor {
+  display: block;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+.rd-detalle {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-2);
+}
+.rd-detalle .mono {
+  font-size: 12px;
+}
+.rd-cifra .sello {
+  margin-top: 4px;
+}
+
+.rd-sin-dato {
+  display: block;
+  font-size: 13px;
+  color: var(--texto-3);
+}
+
+.rd-bloque + .rd-bloque {
+  margin-top: 14px;
+}
+.rd-bloque > h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+.rd-sellos {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+}
+.rd-mes {
+  display: block;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--texto-3);
+}
+
+/* Listas de emisiones y avisos */
+.rd-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rd-lista li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--borde);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.rd-lista li:last-child {
+  border-bottom: 0;
+}
+.rd-lista .rd-fecha {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--texto-3);
+  margin-right: 6px;
+}
+.rd-lista .rd-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-2);
+}
+
+.rd-rejilla-2 {
+  display: grid;
+  gap: 14px;
+}
+@media (min-width: 900px) {
+  .rd-rejilla-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Carga manual */
+.rd-formularios {
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 900px) {
+  .rd-formularios {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.rd-form {
+  display: grid;
+  gap: 10px;
+}
+.rd-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.rd-form .rd-fila {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+.rd-form input,
+.rd-form select,
+.rd-form textarea {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 9px;
+  background: var(--fondo);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+}
+.rd-form input.mono {
+  font-family: var(--mono);
+}
+.rd-form button {
+  justify-self: start;
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 14px;
+  background: var(--ambar);
+  color: #111;
+  border: 0;
+  cursor: pointer;
+}
+.rd-form button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.rd-form .rd-ayuda {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.rd-mensaje {
+  margin: 0;
+  font-size: 13px;
+}
+.rd-mensaje.ok {
+  color: var(--sube);
+}
+.rd-mensaje.error {
+  color: var(--baja);
+}
+
+.rd-caption {
+  caption-side: top;
+  text-align: left;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-2);
+}

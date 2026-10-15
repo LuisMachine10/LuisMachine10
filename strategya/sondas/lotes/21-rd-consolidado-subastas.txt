@@ -1,0 +1,3 @@
+# Módulo RD · Consolidado de subastas de Crédito Público (montos y tasas de corte que la página no trae en HTML).
+# Enlace tomado de pruebas/muestras/credito-publico/subastas-2026.html. Guardar en pruebas/muestras/credito-publico/.
+fetchb64 https://www.creditopublico.gob.do/Content/subastas/consolidados/2026/02Consolidado.xlsx 4000000
