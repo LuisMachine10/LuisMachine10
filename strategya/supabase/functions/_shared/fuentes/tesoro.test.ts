@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Respuesta } from "../http.ts";
-import { type Almacen, correrTarea, type FilaObservacion } from "../ingesta.ts";
+import { almacenMemoria } from "../../../../pruebas/apoyo/almacen-memoria.ts";
+import { correrTarea, type FilaObservacion } from "../ingesta.ts";
 import { CAMPOS_TESORO, mesesAConsultar, parsearXmlTesoro, tareaTesoro, urlPaginaTesoro, urlXmlTesoro } from "./tesoro.ts";
 
 // Descarga real del 15 oct 2026 (sonda en GitHub Actions). No se edita a mano.
@@ -93,27 +94,13 @@ describe("mesesAConsultar (fecha de Nueva York)", () => {
   });
 });
 
-describe("tarea ingesta-tesoro de punta a punta (con almacén en memoria)", () => {
-  function almacenMemoria() {
-    const guardadas: FilaObservacion[] = [];
-    const cierres: unknown[] = [];
-    const almacen: Almacen = {
-      iniciarCorrida: async () => 1,
-      terminarCorrida: async (_id, c) => void cierres.push(c),
-      registrarObservaciones: async (_id, filas) => {
-        guardadas.push(...filas);
-        return { recibidas: filas.length, insertadas: filas.length, actualizadas: 0 };
-      },
-    };
-    return { almacen, guardadas, cierres };
-  }
-
+describe("tarea tesoro de punta a punta (con almacén en memoria)", () => {
   const respuesta = (url: string, texto: string): Respuesta => ({ url, status: 200, tipo: "text/xml", texto, intentos: 1 });
   const vacio = `<feed xmlns="http://www.w3.org/2005/Atom"><title type="text">DailyTreasuryYieldCurveRateData</title></feed>`;
   const ahora = () => new Date("2026-10-15T22:15:00Z");
 
   it("guarda octubre y septiembre y cierra en ok", async () => {
-    const { almacen, guardadas, cierres } = almacenMemoria();
+    const { almacen, observaciones: guardadas, cierres } = almacenMemoria();
     const pedidas: string[] = [];
     const r = await correrTarea(tareaTesoro, almacen, {
       ahora,
@@ -145,7 +132,7 @@ describe("tarea ingesta-tesoro de punta a punta (con almacén en memoria)", () =
   });
 
   it("si fallan los dos meses la corrida queda en error y no se guarda nada", async () => {
-    const { almacen, guardadas } = almacenMemoria();
+    const { almacen, observaciones: guardadas } = almacenMemoria();
     const r = await correrTarea(tareaTesoro, almacen, {
       ahora,
       obtener: async () => {

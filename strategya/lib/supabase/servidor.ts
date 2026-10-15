@@ -24,3 +24,8 @@ export async function clienteServidor() {
 export async function mercado() {
   return (await clienteServidor()).schema("mercado");
 }
+
+/** Esquema personal (Mena Capital y Calendario de Caja). RLS aplica igual. */
+export async function personal() {
+  return (await clienteServidor()).schema("personal");
+}

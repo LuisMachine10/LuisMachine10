@@ -12,6 +12,6 @@ schemas = ["public", "graphql_public", "mercado"]
 # Un solo usuario: nadie más puede registrarse.
 enable_signup = false
 
-[functions.ingesta-tesoro]
+[functions.ingesta]
 # La función no recibe JWT de usuario: la autentica el encabezado x-strategya-secreto.
 verify_jwt = false

@@ -1,6 +1,8 @@
 {
   "imports": {
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.117.3",
-    "fast-xml-parser": "npm:fast-xml-parser@5.11.2"
+    "fast-xml-parser": "npm:fast-xml-parser@5.11.2",
+    "fflate": "npm:fflate@0.8.3",
+    "big.js": "npm:big.js@7.0.1"
   }
 }

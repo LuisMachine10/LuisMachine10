@@ -37,7 +37,7 @@ export async function datosTesoro(diasAtras = 45) {
     db.from("series").select("id, nombre, nombre_corto, orden, max_antiguedad_min").eq("fuente_id", "tesoro_eeuu").order("orden"),
     db.from("observaciones").select(COLUMNAS_OBS).eq("fuente_id", "tesoro_eeuu").gte("fecha_dato", desde).order("fecha_dato"),
     db.from("fuentes").select("nombre, url").eq("id", "tesoro_eeuu").maybeSingle(),
-    db.from("estado_tareas").select("estado, inicio, ultima_ok, error").eq("tarea", "ingesta-tesoro").maybeSingle(),
+    db.from("estado_tareas").select("estado, inicio, ultima_ok, error").eq("tarea", "tesoro").maybeSingle(),
   ]);
   return {
     series: exigir(series, "las series") as SerieCurva[],

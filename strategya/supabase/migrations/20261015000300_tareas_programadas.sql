@@ -76,7 +76,7 @@ begin
 
   if v_url is null or v_secreto is null then
     insert into mercado.corridas (tarea, estado, fin, error)
-    values (p_funcion, 'error', now(),
+    values (coalesce(p_cuerpo ->> 'tarea', p_funcion), 'error', now(),
             'No se pudo invocar: faltan los secretos en Vault. Correr mercado.configurar_tareas(url, secreto).');
     return null;
   end if;
@@ -102,9 +102,9 @@ grant execute on function mercado.invocar_tarea(text, jsonb) to service_role;
 -- Tesoro: la curva del día se publica al cierre de la tarde en Nueva York.
 --   22:15 UTC = 6:15 PM RD · 23:45 UTC = 7:45 PM RD (segunda pasada por si se atrasa)
 --   11:00 UTC = 7:00 AM RD de lunes a sábado (recupera lo que la noche no vio)
-select cron.schedule('strategya-tesoro-tarde',  '15 22 * * 1-5', $$select mercado.invocar_tarea('ingesta-tesoro')$$);
-select cron.schedule('strategya-tesoro-noche',  '45 23 * * 1-5', $$select mercado.invocar_tarea('ingesta-tesoro')$$);
-select cron.schedule('strategya-tesoro-manana', '0 11 * * 1-6',  $$select mercado.invocar_tarea('ingesta-tesoro')$$);
+select cron.schedule('strategya-tesoro-tarde',  '15 22 * * 1-5', $$select mercado.invocar_tarea('ingesta', '{"tarea":"tesoro"}')$$);
+select cron.schedule('strategya-tesoro-noche',  '45 23 * * 1-5', $$select mercado.invocar_tarea('ingesta', '{"tarea":"tesoro"}')$$);
+select cron.schedule('strategya-tesoro-manana', '0 11 * * 1-6',  $$select mercado.invocar_tarea('ingesta', '{"tarea":"tesoro"}')$$);
 
 -- Limpieza diaria (4:30 AM RD): corridas viejas, corridas colgadas y el historial de pg_cron.
 select cron.schedule('strategya-limpieza', '30 8 * * *', $$

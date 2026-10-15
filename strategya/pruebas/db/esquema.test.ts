@@ -117,7 +117,7 @@ describe("RLS · un solo dueño", () => {
     await como(pool, "authenticated", MENA, async (c) => {
       const { rows } = await c.query("select valor::text from mercado.observaciones where serie_id = 'UST_3M'");
       expect(rows).toEqual([{ valor: "4.17" }]);
-      const series = await c.query("select count(*)::int as n from mercado.series");
+      const series = await c.query("select count(*)::int as n from mercado.series where fuente_id = 'tesoro_eeuu'");
       expect(series.rows[0].n).toBe(14);
     });
   });
@@ -164,7 +164,9 @@ describe("RLS · un solo dueño", () => {
 
 describe("tareas programadas", () => {
   it("deja programadas las corridas del Tesoro y la limpieza", async () => {
-    const { rows } = await pool.query("select jobname, schedule from cron.job order by jobname");
+    const { rows } = await pool.query(
+      "select jobname, schedule from cron.job where jobname in ('strategya-limpieza', 'strategya-tesoro-manana', 'strategya-tesoro-noche', 'strategya-tesoro-tarde') order by jobname",
+    );
     expect(rows).toEqual([
       { jobname: "strategya-limpieza", schedule: "30 8 * * *" },
       { jobname: "strategya-tesoro-manana", schedule: "0 11 * * 1-6" },
@@ -177,10 +179,10 @@ describe("tareas programadas", () => {
     const c = await pool.connect();
     try {
       await c.query("begin");
-      const r = await c.query("select mercado.invocar_tarea('ingesta-tesoro') as id");
+      const r = await c.query(`select mercado.invocar_tarea('ingesta', '{"tarea":"tesoro"}') as id`);
       expect(r.rows[0].id).toBeNull();
       const e = await c.query("select tarea, estado, error from mercado.estado_tareas");
-      expect(e.rows[0]).toMatchObject({ tarea: "ingesta-tesoro", estado: "error" });
+      expect(e.rows[0]).toMatchObject({ tarea: "tesoro", estado: "error" });
       expect(e.rows[0].error).toMatch(/faltan los secretos/);
     } finally {
       await c.query("rollback");
@@ -200,10 +202,11 @@ describe("tareas programadas", () => {
       const secreto = "s".repeat(40);
       await c.query("select mercado.configurar_tareas('https://abc.supabase.co', $1)", [secreto]);
       await c.query("select mercado.configurar_tareas('https://abc.supabase.co', $1)", [secreto]); // idempotente
-      await c.query("select mercado.invocar_tarea('ingesta-tesoro')");
-      const { rows } = await c.query("select url, headers from net.pedidos_simulados");
+      await c.query(`select mercado.invocar_tarea('ingesta', '{"tarea":"tesoro"}')`);
+      const { rows } = await c.query("select url, headers, body from net.pedidos_simulados");
       expect(rows).toHaveLength(1);
-      expect(rows[0].url).toBe("https://abc.supabase.co/functions/v1/ingesta-tesoro");
+      expect(rows[0].url).toBe("https://abc.supabase.co/functions/v1/ingesta");
+      expect(rows[0].body).toEqual({ tarea: "tesoro" });
       expect(rows[0].headers["x-strategya-secreto"]).toBe(secreto);
       await expect(c.query("select mercado.invocar_tarea('../otra')")).rejects.toThrow(/inválido/);
     } finally {

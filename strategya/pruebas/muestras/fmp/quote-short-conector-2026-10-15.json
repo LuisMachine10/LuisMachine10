@@ -1,0 +1,12 @@
+{
+  "_nota": "Respuestas reales del endpoint quote-short de FMP, obtenidas el 15 oct 2026 con la cuenta de Mena a través del conector FMP (mismo formato que la API REST /stable/quote-short). Plan actual: permite índices, divisas, oro, plata, Brent y BTC; niega cobre (HGUSD), el ETF CPER, las consultas por lote y las cotizaciones completas.",
+  "^GSPC": [{"symbol":"^GSPC","price":7705.79,"change":-13.15,"volume":785287574}],
+  "AAPL": [{"symbol":"AAPL","price":344.97,"change":2.01,"volume":10077966}],
+  "EURUSD": [{"symbol":"EURUSD","price":1.1219,"change":0.00624,"volume":140960}],
+  "GCUSD": [{"symbol":"GCUSD","price":4173.5,"change":65.6,"volume":113386}],
+  "^N225": [{"symbol":"^N225","price":64425.95,"change":-3318.34,"volume":0}],
+  "SIUSD": [{"symbol":"SIUSD","price":56.905,"change":1.028,"volume":29704}],
+  "BZUSD": [{"symbol":"BZUSD","price":105.27,"change":-0.79,"volume":30921}],
+  "BTCUSD": [{"symbol":"BTCUSD","price":81200,"change":-1177.31408,"volume":41400139776}],
+  "^RUT": [{"symbol":"^RUT","price":2745.47336,"change":15.9422,"volume":0}]
+}

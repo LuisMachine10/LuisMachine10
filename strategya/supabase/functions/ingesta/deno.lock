@@ -100,7 +100,9 @@
   "workspace": {
     "dependencies": [
       "npm:@supabase/supabase-js@2.117.3",
-      "npm:fast-xml-parser@5.11.2"
+      "npm:big.js@7.0.1",
+      "npm:fast-xml-parser@5.11.2",
+      "npm:fflate@0.8.3"
     ]
   }
 }

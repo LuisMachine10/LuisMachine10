@@ -11,6 +11,8 @@ function almacenFalso(opciones: { fallaAlCerrar?: boolean } = {}) {
       cierres.push(c);
     },
     registrarObservaciones: async (_id, f) => ({ recibidas: f.length, insertadas: f.length, actualizadas: 0 }),
+    guardar: async (_t, f) => f.length,
+    rpc: async () => null as never,
   };
   return { almacen, cierres };
 }

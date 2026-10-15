@@ -49,6 +49,65 @@ jobs:
       - name: Pruebas de base de datos (migraciones, RLS, ingesta de punta a punta)
         run: npm run test:db
       - name: Edge Functions con Deno
-        run: npx deno check --config supabase/functions/ingesta-tesoro/deno.json supabase/functions/ingesta-tesoro/index.ts
+        run: npx deno check --config supabase/functions/ingesta/deno.json supabase/functions/ingesta/index.ts
       - name: Build de producción
         run: npm run build
+
+  # Despliegue: solo en push a la rama de trabajo o a la rama principal, después de las pruebas.
+  # Si los secretos de GitHub no están cargados, el paso «supabase» avisa y todo lo demás se salta.
+  desplegar:
+    needs: pruebas
+    if: github.event_name == 'push' && (github.ref_name == 'claude/wizardly-fermi-lavo78' || github.ref_name == github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: strategya-desplegar
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: strategya
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      STRATEGYA_EMAIL: ${{ secrets.STRATEGYA_EMAIL }}
+      STRATEGYA_CLAVE: ${{ secrets.STRATEGYA_CLAVE }}
+      FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+      FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Supabase (proyecto, migraciones, usuario, secretos)
+        id: supa
+        run: node despliegue/desplegar.mjs supabase
+      - uses: supabase/setup-cli@v1
+        if: steps.supa.outputs.listo == 'si'
+        with:
+          version: 2.120.0
+      - name: Subir la Edge Function de ingesta
+        if: steps.supa.outputs.listo == 'si'
+        run: supabase functions deploy ingesta --project-ref "${{ steps.supa.outputs.ref }}" --no-verify-jwt --use-api
+      - name: Programar tareas y primera lectura de cada fuente
+        if: steps.supa.outputs.listo == 'si'
+        env:
+          PROJECT_REF: ${{ steps.supa.outputs.ref }}
+        run: node despliegue/desplegar.mjs tareas
+      - name: Vercel (proyecto y variables)
+        id: vercel
+        if: steps.supa.outputs.listo == 'si'
+        env:
+          PROJECT_REF: ${{ steps.supa.outputs.ref }}
+        run: node despliegue/desplegar.mjs vercel
+      - name: Publicar en Vercel
+        if: steps.vercel.outputs.listo == 'si'
+        run: npx --yes vercel@62.0.0 deploy --prod --yes --token "$VERCEL_TOKEN"
+      - name: Dirección final
+        if: steps.vercel.outputs.listo == 'si'
+        env:
+          PROJECT_REF: ${{ steps.supa.outputs.ref }}
+        run: node despliegue/desplegar.mjs final

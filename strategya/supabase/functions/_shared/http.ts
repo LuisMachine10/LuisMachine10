@@ -33,6 +33,16 @@ export interface Respuesta {
   intentos: number;
 }
 
+export interface OpcionesApi {
+  metodo?: "GET" | "POST";
+  encabezados?: Record<string, string>;
+  /** Cuerpo JSON (se serializa) o texto. */
+  cuerpo?: unknown;
+  timeoutMs?: number;
+  /** Por defecto solo se reintenta GET; un POST se reintenta solo si se pide. */
+  reintentar?: boolean;
+}
+
 export interface OpcionesHttp {
   agente: string;
   timeoutMs?: number;
@@ -101,6 +111,58 @@ export async function obtenerTexto(url: string, op: OpcionesHttp): Promise<Respu
   throw new ErrorIngesta(`Falló tras ${reintentos + 1} intentos (${ultimoError}): ${url}`, url);
 }
 
+/**
+ * Llamada a una API documentada (con clave). No pasa por robots.txt: la regla que aplica es el
+ * término de uso de la API. Sí respeta la lista de dominios prohibidos, el tiempo máximo y reintenta
+ * 429/5xx en GET (y en POST solo si opciones.reintentar).
+ */
+export async function pedirApi(url: string, op: OpcionesHttp, api: OpcionesApi = {}): Promise<Respuesta> {
+  if (dominioProhibido(url)) {
+    throw new ErrorIngesta(`Dominio prohibido para lectura automática: ${new URL(url).hostname}`, url);
+  }
+  const f = op.fetch ?? fetch;
+  const dormir = op.dormir ?? dormirReal;
+  const metodo = api.metodo ?? "GET";
+  const timeoutMs = api.timeoutMs ?? op.timeoutMs ?? 20_000;
+  const reintentos = metodo === "GET" || api.reintentar ? (op.reintentos ?? 3) : 0;
+  const base = op.esperaBaseMs ?? 1_000;
+  const encabezados: Record<string, string> = { "User-Agent": op.agente, Accept: "application/json", ...api.encabezados };
+  let cuerpo: string | undefined;
+  if (api.cuerpo !== undefined) {
+    cuerpo = typeof api.cuerpo === "string" ? api.cuerpo : JSON.stringify(api.cuerpo);
+    if (typeof api.cuerpo !== "string") encabezados["Content-Type"] ??= "application/json";
+  }
+
+  let ultimoError = "";
+  for (let intento = 1; intento <= reintentos + 1; intento++) {
+    const control = new AbortController();
+    const reloj = setTimeout(() => control.abort(), timeoutMs);
+    let retryAfter: string | null = null;
+    try {
+      const r = await f(url, { method: metodo, headers: encabezados, body: cuerpo, signal: control.signal });
+      const texto = await r.text();
+      if (r.ok) return { url, status: r.status, tipo: r.headers.get("content-type") ?? "", texto, intentos: intento };
+      if (r.status !== 429 && r.status < 500) {
+        throw new ErrorIngesta(`HTTP ${r.status} en ${ocultarClaves(url)}: ${texto.slice(0, 300)}`, ocultarClaves(url), r.status);
+      }
+      retryAfter = r.headers.get("retry-after");
+      ultimoError = `HTTP ${r.status}`;
+    } catch (e) {
+      if (e instanceof ErrorIngesta) throw e;
+      ultimoError = control.signal.aborted ? `sin respuesta en ${timeoutMs} ms` : `error de red: ${(e as Error).message}`;
+    } finally {
+      clearTimeout(reloj);
+    }
+    if (intento <= reintentos) await dormir(esperaReintento(intento, base, retryAfter));
+  }
+  throw new ErrorIngesta(`Falló tras ${reintentos + 1} intentos (${ultimoError}): ${ocultarClaves(url)}`, ocultarClaves(url));
+}
+
+/** Quita claves de API de una URL antes de escribirla en un error o en /estado. */
+export function ocultarClaves(url: string): string {
+  return url.replace(/([?&](?:apikey|api_key|token|key)=)[^&]+/gi, "$1***");
+}
+
 export type DecisionRobots =
   | { permitido: true; crawlDelaySeg?: number }
   | { permitido: false; motivo: string };
@@ -120,7 +182,11 @@ export class Lector {
   private readonly ultimaLlamada = new Map<string, number>();
 
   constructor(
-    private readonly op: OpcionesHttp & { ahora?: () => number },
+    private readonly op: OpcionesHttp & {
+      ahora?: () => number;
+      /** User-Agent distinto por sitio (la SEC exige un correo de contacto; el resto no lo recibe). */
+      agentePara?: (host: string) => string | undefined;
+    },
   ) {}
 
   private reglasDe(origen: string): Promise<ReglasRobots | DecisionRobots> {
@@ -165,6 +231,7 @@ export class Lector {
       if (falta > 0) await (this.op.dormir ?? dormirReal)(Math.min(falta, 30_000));
     }
     this.ultimaLlamada.set(origen, ahora());
-    return obtenerTexto(url, this.op);
+    const agente = this.op.agentePara?.(new URL(url).hostname) ?? this.op.agente;
+    return obtenerTexto(url, { ...this.op, agente });
   }
 }

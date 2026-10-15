@@ -105,7 +105,7 @@ export function parsearXmlTesoro(xml: string, urlDato: string): LecturaTesoro {
 }
 
 export const tareaTesoro: Tarea = {
-  nombre: "ingesta-tesoro",
+  nombre: "tesoro",
   fuenteId: "tesoro_eeuu",
   async ejecutar(ctx) {
     const meses = mesesAConsultar(ctx.ahora);

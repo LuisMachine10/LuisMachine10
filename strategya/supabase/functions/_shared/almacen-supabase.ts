@@ -18,6 +18,21 @@ export function almacenSupabase(cliente: SupabaseClient): Almacen {
         .eq("id", id);
       if (error) throw new Error(error.message);
     },
+    async guardar(tabla, filas, opciones = {}) {
+      const consulta = db.from(tabla).upsert(filas, {
+        onConflict: opciones.conflicto,
+        ignoreDuplicates: opciones.ignorarDuplicados ?? false,
+        count: "exact",
+      });
+      const { error, count } = await consulta;
+      if (error) throw new Error(`guardar en ${tabla}: ${error.message}`);
+      return count ?? filas.length;
+    },
+    async rpc(funcion, args = {}) {
+      const { data, error } = await db.rpc(funcion, args);
+      if (error) throw new Error(`${funcion}: ${error.message}`);
+      return data as never;
+    },
     async registrarObservaciones(corridaId, filas) {
       const { data, error } = await db.rpc("registrar_observaciones", { p_corrida_id: corridaId, p_filas: filas });
       if (error) throw new Error(`registrar_observaciones: ${error.message}`);

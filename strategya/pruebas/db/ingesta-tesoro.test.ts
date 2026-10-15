@@ -5,49 +5,13 @@ import Big from "big.js";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { tareaTesoro, urlXmlTesoro } from "../../supabase/functions/_shared/fuentes/tesoro.ts";
-import { type Almacen, correrTarea } from "../../supabase/functions/_shared/ingesta.ts";
+import { correrTarea } from "../../supabase/functions/_shared/ingesta.ts";
+import { almacenPg } from "./almacen-pg";
 import { baseNueva, como } from "./base";
 
 const XML_OCT = readFileSync(join(import.meta.dirname, "..", "muestras", "tesoro", "daily_treasury_yield_curve_202610.xml"), "utf8");
 const VACIO = `<feed xmlns="http://www.w3.org/2005/Atom"><title type="text">DailyTreasuryYieldCurveRateData</title></feed>`;
 const MENA = "11111111-1111-1111-1111-111111111111";
-
-/** Mismo contrato que almacenSupabase, pero por SQL directo y con el rol service_role. */
-function almacenPg(pool: pg.Pool): Almacen {
-  const servicio = async <T>(sql: string, params: unknown[]): Promise<T[]> => {
-    const c = await pool.connect();
-    try {
-      await c.query("begin");
-      await c.query("set local role service_role");
-      const r = await c.query(sql, params);
-      await c.query("commit");
-      return r.rows as T[];
-    } catch (e) {
-      await c.query("rollback");
-      throw e;
-    } finally {
-      c.release();
-    }
-  };
-  return {
-    async iniciarCorrida(tarea, fuenteId) {
-      const [f] = await servicio<{ id: string }>("insert into mercado.corridas (tarea, fuente_id) values ($1, $2) returning id", [tarea, fuenteId]);
-      return Number(f.id);
-    },
-    async terminarCorrida(id, c) {
-      await servicio("update mercado.corridas set fin = now(), estado = $2, error = $3, filas = $4, detalle = $5 where id = $1", [
-        id, c.estado, c.error ?? null, c.filas, JSON.stringify(c.detalle),
-      ]);
-    },
-    async registrarObservaciones(corridaId, filas) {
-      const [r] = await servicio<{ recibidas: number; insertadas: number; actualizadas: number }>(
-        "select * from mercado.registrar_observaciones($1, $2::jsonb)",
-        [corridaId, JSON.stringify(filas)],
-      );
-      return r;
-    },
-  };
-}
 
 let pool: pg.Pool;
 
@@ -77,7 +41,7 @@ describe("ingesta del Tesoro de punta a punta", () => {
     const r = await correrTarea(tareaTesoro, almacenPg(pool), dependencias);
     expect(r).toMatchObject({ estado: "ok", filas: 126 });
     const estado = await pool.query("select tarea, estado, filas, detalle->>'ultima_fecha' as ultima from mercado.estado_tareas");
-    expect(estado.rows).toEqual([{ tarea: "ingesta-tesoro", estado: "ok", filas: 126, ultima: "2026-10-14" }]);
+    expect(estado.rows).toEqual([{ tarea: "tesoro", estado: "ok", filas: 126, ultima: "2026-10-14" }]);
   });
 
   it("segunda corrida con los mismos datos: no reescribe nada", async () => {

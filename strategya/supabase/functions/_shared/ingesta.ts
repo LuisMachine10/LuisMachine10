@@ -1,7 +1,7 @@
 // Orquestador de una corrida de ingesta: abre la corrida, ejecuta la tarea, la cierra
 // con su estado y nunca deja una excepción sin registrar en mercado.corridas.
 
-import type { Respuesta } from "./http.ts";
+import type { OpcionesApi, Respuesta } from "./http.ts";
 
 export type EstadoObservacion = "ok" | "desactualizado" | "error" | "no_confirmado";
 
@@ -32,16 +32,34 @@ export interface CierreCorrida {
   detalle: Record<string, unknown>;
 }
 
+export interface OpcionesGuardar {
+  /** Columnas de la restricción única para el upsert (p. ej. "hash"). */
+  conflicto?: string;
+  /** true = si ya existe, no se toca (insert … on conflict do nothing). */
+  ignorarDuplicados?: boolean;
+}
+
 export interface Almacen {
   iniciarCorrida(tarea: string, fuenteId: string): Promise<number>;
   terminarCorrida(id: number, cierre: CierreCorrida): Promise<void>;
   registrarObservaciones(corridaId: number, filas: FilaObservacion[]): Promise<ConteoRegistro>;
+  /** Upsert en una tabla del esquema mercado. Devuelve cuántas filas se escribieron. */
+  guardar(tabla: string, filas: Record<string, unknown>[], opciones?: OpcionesGuardar): Promise<number>;
+  /** Llama una función SQL del esquema mercado. */
+  rpc<T = unknown>(funcion: string, args?: Record<string, unknown>): Promise<T>;
 }
 
 export interface ContextoTarea {
   ahora: Date;
+  /** GET con robots.txt, tiempo máximo y reintentos (páginas y archivos públicos). */
   obtener(url: string): Promise<Respuesta>;
+  /** Llamada a una API documentada con clave (FMP, Finnhub, Anthropic, Resend). Sin robots.txt. */
+  api(url: string, opciones?: OpcionesApi): Promise<Respuesta>;
+  /** Variables de entorno de la función (claves de API). */
+  entorno(nombre: string): string | undefined;
   registrar(filas: FilaObservacion[]): Promise<ConteoRegistro>;
+  guardar(tabla: string, filas: Record<string, unknown>[], opciones?: OpcionesGuardar): Promise<number>;
+  rpc<T = unknown>(funcion: string, args?: Record<string, unknown>): Promise<T>;
 }
 
 export interface ResultadoTarea {
@@ -84,11 +102,14 @@ function mensaje(e: unknown): string {
   return m.length > 2000 ? `${m.slice(0, 2000)}…` : m;
 }
 
-export async function correrTarea(
-  tarea: Tarea,
-  almacen: Almacen,
-  dependencias: { obtener: (url: string) => Promise<Respuesta>; ahora?: () => Date },
-): Promise<ResumenCorrida> {
+export interface Dependencias {
+  obtener: (url: string) => Promise<Respuesta>;
+  api?: (url: string, opciones?: OpcionesApi) => Promise<Respuesta>;
+  entorno?: (nombre: string) => string | undefined;
+  ahora?: () => Date;
+}
+
+export async function correrTarea(tarea: Tarea, almacen: Almacen, dependencias: Dependencias): Promise<ResumenCorrida> {
   const corridaId = await almacen.iniciarCorrida(tarea.nombre, tarea.fuenteId);
   let filas = 0;
   const conteo: ConteoRegistro = { recibidas: 0, insertadas: 0, actualizadas: 0 };
@@ -97,6 +118,15 @@ export async function correrTarea(
   const ctx: ContextoTarea = {
     ahora: (dependencias.ahora ?? (() => new Date()))(),
     obtener: dependencias.obtener,
+    api: dependencias.api ?? (() => Promise.reject(new Error("Este contexto no tiene acceso a APIs"))),
+    entorno: dependencias.entorno ?? (() => undefined),
+    async guardar(tabla, lote, opciones) {
+      if (lote.length === 0) return 0;
+      const n = await almacen.guardar(tabla, lote, opciones);
+      filas += n;
+      return n;
+    },
+    rpc: (funcion, args) => almacen.rpc(funcion, args),
     async registrar(lote) {
       for (const f of lote) {
         const problema = validarFila(f);

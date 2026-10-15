@@ -59,3 +59,6 @@ create function cron.schedule(job_name text, schedule text, command text) return
   on conflict (jobname) do update set schedule = excluded.schedule, command = excluded.command
   returning jobid
 $$;
+
+-- Realtime: la publicación que Supabase trae creada.
+create publication supabase_realtime;
