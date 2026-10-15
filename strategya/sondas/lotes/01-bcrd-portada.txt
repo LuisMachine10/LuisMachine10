@@ -1,0 +1,1 @@
+fetchb64 https://www.bancentral.gov.do/ 900000

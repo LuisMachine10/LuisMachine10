@@ -1,7 +1,8 @@
 name: Strategya · sonda de fuentes
 
 # Confirma endpoints y robots.txt antes de programar una integración.
-# Corre solo cuando cambia la lista de sondas o a mano.
+# Corre solo cuando cambian las sondas o a mano. Cada archivo de sondas/lotes/ es un trabajo aparte
+# (así el log de cada uno cabe completo, incluso con archivos en base64).
 on:
   push:
     paths:
@@ -13,18 +14,29 @@ permissions:
   contents: read
 
 jobs:
+  lotes:
+    runs-on: ubuntu-latest
+    outputs:
+      lista: ${{ steps.lista.outputs.lista }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: lista
+        run: |
+          lista=$(cd strategya/sondas && { echo urls.txt; ls lotes/*.txt 2>/dev/null; } | python3 -c 'import sys,json; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
+          echo "lista=$lista" >> "$GITHUB_OUTPUT"
   sonda:
+    needs: lotes
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        lote: ${{ fromJson(needs.lotes.outputs.lista) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Correr sondas
-        run: python -I strategya/sondas/sonda.py strategya/sondas/urls.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: salida-sonda
-          path: salida-sonda/
-          retention-days: 7
+        run: python -I strategya/sondas/sonda.py "strategya/sondas/${{ matrix.lote }}"

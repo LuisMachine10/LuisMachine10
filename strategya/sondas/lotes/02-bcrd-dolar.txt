@@ -1,0 +1,1 @@
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/mercado-cambiario/documents/TASA_DOLAR_REFERENCIA_MC.xlsx 4000000

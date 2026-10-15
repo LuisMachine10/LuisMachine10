@@ -1,0 +1,7 @@
+fetchb64 https://www.creditopublico.gob.do/emisiones/subastas?dlAnio=2026 900000
+fetch https://simv.gob.do/normativas/resoluciones/ 20000
+fetch https://simv.gob.do/feed/ 20000
+fetch https://datos.gob.do/api/3/action/package_search?q=simv&rows=20 300000
+fetch https://datos.gob.do/api/3/action/package_search?q=tasas%20de%20interes&rows=10 300000
+fetchb64 https://micm.gob.do/feed/ 600000
+fetchb64 https://micm.gob.do/ 600000

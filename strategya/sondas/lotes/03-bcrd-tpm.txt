@@ -1,0 +1,1 @@
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/sector-monetario-y-financiero/documents/Serie_TPM.xlsx 4000000

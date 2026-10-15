@@ -1,0 +1,5 @@
+fetchb64 https://www.worldbank.org/en/news/all 600000
+fetchb64 https://www.cepal.org/es/comunicados 600000
+fetchb64 https://www.iadb.org/es/noticias 600000
+fetchb64 https://home.treasury.gov/news/press-releases 400000
+fetch https://www.bis.org/doclist/cbspeeches.rss 100000

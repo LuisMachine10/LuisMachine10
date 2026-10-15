@@ -8,6 +8,8 @@ Formato de urls.txt (una línea por sonda, # para comentarios):
     robots   <url-base>          imprime el robots.txt del sitio
     fetch    <url> [max_bytes]   verifica robots.txt y, si lo permite, descarga la URL
     fetchb64 <url> [max_bytes]   igual, pero imprime el cuerpo en base64 (archivos binarios como .xlsx)
+    fetchtxt <url> [max_bytes]   igual, pero imprime el cuerpo como texto aunque el servidor diga binario
+    espera   <segundos>          pausa (para APIs con límite por minuto, como GDELT)
 
 Solo biblioteca estándar.
 """
@@ -67,6 +69,9 @@ def main() -> int:
         if not linea or linea.startswith("#"):
             continue
         partes = linea.split()
+        if partes[0] == "espera":
+            time.sleep(float(partes[1]))
+            continue
         modo, url = partes[0], partes[1]
         limite = int(partes[2]) if len(partes) > 2 else 300_000
         host = urllib.parse.urlsplit(url).netloc
@@ -104,7 +109,7 @@ def main() -> int:
             for i in range(0, len(texto), 4000):
                 print(texto[i:i + 4000])
             print("BASE64-FIN")
-        elif "text" in tipo or "xml" in tipo or "json" in tipo or "html" in tipo or "rss" in tipo:
+        elif modo == "fetchtxt" or "text" in tipo or "xml" in tipo or "json" in tipo or "html" in tipo or "rss" in tipo:
             print(cuerpo.decode("utf-8", errors="replace"))
         else:
             print(f"(binario; primeros bytes: {cuerpo[:16].hex()})")

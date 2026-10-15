@@ -1,0 +1,8 @@
+espera 20
+fetch https://api.gdeltproject.org/api/v2/doc/doc?query=(war%20OR%20missile%20OR%20ceasefire%20OR%20airstrike)%20sourcelang:english&mode=artlist&maxrecords=25&format=json&timespan=24h&sort=hybridrel 300000
+espera 12
+fetch https://api.gdeltproject.org/api/v2/doc/doc?query=(%22Dominican%20Republic%22%20OR%20%22Rep%C3%BAblica%20Dominicana%22)&mode=artlist&maxrecords=25&format=json&timespan=24h 300000
+espera 12
+fetch https://api.gdeltproject.org/api/v2/doc/doc?query=(%22stock%20market%22%20OR%20%22Federal%20Reserve%22%20OR%20%22oil%20prices%22)%20sourcelang:english&mode=artlist&maxrecords=25&format=json&timespan=24h 300000
+espera 12
+fetch http://data.gdeltproject.org/gdeltv2/lastupdate.txt 5000
