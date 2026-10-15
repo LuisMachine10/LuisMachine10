@@ -1,0 +1,4 @@
+SINTÉTICA: reemplazar por real.
+quote-SPY-SINTETICA.json se construyó a mano según la documentación oficial de Finnhub
+(https://finnhub.io/docs/api/quote: c, d, dp, h, l, o, pc, t). Sus cifras NO son datos de mercado.
+La real se obtiene con la clave de Mena (no puede ir en el repositorio público): ver sondas/lotes/21-finnhub.txt.

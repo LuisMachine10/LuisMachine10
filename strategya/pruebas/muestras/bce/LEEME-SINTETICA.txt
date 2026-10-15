@@ -1,0 +1,4 @@
+SINTÉTICA: reemplazar por real.
+DFR-csvdata-SINTETICA.csv se armó según la documentación de la API del Data Portal del BCE (format=csvdata:
+columnas KEY…TIME_PERIOD, OBS_VALUE…) con menos columnas que la real. Sus cifras NO son datos reales.
+La real: sondas/lotes/22-tasas-politica.txt.

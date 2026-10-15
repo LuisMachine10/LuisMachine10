@@ -1,0 +1,3 @@
+SINTÉTICA: reemplazar por real.
+fredgraph-DFEDTARU-SINTETICA.csv sigue el formato documentado del CSV de FRED (observation_date,<ID>; «.» = sin dato).
+Sus cifras NO son datos reales. La real: sondas/lotes/22-tasas-politica.txt.

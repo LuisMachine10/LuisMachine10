@@ -1,0 +1,10 @@
+{
+  "_nota": "Respuestas reales del endpoint quote-short de FMP, obtenidas el 15 oct 2026 (ronda 2, módulo mercado en vivo) con la cuenta de Mena a través del conector FMP (mismo formato que la API REST /stable/quote-short). Negados por el plan (ACCESS DENIED, no se reintentaron): ^GDAXI, CLUSD, NGUSD, DX-Y.NYB.",
+  "_negados": ["^GDAXI", "CLUSD", "NGUSD", "DX-Y.NYB"],
+  "^DJI": [{"symbol":"^DJI","price":52150.45,"change":528.97,"volume":278128484}],
+  "^IXIC": [{"symbol":"^IXIC","price":26673.031,"change":-19.839,"volume":6591927000}],
+  "^STOXX50E": [{"symbol":"^STOXX50E","price":6180.7,"change":17.8,"volume":1929468.9}],
+  "^FTSE": [{"symbol":"^FTSE","price":10840.19,"change":115.33,"volume":0}],
+  "^HSI": [{"symbol":"^HSI","price":24062.72,"change":-251.46,"volume":0}],
+  "USDJPY": [{"symbol":"USDJPY","price":158.169,"change":-0.122,"volume":382364}]
+}

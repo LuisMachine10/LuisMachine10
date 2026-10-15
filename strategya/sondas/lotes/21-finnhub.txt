@@ -1,0 +1,6 @@
+# Finnhub · /api/v1/quote. La clave de Mena no puede ir en este repositorio público:
+# la sonda solo confirma que el host responde (sin clave debe dar 401 con un JSON de error).
+# Para la muestra real: con la clave, curl -H "X-Finnhub-Token: $FINNHUB_API_KEY" "https://finnhub.io/api/v1/quote?symbol=SPY"
+# y guardar la respuesta en pruebas/muestras/finnhub/quote-SPY.json (reemplaza la SINTÉTICA).
+robots https://finnhub.io/
+fetch https://finnhub.io/api/v1/quote?symbol=SPY 20000
