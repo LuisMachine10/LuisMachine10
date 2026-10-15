@@ -1,0 +1,17 @@
+# Configuración mínima para la CLI de Supabase (link, db push, functions deploy).
+# Los ajustes del proyecto en la nube (esquemas expuestos, registro cerrado) se hacen en el
+# panel: ver README · «Desplegar». No uses `supabase config push` sin revisar este archivo.
+
+project_id = "strategya"
+
+[api]
+# El esquema mercado debe estar expuesto para que la app y la ingesta lo lean por la API.
+schemas = ["public", "graphql_public", "mercado"]
+
+[auth]
+# Un solo usuario: nadie más puede registrarse.
+enable_signup = false
+
+[functions.ingesta-tesoro]
+# La función no recibe JWT de usuario: la autentica el encabezado x-strategya-secreto.
+verify_jwt = false

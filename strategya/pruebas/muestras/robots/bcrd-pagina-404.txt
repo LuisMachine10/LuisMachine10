@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+<head>
+    <meta name="robots" content="index, follow">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name='viewport' content='width=device-width, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no' />
+
+    <meta name="description" content="Informaci&#243;n econ&#243;mica, publicaciones y estad&#237;sticas oficiales del Banco Central de la Rep&#250;blica Dominicana.">
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Banco Central de la Rep&#250;blica Dominicana" />
+    <meta property="og:description" content="Informaci&#243;n econ&#243;mica, publicaciones y estad&#237;sticas oficiales del Banco Central de la Rep&#250;blica Dominicana." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.bancentral.gov.do/" />
+    <meta property="og:image" content="https://cdn.bancentral.gov.do/documents/og-img-bcrd.jpg" />
+    <meta property="og:site_name" content="Banco Central de la República Dominicana" />
+    <meta property="og:locale" content="es_DO" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Banco Central de la Rep&#250;blica Dominicana" />
+    <meta name="twitter:description" content="Informaci&#243;n econ&#243;mica, publicaciones y estad&#237;sticas oficiales del Banco Central de la Rep&#250;blica Dominicana." />
+    <meta name="twitter:image" content="https://cdn.bancentral.gov.do/documents/og-img-bcrd.jpg" />
+
+    
+    <title>Banco Central de la República Dominicana</title>
+    <link href="/bc_wp_template/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="/bc_wp_template/css/fonts.css" rel="stylesheet" />
+    <link href="/bc_wp_template/css/bc.css" rel="stylesheet" />
+    <link href="/bc_wp_template/css/main.min.css" rel="stylesheet" />
+    <link href="/bc_wp_template/css/print.css" rel="stylesheet" />
+    <link href="/lib/jssocial/jssocials.css" rel="stylesheet" />
+    <link href="/lib/jssocial/jssocials-theme-minima.css" rel="stylesheet" />
+    
+    
+    <link href="/Content/Error/E404.css" rel="stylesheet" />
+
+
+
+</head>
+<body>
+    <!-- Redes sociales -->
+    <div class="sticky-container">
+        <ul class="sticky">
+            <li>
+                <img onclick="navigateToSM('https://www.facebook.com/BancoCentralRD/')" alt="Facebook icon" src="https://cdn.bancentral.gov.do/documents/repo/facebook-new.png" width="32" height="32" style="border-radius:5px">
+                <p class="hidden-md hidden-sm hidden-xs"><a href="https://www.facebook.com/BancoCentralRD/" target="_blank" rel="noopener">S&#237;guenos en<br />Facebook</a></p>
+            </li>
+            <li>
+                <img onclick="navigateToSM('https://x.com/BancoCentralRD')" alt="X icon" src="https://cdn.bancentral.gov.do/documents/repo/x-icon.png" width="32" height="32" style="border-radius:5px">
+                <p class="hidden-md hidden-sm hidden-xs"><a href="https://x.com/BancoCentralRD" target="_blank" rel="noopener">S&#237;guenos en<br />X</a></p>
+            </li>
+            <li>
+                <img onclick="navigateToSM('https://www.youtube.com/user/BancoCentralRD')" alt="Youtube icon" src="https://cdn.bancentral.gov.do/documents/repo/youtube-new.png" width="32" height="32" style="border-radius:5px">
+                <p class="hidden-md hidden-sm hidden-xs"><a href="https://www.youtube.com/user/BancoCentralRD" target="_blank" rel="noopener">Suscr&#237;bete a<br />YouTube</a></p>
+            </li>
+            <li>
+                <img onclick="navigateToSM('https://www.instagram.com/bancocentralrd/')" alt="Instagram icon" src="https://cdn.bancentral.gov.do/documents/repo/instagram-new.png" width="32" height="32" style="border-radius:5px">
+                <p class="hidden-md hidden-sm hidden-xs"><a href="https://www.instagram.com/bancocentralrd/" target="_blank" rel="noopener">S&#237;guenos en<br />Instagram</a></p>
+            </li>
+        </ul>
+    </div>
+
+    
+
+
+<div class="col-xs-13 col-sm-13 col-md-13 col-lg-13 col-xl-13 "><nav class="bc-nav navbar navbar-default navbar-static-top" role="navigation">         <a name="top"></a>     <div class="container">         <div class="navbar-header">             <div id="top-dr-shield-mobile" class="hidden-xl hidden-lg hidden-md col-sm-12 col-xs-12"> <img                     class="img img-responsive escudo" src="/bc_wp_template/img/escudo-negro.png"                     alt="Escudo de la República Dominicana"> </div>             <div class="col-xl-4 col-lg-4 col-md-4 col-sm-12 col-xs-12"> <a href="/"> <img                         class="logo-bc-header img img-responsive" src="/bc_wp_template/img/bcrd-logo-white.png"                         alt="Logo institucional" /> </a> </div>             <div class="pull-right hidden-sm hidden-xs col-md-3"> <img class="img img-responsive escudo"                     src="/bc_wp_template/img/escudo-blanco.png" alt="Escudo de la República Dominicana">                 <div class="form-group"> <input id="SearchInput" name="search"                         class="form-control input-sm search-bar-desktop" type="text" placeholder="">                     <ul class="nav navbar-nav nav-icons">                         <li class="col-md-2 text-center noside-padding"> <a href="/"><i                                     class="fa fa-2x fa-home"></i></a> </li>                         <li class="col-md-2 text-center noside-padding"> <a href="/SiteMap/Map"> <i                                     class="fa fa-2x fa-sitemap"></i> </a> </li>                         <li class="col-md-2 text-center noside-padding"> <a                                 href="https://www.bancentral.gov.do/a/d/2568"><i class="fa fa-phone"></i></a> </li>                         <li class="dropdown dropdown-language"> <a href="javascript:;" class="dropdown-toggle"                                 data-toggle="dropdown" data-hover="dropdown" data-close-others="true"                                 aria-expanded="false"> <i id="MultiLanguageButton" class=""></i> </a> </li>                     </ul>                 </div>             </div>             <div class="hidden-xl hidden-lg hidden-md">                 <div class="col-sm-10 col-xs-10 search-input">                     <div class="input-group input-group-sm"> <input id="SearchInputRw" type="text"                             class="form-control ng-pristine ng-untouched ng-valid ng-empty" placeholder=""> <span                             class="input-group-btn"> <button type="submit" onclick="goToSearch()" id="searchButton"                                 class="btn btn-default text-center"> <i class="fa fa-search fa-lg"></i> </button>                         </span> </div>                 </div>                 <div class="col-sm-2 col-xs-2 search-btn"> <button type="button" class="navbar-toggle x collapsed"                         data-toggle="collapse" data-target="#bc-nav" aria-expanded="false"> <i class="fa fa-bars"></i>                     </button> </div>             </div>         </div>     </div><div class="collapse navbar-collapse ng-scope" id="bc-nav">
+            <div class="container" style="padding: 0px">
+                <ul class="nav navbar-nav top-nav">               
+                    <!-- ngRepeat: item in vm.topMenu --><li "item in vm.topMenu" class="ng-scope">
+                        <!-- ngIf: item.articleId != null -->
+                        <!-- ngIf: item.articleId == null --><a "item.articleId == null" target="_self" href="#" class="dropdown-toggle ng-binding ng-scope" data-toggle="dropdown">Institucional&nbsp;<i class="fas fa-caret-down"></i>
+</a><!-- end ngIf: item.articleId == null -->
+                        <!-- ngIf: item --><ul "item.childMenuItems.length &gt; 0" class="dropdown-menu multi-level ng-scope">
+                            <!-- ngRepeat: child in item.childMenuItems --><li "child in item.childMenuItems" ng-class="{'dropdown-submenu': child.childMenuItems.length &gt; 0}" class="ng-scope dropdown-submenu">
+                                <!-- ngIf: child.hasCustomUrl == false && child.articleId != null -->
+
+                                <!-- ngIf: child.hasCustomUrl == true && child.openCustomUrlInNewTab == true -->
+
+<!-- ngIf: child.hasCustomUrl == true && (child.openCustomUrlInNewTab == false || child.openCustomUrlInNewTab == null || child.openCustomUrlInNewTab == 'null') -->
+
+                                <!-- ngIf: child.hasCustomUrl == false && child.articleId == null --><a "child.hasCustomUrl == false &amp;&amp; child.articleId == null" class="dropdown-toggle ng-binding ng-scope" data-toggle="dropdown" href="#">Administración Monetaria y Financiera&nbsp;<i class=""></i></a><!-- end ngIf: child.hasCustomUrl == false && child.articleId == null -->
+
+
+                                <!-- ngIf: child --><ul "child.childMenuItems.length &gt; 0" class="dropdown-menu ng-scope">
+                                    <!-- ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2554-descripcion" class="ng-binding ng-scope">Descripción&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2555-organigrama" class="ng-binding ng-scope">Organigrama&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2556-junta-monetaria" class="ng-binding ng-scope">Junta Monetaria&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2557-miembros-jm" class="ng-binding ng-scope">Miembros JM&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems -->
+                                </ul><!-- end ngIf: child -->   
+                            </li><!-- end ngRepeat: child in item.childMenuItems --><li "child in item.childMenuItems" ng-class="{'dropdown-submenu': child.childMenuItems.length &gt; 0}" class="ng-scope dropdown-submenu">
+                                <!-- ngIf: child.hasCustomUrl == false && child.articleId != null -->
+
+                                <!-- ngIf: child.hasCustomUrl == true && child.openCustomUrlInNewTab == true -->
+
+<!-- ngIf: child.hasCustomUrl == true && (child.openCustomUrlInNewTab == false || child.openCustomUrlInNewTab == null || child.openCustomUrlInNewTab == 'null') -->
+
+                                <!-- ngIf: child.hasCustomUrl == false && child.articleId == null --><a "child.hasCustomUrl == false &amp;&amp; child.articleId == null" class="dropdown-toggle ng-binding ng-scope" data-toggle="dropdown" href="#">Sobre Nosotros&nbsp;<i class=""></i></a><!-- end ngIf: child.hasCustomUrl == false && child.articleId == null -->
+
+
+                                <!-- ngIf: child --><ul "child.childMenuItems.length &gt; 0" class="dropdown-menu ng-scope">
+                                    <!-- ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2558-historia" class="ng-binding ng-scope">Historia&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2559-funciones-principales" class="ng-binding ng-scope">Funciones&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/4000-planificacion-estrategica" class="ng-binding ng-scope">Plan Estratégico&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/4028-estructura-organica" class="ng-binding ng-scope">Organigrama&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2561-sobre-el-gobernador" class="ng-binding ng-scope">Sobre el Gobernador&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2562-principales-funcionarios" class="ng-binding ng-scope">Principales Funcionarios&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2563-gobernadores" class="ng-binding ng-scope">Gobernadores&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2564-balance-general" class="ng-binding ng-scope">Balance General&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                                        <!-- ngIf: childChild.articleId != null --><a "childChild.articleId != null" href="/a/d/2565-estados-financieros" class="ng-binding ng-scope">Estados Financieros&nbsp;
+                                            <i class=""></i>
+                                        </a><!-- end ngIf: childChild.articleId != null -->
+<!-- ngIf: childChild.hasCustomUrl == true && childChild.openCustomUrlInNewTab == true -->
+<!-- ngIf: childChild.hasCustomUrl == false && childChild.openCustomUrlInNewTab == false -->
+                                    </li><!-- end ngRepeat: childChild in child.childMenuItems --><li "childChild in child.childMenuItems" class="ng-scope">
+                     

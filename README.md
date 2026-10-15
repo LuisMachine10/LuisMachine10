@@ -1,5 +1,7 @@
 # Sistema Mena
 
+> Este repositorio también contiene **Strategya**, la terminal financiera, en [`strategya/`](strategya/README.md). Son apps separadas.
+
 Sistema personal de seguimiento de vida: disciplina, cuerpo, nutrición, estudio, vida
 espiritual, salud y carrera. El registro diario mide; las metas con fecha y los logros
 convierten esa medición en monitoreo.

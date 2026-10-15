@@ -1,0 +1,54 @@
+name: Strategya · pruebas
+
+on:
+  push:
+    paths:
+      - "strategya/**"
+      - ".github/workflows/strategya-ci.yml"
+  pull_request:
+    paths:
+      - "strategya/**"
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: strategya
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL_PRUEBAS: postgres://postgres:postgres@localhost:5432/postgres
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: strategya/package-lock.json
+      - run: npm ci
+      - name: TypeScript estricto
+        run: npm run typecheck
+      - name: Pruebas unitarias (parsers, robots, HTTP, formato)
+        run: npm test
+      - name: Pruebas de base de datos (migraciones, RLS, ingesta de punta a punta)
+        run: npm run test:db
+      - name: Edge Functions con Deno
+        run: npx deno check --config supabase/functions/ingesta-tesoro/deno.json supabase/functions/ingesta-tesoro/index.ts
+      - name: Build de producción
+        run: npm run build

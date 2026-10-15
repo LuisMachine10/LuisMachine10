@@ -1,0 +1,96 @@
+name: Strategya · desplegar Supabase
+
+# Se corre a mano (Actions → «Strategya · desplegar Supabase» → Run workflow).
+# Aplica las migraciones, sube la Edge Function, guarda sus secretos y programa las tareas.
+# Secretos que necesita en GitHub (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN      supabase.com → Account → Access Tokens
+#   SUPABASE_PROJECT_REF       el identificador del proyecto (lo que va antes de .supabase.co)
+#   SUPABASE_DB_PASSWORD       la contraseña de la base que elegiste al crear el proyecto
+#   STRATEGYA_SECRETO_TAREAS   `openssl rand -hex 32` (solo letras y números, 32+)
+#   STRATEGYA_CONTACTO         opcional: correo para el User-Agent
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: strategya-supabase
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: strategya
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SECRETO: ${{ secrets.STRATEGYA_SECRETO_TAREAS }}
+      CONTACTO: ${{ secrets.STRATEGYA_CONTACTO }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Revisar secretos
+        run: |
+          faltan=""
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || faltan="$faltan SUPABASE_ACCESS_TOKEN"
+          [ -n "$SUPABASE_DB_PASSWORD" ] || faltan="$faltan SUPABASE_DB_PASSWORD"
+          [ -n "$PROJECT_REF" ] || faltan="$faltan SUPABASE_PROJECT_REF"
+          [ -n "$SECRETO" ] || faltan="$faltan STRATEGYA_SECRETO_TAREAS"
+          if [ -n "$faltan" ]; then echo "::error::Faltan secretos:$faltan"; exit 1; fi
+          if ! echo "$SECRETO" | grep -Eq '^[A-Za-z0-9]{32,}$'; then
+            echo "::error::STRATEGYA_SECRETO_TAREAS debe tener 32+ letras o números (usa: openssl rand -hex 32)"; exit 1
+          fi
+          if ! echo "$PROJECT_REF" | grep -Eq '^[a-z0-9]{10,40}$'; then
+            echo "::error::SUPABASE_PROJECT_REF no parece un identificador de proyecto"; exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Vincular el proyecto
+        run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Aplicar migraciones
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Secretos de la Edge Function
+        run: |
+          if [ -n "$CONTACTO" ]; then
+            supabase secrets set --project-ref "$PROJECT_REF" STRATEGYA_SECRETO_TAREAS="$SECRETO" STRATEGYA_CONTACTO="$CONTACTO"
+          else
+            supabase secrets set --project-ref "$PROJECT_REF" STRATEGYA_SECRETO_TAREAS="$SECRETO"
+          fi
+
+      - name: Subir la Edge Function
+        run: supabase functions deploy ingesta-tesoro --project-ref "$PROJECT_REF" --no-verify-jwt
+
+      - name: Guardar URL y secreto en Vault (para pg_cron)
+        run: |
+          cuerpo=$(printf '{"query":"select mercado.configurar_tareas(%s, %s)"}' \
+            "'https://${PROJECT_REF}.supabase.co'" "'${SECRETO}'")
+          respuesta=$(curl -sS -w '\n%{http_code}' -X POST \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$cuerpo")
+          codigo=$(echo "$respuesta" | tail -n1)
+          if [ "$codigo" -ge 300 ]; then
+            echo "::error::La API de Supabase respondió $codigo"; echo "$respuesta" | head -n -1; exit 1
+          fi
+          echo "Vault configurado."
+
+      - name: Primera lectura del Tesoro (prueba de humo)
+        run: |
+          respuesta=$(curl -sS -w '\n%{http_code}' -X POST \
+            "https://${PROJECT_REF}.supabase.co/functions/v1/ingesta-tesoro" \
+            -H "x-strategya-secreto: ${SECRETO}" -H "Content-Type: application/json" -d '{}')
+          echo "$respuesta" | head -n -1
+          codigo=$(echo "$respuesta" | tail -n1)
+          if [ "$codigo" -ge 300 ]; then echo "::error::La función respondió $codigo"; exit 1; fi

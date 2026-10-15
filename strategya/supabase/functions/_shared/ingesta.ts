@@ -1,0 +1,134 @@
+// Orquestador de una corrida de ingesta: abre la corrida, ejecuta la tarea, la cierra
+// con su estado y nunca deja una excepción sin registrar en mercado.corridas.
+
+import type { Respuesta } from "./http.ts";
+
+export type EstadoObservacion = "ok" | "desactualizado" | "error" | "no_confirmado";
+
+/** Una observación lista para mercado.registrar_observaciones. Los números viajan como texto. */
+export interface FilaObservacion {
+  serie_id: string;
+  valor: string;
+  fecha_dato: string; // AAAA-MM-DD
+  hora_dato?: string; // ISO 8601 con zona
+  cambio?: string;
+  cambio_pct?: string;
+  url_dato?: string;
+  estado?: EstadoObservacion;
+}
+
+export interface ConteoRegistro {
+  recibidas: number;
+  insertadas: number;
+  actualizadas: number;
+}
+
+export type EstadoCorrida = "ok" | "parcial" | "error" | "omitida";
+
+export interface CierreCorrida {
+  estado: EstadoCorrida;
+  error?: string;
+  filas: number;
+  detalle: Record<string, unknown>;
+}
+
+export interface Almacen {
+  iniciarCorrida(tarea: string, fuenteId: string): Promise<number>;
+  terminarCorrida(id: number, cierre: CierreCorrida): Promise<void>;
+  registrarObservaciones(corridaId: number, filas: FilaObservacion[]): Promise<ConteoRegistro>;
+}
+
+export interface ContextoTarea {
+  ahora: Date;
+  obtener(url: string): Promise<Respuesta>;
+  registrar(filas: FilaObservacion[]): Promise<ConteoRegistro>;
+}
+
+export interface ResultadoTarea {
+  /** true si una parte falló pero hubo datos buenos que guardar. */
+  parcial?: boolean;
+  advertencias?: string[];
+  detalle?: Record<string, unknown>;
+}
+
+export interface Tarea {
+  nombre: string;
+  fuenteId: string;
+  ejecutar(ctx: ContextoTarea): Promise<ResultadoTarea>;
+}
+
+export interface ResumenCorrida extends CierreCorrida {
+  tarea: string;
+  corridaId: number;
+}
+
+const DECIMAL = /^-?\d+(\.\d+)?$/;
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+export function esDecimal(s: string): boolean {
+  return DECIMAL.test(s);
+}
+
+/** Valida forma antes de mandar a la base: un número mal leído nunca se guarda. */
+export function validarFila(f: FilaObservacion): string | null {
+  if (!f.serie_id) return "sin serie_id";
+  if (!esDecimal(f.valor)) return `valor no numérico «${f.valor}» en ${f.serie_id}`;
+  if (!FECHA.test(f.fecha_dato)) return `fecha inválida «${f.fecha_dato}» en ${f.serie_id}`;
+  if (f.cambio !== undefined && !esDecimal(f.cambio)) return `cambio no numérico en ${f.serie_id}`;
+  if (f.cambio_pct !== undefined && !esDecimal(f.cambio_pct)) return `cambio_pct no numérico en ${f.serie_id}`;
+  return null;
+}
+
+function mensaje(e: unknown): string {
+  const m = e instanceof Error ? e.message : String(e);
+  return m.length > 2000 ? `${m.slice(0, 2000)}…` : m;
+}
+
+export async function correrTarea(
+  tarea: Tarea,
+  almacen: Almacen,
+  dependencias: { obtener: (url: string) => Promise<Respuesta>; ahora?: () => Date },
+): Promise<ResumenCorrida> {
+  const corridaId = await almacen.iniciarCorrida(tarea.nombre, tarea.fuenteId);
+  let filas = 0;
+  const conteo: ConteoRegistro = { recibidas: 0, insertadas: 0, actualizadas: 0 };
+  let cierre: CierreCorrida;
+
+  const ctx: ContextoTarea = {
+    ahora: (dependencias.ahora ?? (() => new Date()))(),
+    obtener: dependencias.obtener,
+    async registrar(lote) {
+      for (const f of lote) {
+        const problema = validarFila(f);
+        if (problema) throw new Error(`Fila rechazada antes de guardar: ${problema}`);
+      }
+      if (lote.length === 0) return { recibidas: 0, insertadas: 0, actualizadas: 0 };
+      const r = await almacen.registrarObservaciones(corridaId, lote);
+      filas += r.insertadas + r.actualizadas;
+      conteo.recibidas += r.recibidas;
+      conteo.insertadas += r.insertadas;
+      conteo.actualizadas += r.actualizadas;
+      return r;
+    },
+  };
+
+  try {
+    const r = await tarea.ejecutar(ctx);
+    const advertencias = r.advertencias ?? [];
+    cierre = {
+      estado: r.parcial ? "parcial" : "ok",
+      error: advertencias.length ? mensaje(advertencias.join(" · ")) : undefined,
+      filas,
+      detalle: { ...conteo, ...r.detalle, advertencias },
+    };
+  } catch (e) {
+    cierre = { estado: "error", error: mensaje(e), filas, detalle: { ...conteo } };
+  }
+
+  try {
+    await almacen.terminarCorrida(corridaId, cierre);
+  } catch (e) {
+    cierre = { ...cierre, estado: "error", error: `No se pudo cerrar la corrida: ${mensaje(e)}` };
+  }
+  return { tarea: tarea.nombre, corridaId, ...cierre };
+}
