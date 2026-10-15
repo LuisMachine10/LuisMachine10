@@ -1,0 +1,6 @@
+# Alertas + IA (Fase 5 y 6). Las APIs de Anthropic y Resend exigen clave: la sonda pública no puede traer una
+# respuesta real de POST /v1/messages ni de POST /emails. Se verifica la documentación oficial del formato.
+# Las pruebas usan pruebas/apoyo/anthropic-sintetica.ts (SINTÉTICA): al activar ANTHROPIC_API_KEY, guardar una
+# respuesta real (sin la clave) en pruebas/muestras/anthropic/ y reemplazar la sintética.
+fetch https://docs.claude.com/en/api/messages 400000
+fetch https://resend.com/docs/api-reference/emails/send-email 400000
