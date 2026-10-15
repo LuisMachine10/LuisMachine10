@@ -163,6 +163,11 @@ export function ocultarClaves(url: string): string {
   return url.replace(/([?&](?:apikey|api_key|token|key)=)[^&]+/gi, "$1***");
 }
 
+/** ¿La URL es un feed de sindicación (RSS/Atom)? */
+export function esFeed(u: URL): boolean {
+  return /\/feed\/?$|\/rss\/?$|\.(rss|atom)$|\/feeds?\/[^/]+\.xml$/i.test(u.pathname);
+}
+
 export type DecisionRobots =
   | { permitido: true; crawlDelaySeg?: number }
   | { permitido: false; motivo: string };
@@ -212,7 +217,14 @@ export class Lector {
     if (dominioProhibido(url)) return { permitido: false, motivo: "dominio prohibido por regla de Strategya" };
     const u = new URL(url);
     const reglas = await this.reglasDe(u.origin);
-    if ("permitido" in reglas) return reglas;
+    if ("permitido" in reglas) {
+      // Un feed RSS/Atom es la vía que el propio sitio publica para lectura automática. Si el robots.txt
+      // está bloqueado por un cortafuegos (401/403), se permite SOLO el feed; las páginas siguen prohibidas.
+      if (!reglas.permitido && reglas.motivo.includes("HTTP 40") && esFeed(u)) {
+        return { permitido: true };
+      }
+      return reglas;
+    }
     const permitido = evaluarRobots(reglas, PRODUCTO, u.pathname + u.search);
     if (!permitido) return { permitido: false, motivo: `robots.txt de ${u.hostname} no permite ${u.pathname}` };
     const delay = reglas.crawlDelay(PRODUCTO);

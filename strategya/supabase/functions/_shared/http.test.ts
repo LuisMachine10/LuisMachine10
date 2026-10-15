@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { agenteUsuario, dominioProhibido, ErrorIngesta, Lector, obtenerTexto } from "./http.ts";
+import { agenteUsuario, dominioProhibido, ErrorIngesta, esFeed, Lector, obtenerTexto } from "./http.ts";
 
 type Paso = { status: number; texto?: string; encabezados?: Record<string, string> } | "red" | "cuelga";
 
@@ -114,6 +114,23 @@ describe("Lector (robots.txt antes de cada lectura)", () => {
       /rechaza la lectura automática/,
     );
     expect(llamadas).toEqual(["https://simv.gob.do/robots.txt"]);
+  });
+
+  it("robots.txt 403: el feed RSS sí se lee (es la vía publicada para máquinas), la página no", async () => {
+    const { f, llamadas } = fetchFalso({
+      "https://simv.gob.do/robots.txt": [{ status: 403 }],
+      "https://simv.gob.do/feed/": [{ status: 200, texto: "<rss/>" }],
+    });
+    const lector = new Lector({ ...base, fetch: f });
+    expect((await lector.obtener("https://simv.gob.do/feed/")).texto).toBe("<rss/>");
+    await expect(lector.obtener("https://simv.gob.do/normativas/resoluciones/")).rejects.toThrow(/rechaza/);
+    expect(llamadas).toEqual(["https://simv.gob.do/robots.txt", "https://simv.gob.do/feed/"]);
+  });
+
+  it("detecta feeds por su ruta", () => {
+    for (const u of ["https://x.do/feed/", "https://x.do/rss", "https://x.do/a/b.rss", "https://x.do/feeds/press_all.xml"])
+      expect(esFeed(new URL(u))).toBe(true);
+    for (const u of ["https://x.do/normativas/", "https://x.do/a.xml", "https://x.do/feedback"]) expect(esFeed(new URL(u))).toBe(false);
   });
 
   it("robots.txt caído (5xx) → se asume prohibido", async () => {
