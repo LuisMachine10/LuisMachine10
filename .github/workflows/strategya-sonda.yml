@@ -1,0 +1,30 @@
+name: Strategya · sonda de fuentes
+
+# Confirma endpoints y robots.txt antes de programar una integración.
+# Corre solo cuando cambia la lista de sondas o a mano.
+on:
+  push:
+    paths:
+      - "strategya/sondas/**"
+      - ".github/workflows/strategya-sonda.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sonda:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Correr sondas
+        run: python -I strategya/sondas/sonda.py strategya/sondas/urls.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: salida-sonda
+          path: salida-sonda/
+          retention-days: 7
