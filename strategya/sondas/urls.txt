@@ -1,16 +1,43 @@
 # Sondas activas. Cada cambio en este archivo dispara el workflow "Strategya · sonda de fuentes".
-# Fase 1: Tesoro de EE. UU. (mes en curso y mes anterior) + robots.txt de las fuentes de las fases siguientes.
-fetch https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value_month=202610
-fetch https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value_month=202609 6000
-robots https://home.treasury.gov
-robots https://www.bancentral.gov.do
-robots https://cdn.bancentral.gov.do
-robots https://apibcrd.bancentral.gov.do
-robots https://simv.gob.do
-robots https://www.creditopublico.gob.do
-robots https://micm.gob.do
-robots https://www.federalreserve.gov
-robots https://www.ecb.europa.eu
-robots https://www.boj.or.jp
-robots https://www.sec.gov
-robots https://api.gdeltproject.org
+# Ronda 2 (fases 3 y 4): BCRD, Crédito Público, SIMV, MICM, RSS institucionales, GDELT, SEC.
+fetch https://www.bancentral.gov.do/ 600000
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/mercado-cambiario/documents/TASA_DOLAR_REFERENCIA_MC.xlsx 3000000
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/sector-monetario-y-financiero/documents/Serie_TPM.xlsx 3000000
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/sector-monetario-y-financiero/documents/tasas_activas_mn.xlsx 3000000
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/sector-monetario-y-financiero/documents/tasas_pasivas_mn.xlsx 3000000
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/sector-monetario-y-financiero/documents/tasas_activas_me.xlsx 3000000
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/sector-monetario-y-financiero/documents/tasas_pasivas_me.xlsx 3000000
+fetch https://www.creditopublico.gob.do/emisiones/subastas?dlAnio=2026 600000
+fetch https://simv.gob.do/normativas/resoluciones/ 50000
+fetch https://simv.gob.do/feed/ 50000
+fetch https://datos.gob.do/api/3/action/package_search?q=simv&rows=20 200000
+fetch https://micm.gob.do/ 400000
+fetch https://www.federalreserve.gov/feeds/press_all.xml 200000
+fetch https://www.ecb.europa.eu/rss/press.html 200000
+fetch https://www.boj.or.jp/en/rss/whatsnew.xml 200000
+fetch https://www.bankofengland.co.uk/rss/news 200000
+fetch https://www.imf.org/en/News/rss?language=eng 200000
+fetch https://www.worldbank.org/en/news/all.rss 200000
+fetch https://www.bis.org/doclist/all_pressrels.rss 200000
+fetch https://www.bis.org/rss/index.htm 100000
+fetch https://www.oecd.org/en/about/news.rss 100000
+fetch https://ofac.treasury.gov/system/files/126/ofac.xml 200000
+fetch https://home.treasury.gov/news/press-releases 150000
+fetch https://www.iadb.org/en/rss 100000
+fetch https://www.cepal.org/es/rss.xml 150000
+fetch https://www.cepal.org/es/rss 100000
+fetch https://api.gdeltproject.org/api/v2/doc/doc?query=(war%20OR%20missile%20OR%20ceasefire)%20sourcelang:english&mode=artlist&maxrecords=10&format=json&timespan=24h 200000
+fetch https://api.gdeltproject.org/api/v2/geo/geo?query=(war%20OR%20missile%20OR%20ceasefire)&format=GeoJSON&timespan=24h 200000
+fetch https://api.gdeltproject.org/api/v2/doc/doc?query=(Dominican%20Republic%20OR%20%22Rep%C3%BAblica%20Dominicana%22)&mode=artlist&maxrecords=10&format=json&timespan=24h 200000
+fetch https://www.sec.gov/Archives/edgar/daily-index/2026/QTR4/ 100000
+fetch https://www.sec.gov/Archives/edgar/daily-index/2026/QTR4/form.20261014.idx 400000
+robots https://www.bankofengland.co.uk
+robots https://www.imf.org
+robots https://www.worldbank.org
+robots https://www.bis.org
+robots https://www.oecd.org
+robots https://www.iadb.org
+robots https://www.cepal.org
+robots https://datos.gob.do
+robots https://finnhub.io
+robots https://financialmodelingprep.com

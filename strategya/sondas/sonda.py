@@ -5,8 +5,9 @@ programar una integración, que el endpoint existe, qué formato devuelve y qué
 su robots.txt. No guarda nada en la base: imprime en el log y deja copia como artefacto.
 
 Formato de urls.txt (una línea por sonda, # para comentarios):
-    robots <url-base>          imprime el robots.txt del sitio
-    fetch  <url> [max_bytes]   verifica robots.txt y, si lo permite, descarga la URL
+    robots   <url-base>          imprime el robots.txt del sitio
+    fetch    <url> [max_bytes]   verifica robots.txt y, si lo permite, descarga la URL
+    fetchb64 <url> [max_bytes]   igual, pero imprime el cuerpo en base64 (archivos binarios como .xlsx)
 
 Solo biblioteca estándar.
 """
@@ -96,7 +97,14 @@ def main() -> int:
         (SALIDA / nombre_archivo(url)).write_bytes(cuerpo)
         print(f"===== INICIO fetch {url} =====")
         print(f"HTTP {status} · {tipo} · {len(cuerpo)} bytes{' (truncado)' if truncado else ''} · {ms} ms")
-        if "text" in tipo or "xml" in tipo or "json" in tipo or "html" in tipo:
+        if modo == "fetchb64":
+            import base64
+            texto = base64.b64encode(cuerpo).decode("ascii")
+            print("BASE64-INICIO")
+            for i in range(0, len(texto), 4000):
+                print(texto[i:i + 4000])
+            print("BASE64-FIN")
+        elif "text" in tipo or "xml" in tipo or "json" in tipo or "html" in tipo or "rss" in tipo:
             print(cuerpo.decode("utf-8", errors="replace"))
         else:
             print(f"(binario; primeros bytes: {cuerpo[:16].hex()})")
