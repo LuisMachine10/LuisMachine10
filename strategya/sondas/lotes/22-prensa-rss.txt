@@ -1,0 +1,18 @@
+# Noticias (Fase 4) · feeds RSS de prensa (respaldo de GDELT para guerras y RD).
+# Al Jazeera y France 24 ya están activos (robots.txt se revisa en cada corrida).
+# Los feeds dominicanos están APAGADOS (confirmado=false en supabase/functions/_shared/fuentes/prensa.ts)
+# hasta que esta sonda confirme URL, formato RSS y robots.txt. Se prueban varias rutas candidatas.
+robots https://www.aljazeera.com
+fetch https://www.aljazeera.com/xml/rss/all.xml 300000
+robots https://www.france24.com
+fetch https://www.france24.com/en/rss 300000
+robots https://www.diariolibre.com
+fetch https://www.diariolibre.com/rss/portada.xml 300000
+fetch https://www.diariolibre.com/rss 300000
+robots https://listindiario.com
+fetch https://listindiario.com/rss/portada.xml 300000
+fetch https://listindiario.com/rss 300000
+robots https://eldinero.com.do
+fetch https://eldinero.com.do/feed/ 300000
+robots https://dominicantoday.com
+fetch https://dominicantoday.com/feed/ 300000

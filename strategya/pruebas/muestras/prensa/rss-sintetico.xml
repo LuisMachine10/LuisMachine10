@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SINTÉTICA: reemplazar por real (sondas/lotes/22-prensa-rss.txt). RSS 2.0 mínimo según la
+     especificación (https://www.rssboard.org/rss-specification); titulares y enlaces de ejemplo. -->
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Medio de ejemplo</title>
+    <link>https://medio-ejemplo.com/</link>
+    <description>Feed de ejemplo</description>
+    <item>
+      <title><![CDATA[Ceasefire talks resume as airstrikes hit Gaza]]></title>
+      <link>https://medio-ejemplo.com/news/2026/10/15/ceasefire-gaza</link>
+      <description><![CDATA[<p>Texto del artículo que Strategya NUNCA guarda.</p>]]></description>
+      <pubDate>Thu, 15 Oct 2026 14:05:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Sudan&#8217;s army says it retook El Fasher district</title>
+      <link>https://medio-ejemplo.com/news/2026/10/15/sudan-army?utm_source=rss&amp;utm_medium=feed</link>
+      <description>Otro texto que no se guarda.</description>
+      <pubDate>Thu, 15 Oct 2026 11:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Oil prices rise as Red Sea shipping slows</title>
+      <link>https://medio-ejemplo.com/economy/oil-red-sea</link>
+      <pubDate>Thu, 15 Oct 2026 09:30:00 +0300</pubDate>
+    </item>
+    <item>
+      <title>Celebrity chef opens new restaurant</title>
+      <link>https://medio-ejemplo.com/life/chef</link>
+      <pubDate>Thu, 15 Oct 2026 08:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Entrada sin fecha</title>
+      <link>https://medio-ejemplo.com/sin-fecha</link>
+    </item>
+  </channel>
+</rss>
