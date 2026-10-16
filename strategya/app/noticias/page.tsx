@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 // El encabezado común todavía no tiene la sección «noticias»: con este valor ningún enlace queda
 // marcado como actual (el integrador agrega el enlace a /noticias en componentes/Encabezado.tsx).
-const SECCION = "noticias" as unknown as "terminal";
+const SECCION = "noticias" as const;
 
 export default function PaginaNoticias() {
   const ahora = new Date();

@@ -6,7 +6,7 @@ import { PestanasCaja, type PestanaCaja } from "./PestanasCaja";
 
 // El Encabezado de la app todavía no conoce la sección «caja» (lo agrega el integrador). Mientras
 // tanto se le pasa un valor que no marca ninguna pestaña como actual.
-const SECCION_CAJA = "caja" as unknown as "terminal";
+const SECCION_CAJA = "caja" as const;
 
 export function MarcoCaja({
   actual,

@@ -17,7 +17,7 @@ export default async function Ajustes() {
   return (
     <>
       {/* Encabezado aún no conoce «ajustes» (lo agrega el integrador): ningún enlace queda marcado como actual. */}
-      <Encabezado actual={"ajustes" as "estado"} ultimaActualizacion={null} />
+      <Encabezado actual="ajustes" ultimaActualizacion={null} />
       <main className="terminal">
         <BannerAlertas />
         <ReglasAlerta />

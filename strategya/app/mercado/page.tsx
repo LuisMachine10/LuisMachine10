@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Mercado en vivo · Strategya" };
 export const dynamic = "force-dynamic";
 
 // El encabezado todavía no tiene una pestaña «Mercado» (la agrega el integrador): ninguna queda marcada.
-const SIN_PESTANA = "mercado" as unknown as "terminal";
+const SIN_PESTANA = "mercado" as const;
 
 export default async function Mercado() {
   let ultima: string | null = null;

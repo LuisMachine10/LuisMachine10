@@ -75,6 +75,13 @@ a:focus-visible {
   display: flex;
   gap: 14px;
   font-size: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+.nav::-webkit-scrollbar {
+  display: none;
 }
 .nav a {
   color: var(--texto-2);

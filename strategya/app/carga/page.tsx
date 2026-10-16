@@ -41,7 +41,7 @@ export default async function PaginaCarga() {
   } catch (e) {
     return (
       <>
-        <Encabezado actual="terminal" ultimaActualizacion={null} />
+        <Encabezado actual="carga" ultimaActualizacion={null} />
         <NavRD actual="carga" />
         <main className="terminal">
           <PanelError titulo="Carga manual" mensaje={(e as Error).message} />
@@ -52,7 +52,7 @@ export default async function PaginaCarga() {
   const hoy = hoyRD();
   return (
     <>
-      <Encabezado actual="terminal" ultimaActualizacion={null} />
+      <Encabezado actual="carga" ultimaActualizacion={null} />
       <NavRD actual="carga" />
       <main className="terminal">
         <section className="panel panel-ancho">

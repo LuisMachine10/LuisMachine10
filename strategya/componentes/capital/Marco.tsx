@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import "@/estilos/capital.css";
-import { cerrarSesion } from "@/app/acciones";
+import { Encabezado } from "@/componentes/Encabezado";
 import { mesCorto, mesPrevio, mesSiguiente } from "@/lib/capital/fechas";
 import { fechaHoraRD } from "@/lib/formato";
 import { SelectorMes } from "./SelectorMes";
@@ -53,18 +53,11 @@ export function Marco({
   const q = `?mes=${mes}`;
   return (
     <>
-      <header className="cap-encabezado">
-        <Link href="/" className="marca">
-          STRATEGYA
-        </Link>
+      <Encabezado actual="capital" ultimaActualizacion={null} />
+      <div className="cap-encabezado">
         <span className="cap-titulo">Mena Capital</span>
         {actual !== "importar" && actual !== "ips" ? <SelectorMes mes={mes} opciones={opcionesDeMes(hoyMes, conCierre, cerrados)} /> : null}
-        <form action={cerrarSesion}>
-          <button type="submit" className="boton-texto">
-            Salir
-          </button>
-        </form>
-      </header>
+      </div>
       <nav className="cap-pestanas" aria-label="Secciones de Mena Capital">
         {PESTANAS.map((p) => (
           <Link key={p.id} href={`${p.ruta}${q}`} aria-current={p.id === actual ? "page" : undefined}>

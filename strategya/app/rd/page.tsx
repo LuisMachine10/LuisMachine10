@@ -20,7 +20,7 @@ export default async function PaginaRD() {
   }
   return (
     <>
-      <Encabezado actual="terminal" ultimaActualizacion={ultima} />
+      <Encabezado actual="rd" ultimaActualizacion={ultima} />
       <NavRD actual="rd" />
       <main className="terminal">
         <PanelRD />
