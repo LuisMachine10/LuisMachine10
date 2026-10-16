@@ -1,0 +1,333 @@
+"use server";
+
+// Toda edición del Calendario de Caja pasa por aquí. Cada acción valida con lib/caja/validar.ts
+// (puro, con pruebas) y escribe con la sesión de Mena: RLS en la base es la barrera real.
+
+import { revalidatePath } from "next/cache";
+import { aJsonSQL, parsearImportacion, type ResumenImportacion } from "@/lib/caja/importar";
+import { esFecha } from "@/lib/caja/fechas";
+import {
+  type Campos,
+  validarCategoria,
+  validarConfig,
+  validarCuenta,
+  validarMovimiento,
+  validarRecurrente,
+  validarSaldoReal,
+} from "@/lib/caja/validar";
+import { clienteServidor, personal } from "@/lib/supabase/servidor";
+
+export interface EstadoAccion {
+  ok: boolean;
+  mensaje: string | null;
+  /** Cambia en cada respuesta para que el formulario sepa que hubo una nueva. */
+  vez: number;
+}
+
+const bien = (mensaje: string): EstadoAccion => ({ ok: true, mensaje, vez: Date.now() });
+const mal = (mensaje: string): EstadoAccion => ({ ok: false, mensaje, vez: Date.now() });
+
+function campos(form: FormData): Campos {
+  const c: Campos = {};
+  for (const [k, v] of form.entries()) if (typeof v === "string") c[k] = v;
+  return c;
+}
+
+function refrescar() {
+  revalidatePath("/caja", "layout");
+  revalidatePath("/");
+}
+
+function errorBase(e: { message: string } | null, que: string): EstadoAccion | null {
+  return e ? mal(`No se pudo ${que}: ${e.message}`) : null;
+}
+
+// Los ids del artefacto se conservan tal cual: cualquier texto corto sin caracteres de control.
+// eslint-disable-next-line no-control-regex
+const ID = /^[^\u0000-\u001f]{1,120}$/;
+
+// ───────────────────────── Movimientos ─────────────────────────
+
+/** Registrar (o confirmar / ajustar un planificado: llega con recurrenteId). */
+export async function registrarMovimiento(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const r = validarMovimiento(campos(form));
+  if (!r.ok) return mal(r.error);
+  const m = r.valor;
+  const db = await personal();
+  const { error } = await db.from("caja_movimientos").insert({
+    fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta,
+    destino: m.destino, categoria: m.categoria, nota: m.nota, recurrente_id: m.recurrenteId,
+  });
+  const e = errorBase(error, "registrar el movimiento");
+  if (e) return e;
+  if (m.recurrenteId) {
+    // Si estaba omitido ese día, confirmar lo saca de omitidos.
+    await db.from("caja_omitidos").delete().eq("fecha", m.fecha).eq("recurrente_id", m.recurrenteId);
+  }
+  refrescar();
+  return bien(m.recurrenteId ? "Confirmado." : "Registrado.");
+}
+
+export async function editarMovimiento(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const c = campos(form);
+  if (!c.id || !ID.test(c.id)) return mal("Movimiento inválido.");
+  const r = validarMovimiento(c);
+  if (!r.ok) return mal(r.error);
+  const m = r.valor;
+  const db = await personal();
+  const { error, count } = await db
+    .from("caja_movimientos")
+    .update(
+      { fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta, destino: m.destino,
+        categoria: m.categoria, nota: m.nota, actualizado_en: new Date().toISOString() },
+      { count: "exact" },
+    )
+    .eq("id", c.id);
+  const e = errorBase(error, "guardar el cambio");
+  if (e) return e;
+  if (!count) return mal("Ese movimiento ya no existe.");
+  refrescar();
+  return bien("Guardado.");
+}
+
+export async function eliminarMovimiento(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const id = String(form.get("id") ?? "");
+  if (!ID.test(id)) return mal("Movimiento inválido.");
+  const db = await personal();
+  const { error } = await db.from("caja_movimientos").delete().eq("id", id);
+  const e = errorBase(error, "eliminar el movimiento");
+  if (e) return e;
+  refrescar();
+  return bien("Eliminado.");
+}
+
+// ───────────────────────── Recurrentes del día ─────────────────────────
+
+export async function omitirRecurrente(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const fecha = String(form.get("fecha") ?? "");
+  const rid = String(form.get("recurrenteId") ?? "");
+  if (!esFecha(fecha) || !ID.test(rid)) return mal("Datos inválidos.");
+  const db = await personal();
+  const { error } = await db.from("caja_omitidos").upsert({ fecha, recurrente_id: rid }, { onConflict: "fecha,recurrente_id", ignoreDuplicates: true });
+  const e = errorBase(error, "omitir");
+  if (e) return e;
+  refrescar();
+  return bien("Omitido este día.");
+}
+
+export async function deshacerOmitido(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const fecha = String(form.get("fecha") ?? "");
+  const rid = String(form.get("recurrenteId") ?? "");
+  if (!esFecha(fecha) || !ID.test(rid)) return mal("Datos inválidos.");
+  const db = await personal();
+  const { error } = await db.from("caja_omitidos").delete().eq("fecha", fecha).eq("recurrente_id", rid);
+  const e = errorBase(error, "deshacer");
+  if (e) return e;
+  refrescar();
+  return bien("Vuelve a contar.");
+}
+
+// ───────────────────────── Cuadrar con el banco y nota ─────────────────────────
+
+/** Campos saldo:<cuentaId>. Vacío = quitar el cuadre de esa cuenta ese día. */
+export async function cuadrarSaldos(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const fecha = String(form.get("fecha") ?? "");
+  if (!esFecha(fecha)) return mal("Fecha inválida.");
+  const poner: { fecha: string; cuenta_id: string; saldo: string; actualizado_en: string }[] = [];
+  const quitar: string[] = [];
+  for (const [k, v] of form.entries()) {
+    if (!k.startsWith("saldo:") || typeof v !== "string") continue;
+    const cuenta = k.slice(6);
+    if (!ID.test(cuenta)) return mal("Cuenta inválida.");
+    const r = validarSaldoReal(v);
+    if (!r.ok) return mal(r.error);
+    if (r.valor === null) quitar.push(cuenta);
+    else poner.push({ fecha, cuenta_id: cuenta, saldo: r.valor, actualizado_en: new Date().toISOString() });
+  }
+  const db = await personal();
+  if (poner.length) {
+    const { error } = await db.from("caja_saldos_reales").upsert(poner, { onConflict: "fecha,cuenta_id" });
+    const e = errorBase(error, "guardar los saldos");
+    if (e) return e;
+  }
+  if (quitar.length) {
+    const { error } = await db.from("caja_saldos_reales").delete().eq("fecha", fecha).in("cuenta_id", quitar);
+    const e = errorBase(error, "quitar los saldos vacíos");
+    if (e) return e;
+  }
+  refrescar();
+  return bien(poner.length ? "Saldos cuadrados." : "Cuadre quitado.");
+}
+
+export async function guardarNota(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const fecha = String(form.get("fecha") ?? "");
+  const nota = String(form.get("nota") ?? "").trim();
+  if (!esFecha(fecha)) return mal("Fecha inválida.");
+  if (nota.length > 2000) return mal("La nota pasa de 2,000 caracteres.");
+  const db = await personal();
+  const { error } = nota
+    ? await db.from("caja_notas").upsert({ fecha, nota, actualizado_en: new Date().toISOString() }, { onConflict: "fecha" })
+    : await db.from("caja_notas").delete().eq("fecha", fecha);
+  const e = errorBase(error, "guardar la nota");
+  if (e) return e;
+  refrescar();
+  return bien(nota ? "Nota guardada." : "Nota borrada.");
+}
+
+// ───────────────────────── Ajustes ─────────────────────────
+
+export async function guardarConfig(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const r = validarConfig(campos(form));
+  if (!r.ok) return mal(r.error);
+  const db = await personal();
+  const { error } = await db.from("caja_config").upsert(
+    { id: 1, inicio: r.valor.inicio, colchon: r.valor.colchon, margen: r.valor.margen, tasa_usd: r.valor.tasaUSD, actualizado_en: new Date().toISOString() },
+    { onConflict: "id" },
+  );
+  const e = errorBase(error, "guardar los ajustes");
+  if (e) return e;
+  refrescar();
+  return bien("Ajustes guardados.");
+}
+
+async function enUso(columnas: { tabla: string; col: string }[], id: string): Promise<boolean> {
+  const db = await personal();
+  for (const { tabla, col } of columnas) {
+    const { count, error } = await db.from(tabla).select("*", { count: "exact", head: true }).eq(col, id);
+    if (error) throw new Error(error.message);
+    if (count) return true;
+  }
+  return false;
+}
+
+async function guardarEn(tabla: string, id: string | undefined, fila: Record<string, unknown>, que: string): Promise<EstadoAccion> {
+  const db = await personal();
+  const ahora = new Date().toISOString();
+  if (id) {
+    if (!ID.test(id)) return mal("Id inválido.");
+    const { error, count } = await db.from(tabla).update({ ...fila, actualizado_en: ahora }, { count: "exact" }).eq("id", id);
+    const e = errorBase(error, `guardar ${que}`);
+    if (e) return e;
+    if (!count) return mal(`Ya no existe ${que}.`);
+  } else {
+    const { error } = await db.from(tabla).insert(fila);
+    const e = errorBase(error, `crear ${que}`);
+    if (e) return e;
+  }
+  refrescar();
+  return bien("Guardado.");
+}
+
+async function eliminarDe(tabla: string, id: string, usos: { tabla: string; col: string }[], que: string): Promise<EstadoAccion> {
+  if (!ID.test(id)) return mal("Id inválido.");
+  try {
+    if (await enUso(usos, id)) return mal(`No se puede eliminar ${que}: hay movimientos o recurrentes que la usan. Cámbialos primero.`);
+  } catch (e) {
+    return mal(`No se pudo revisar si está en uso: ${(e as Error).message}`);
+  }
+  const db = await personal();
+  const { error } = await db.from(tabla).delete().eq("id", id);
+  const e = errorBase(error, `eliminar ${que}`);
+  if (e) return e;
+  refrescar();
+  return bien("Eliminado.");
+}
+
+export async function guardarCuenta(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const c = campos(form);
+  const r = validarCuenta(c);
+  if (!r.ok) return mal(r.error);
+  const v = r.valor;
+  return guardarEn("caja_cuentas", c.id || undefined, { nombre: v.nombre, tipo: v.tipo, saldo_inicial: v.saldoInicial, limite: v.limite, orden: v.orden }, "la cuenta");
+}
+
+export async function eliminarCuenta(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  return eliminarDe(
+    "caja_cuentas",
+    String(form.get("id") ?? ""),
+    [
+      { tabla: "caja_movimientos", col: "cuenta" },
+      { tabla: "caja_movimientos", col: "destino" },
+      { tabla: "caja_recurrentes", col: "cuenta" },
+      { tabla: "caja_recurrentes", col: "destino" },
+    ],
+    "la cuenta",
+  );
+}
+
+export async function guardarCategoria(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const c = campos(form);
+  const r = validarCategoria(c);
+  if (!r.ok) return mal(r.error);
+  return guardarEn("caja_categorias", c.id || undefined, { nombre: r.valor.nombre, grupo: r.valor.grupo, presupuesto: r.valor.presupuesto }, "la categoría");
+}
+
+export async function eliminarCategoria(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  return eliminarDe(
+    "caja_categorias",
+    String(form.get("id") ?? ""),
+    [
+      { tabla: "caja_movimientos", col: "categoria" },
+      { tabla: "caja_recurrentes", col: "categoria" },
+    ],
+    "la categoría",
+  );
+}
+
+export async function guardarRecurrente(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const c = campos(form);
+  const r = validarRecurrente(c);
+  if (!r.ok) return mal(r.error);
+  const v = r.valor;
+  return guardarEn(
+    "caja_recurrentes",
+    c.id || undefined,
+    {
+      nombre: v.nombre, tipo: v.tipo, monto: v.monto, moneda: v.moneda, pago_total: v.pagoTotal, cuenta: v.cuenta, destino: v.destino,
+      categoria: v.categoria, frecuencia: v.frecuencia, dias: v.dias, cada_n: v.cadaN, fecha: v.fecha, desde: v.desde, hasta: v.hasta, activo: v.activo,
+    },
+    "el recurrente",
+  );
+}
+
+/** Los movimientos que ya lo confirmaron se quedan (son historia); sus omitidos se borran. */
+export async function eliminarRecurrente(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const id = String(form.get("id") ?? "");
+  if (!ID.test(id)) return mal("Id inválido.");
+  const db = await personal();
+  const { error } = await db.from("caja_recurrentes").delete().eq("id", id);
+  const e = errorBase(error, "eliminar el recurrente");
+  if (e) return e;
+  await db.from("caja_omitidos").delete().eq("recurrente_id", id);
+  refrescar();
+  return bien("Eliminado. Los movimientos que ya confirmaste se quedan.");
+}
+
+// ───────────────────────── Importar ─────────────────────────
+
+export interface EstadoImportacion {
+  fase: "inicio" | "revisado" | "importado" | "error";
+  resumen: ResumenImportacion | null;
+  errores: string[];
+  advertencias: string[];
+  mensaje: string | null;
+}
+
+/** Paso 1: validar y mostrar el resumen sin escribir nada. Paso 2 (confirmar=si): reemplazar todo. */
+export async function importarCaja(_p: EstadoImportacion, form: FormData): Promise<EstadoImportacion> {
+  const archivo = form.get("archivo");
+  const texto = typeof archivo === "string" ? archivo : archivo instanceof File && archivo.size ? await archivo.text() : String(form.get("texto") ?? "");
+  if (!texto.trim()) return { fase: "error", resumen: null, errores: ["Elige el archivo JSON exportado del artefacto."], advertencias: [], mensaje: null };
+  const r = parsearImportacion(texto);
+  if (r.errores.length || !r.datos) return { fase: "error", resumen: r.resumen, errores: r.errores, advertencias: r.advertencias, mensaje: null };
+  if (form.get("confirmar") !== "si") {
+    return { fase: "revisado", resumen: r.resumen, errores: [], advertencias: r.advertencias, mensaje: null };
+  }
+  const supabase = await clienteServidor();
+  const { error } = await supabase.schema("personal").rpc("caja_importar", { p_datos: aJsonSQL(r.datos) });
+  if (error) {
+    return { fase: "error", resumen: r.resumen, errores: [`La base rechazó la importación y no cambió nada: ${error.message}`], advertencias: r.advertencias, mensaje: null };
+  }
+  refrescar();
+  return { fase: "importado", resumen: r.resumen, errores: [], advertencias: r.advertencias, mensaje: "Importado. Todo lo anterior del Calendario de Caja se reemplazó." };
+}
