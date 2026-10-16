@@ -1,7 +1,7 @@
 // Orquestador de una corrida de ingesta: abre la corrida, ejecuta la tarea, la cierra
 // con su estado y nunca deja una excepción sin registrar en mercado.corridas.
 
-import type { OpcionesApi, Respuesta } from "./http.ts";
+import { ocultarClaves, type OpcionesApi, type Respuesta } from "./http.ts";
 
 export type EstadoObservacion = "ok" | "desactualizado" | "error" | "no_confirmado";
 
@@ -98,7 +98,8 @@ export function validarFila(f: FilaObservacion): string | null {
 }
 
 function mensaje(e: unknown): string {
-  const m = e instanceof Error ? e.message : String(e);
+  // Ninguna clave de API llega a corridas.error (se lee desde /estado).
+  const m = ocultarClaves(e instanceof Error ? e.message : String(e));
   return m.length > 2000 ? `${m.slice(0, 2000)}…` : m;
 }
 
@@ -149,7 +150,7 @@ export async function correrTarea(tarea: Tarea, almacen: Almacen, dependencias: 
       estado: r.parcial ? "parcial" : "ok",
       error: advertencias.length ? mensaje(advertencias.join(" · ")) : undefined,
       filas,
-      detalle: { ...conteo, ...r.detalle, advertencias },
+      detalle: { ...conteo, ...r.detalle, advertencias: advertencias.map((a) => ocultarClaves(a)) },
     };
   } catch (e) {
     cierre = { estado: "error", error: mensaje(e), filas, detalle: { ...conteo } };

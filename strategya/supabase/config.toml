@@ -6,7 +6,7 @@ project_id = "strategya"
 
 [api]
 # El esquema mercado debe estar expuesto para que la app y la ingesta lo lean por la API.
-schemas = ["public", "graphql_public", "mercado"]
+schemas = ["public", "graphql_public", "mercado", "personal"]
 
 [auth]
 # Un solo usuario: nadie más puede registrarse.

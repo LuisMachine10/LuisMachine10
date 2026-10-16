@@ -90,25 +90,29 @@ export async function obtenerTexto(url: string, op: OpcionesHttp): Promise<Respu
         signal: control.signal,
         redirect: "follow",
       });
+      if (r.url && r.url !== url && dominioProhibido(r.url)) {
+        await r.body?.cancel();
+        throw new ErrorIngesta(`La lectura redirigió a un dominio prohibido (${new URL(r.url).hostname}); no se lee`, url);
+      }
       if (r.ok) {
         const texto = await r.text();
         return { url, status: r.status, tipo: r.headers.get("content-type") ?? "", texto, intentos: intento };
       }
       await r.body?.cancel();
       if (r.status !== 429 && r.status < 500) {
-        throw new ErrorIngesta(`HTTP ${r.status} en ${url}`, url, r.status);
+        throw new ErrorIngesta(`HTTP ${r.status} en ${ocultarClaves(url)}`, ocultarClaves(url), r.status);
       }
       retryAfter = r.headers.get("retry-after");
       ultimoError = `HTTP ${r.status}`;
     } catch (e) {
       if (e instanceof ErrorIngesta) throw e;
-      ultimoError = control.signal.aborted ? `sin respuesta en ${timeoutMs} ms` : `error de red: ${(e as Error).message}`;
+      ultimoError = control.signal.aborted ? `sin respuesta en ${timeoutMs} ms` : `error de red: ${ocultarClaves((e as Error).message)}`;
     } finally {
       clearTimeout(reloj);
     }
     if (intento <= reintentos) await dormir(esperaReintento(intento, base, retryAfter));
   }
-  throw new ErrorIngesta(`Falló tras ${reintentos + 1} intentos (${ultimoError}): ${url}`, url);
+  throw new ErrorIngesta(`Falló tras ${reintentos + 1} intentos (${ultimoError}): ${ocultarClaves(url)}`, ocultarClaves(url));
 }
 
 /**
@@ -140,6 +144,10 @@ export async function pedirApi(url: string, op: OpcionesHttp, api: OpcionesApi =
     let retryAfter: string | null = null;
     try {
       const r = await f(url, { method: metodo, headers: encabezados, body: cuerpo, signal: control.signal });
+      if (r.url && r.url !== url && dominioProhibido(r.url)) {
+        await r.body?.cancel();
+        throw new ErrorIngesta(`La API redirigió a un dominio prohibido (${new URL(r.url).hostname}); no se lee`, ocultarClaves(url));
+      }
       const texto = await r.text();
       if (r.ok) return { url, status: r.status, tipo: r.headers.get("content-type") ?? "", texto, intentos: intento };
       if (r.status !== 429 && r.status < 500) {
@@ -149,7 +157,7 @@ export async function pedirApi(url: string, op: OpcionesHttp, api: OpcionesApi =
       ultimoError = `HTTP ${r.status}`;
     } catch (e) {
       if (e instanceof ErrorIngesta) throw e;
-      ultimoError = control.signal.aborted ? `sin respuesta en ${timeoutMs} ms` : `error de red: ${(e as Error).message}`;
+      ultimoError = control.signal.aborted ? `sin respuesta en ${timeoutMs} ms` : `error de red: ${ocultarClaves((e as Error).message)}`;
     } finally {
       clearTimeout(reloj);
     }
@@ -179,6 +187,9 @@ export type DecisionRobots =
  *  - 2xx: se aplican las reglas.
  *  - 401/403: el sitio rechaza la lectura automática → no se lee. (RFC 9309 permitiría leer;
  *    Strategya lo trata como prohibición: es la señal de un bloqueo como el de Cloudflare.)
+ *    Única excepción: el feed RSS/Atom que el propio sitio publica para lectores automáticos, y solo
+ *    si el feed responde 200 (si el feed también responde 403, no se insiste). Decisión de Mena para
+ *    la SIMV (15 oct 2026): sus avisos públicos entran por el feed; las páginas no se tocan.
  *  - otros 4xx (404, 410…): no hay reglas → se puede leer.
  *  - 5xx o sin respuesta: se asume prohibido hasta que vuelva.
  */

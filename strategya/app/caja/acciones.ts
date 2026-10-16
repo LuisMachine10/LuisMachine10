@@ -15,7 +15,7 @@ import {
   validarRecurrente,
   validarSaldoReal,
 } from "@/lib/caja/validar";
-import { clienteServidor, personal } from "@/lib/supabase/servidor";
+import { personal } from "@/lib/supabase/servidor";
 
 export interface EstadoAccion {
   ok: boolean;
@@ -323,8 +323,7 @@ export async function importarCaja(_p: EstadoImportacion, form: FormData): Promi
   if (form.get("confirmar") !== "si") {
     return { fase: "revisado", resumen: r.resumen, errores: [], advertencias: r.advertencias, mensaje: null };
   }
-  const supabase = await clienteServidor();
-  const { error } = await supabase.schema("personal").rpc("caja_importar", { p_datos: aJsonSQL(r.datos) });
+  const { error } = await (await personal()).rpc("caja_importar", { p_datos: aJsonSQL(r.datos) });
   if (error) {
     return { fase: "error", resumen: r.resumen, errores: [`La base rechazó la importación y no cambió nada: ${error.message}`], advertencias: r.advertencias, mensaje: null };
   }

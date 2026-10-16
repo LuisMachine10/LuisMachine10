@@ -77,10 +77,21 @@ export function parsearTesoroHtml(html: string, base = "https://home.treasury.go
   for (const m of html.matchAll(re)) {
     const ms = Date.parse(atributo(m[1]));
     const titulo = limpiarTexto(m[3]);
-    if (!Number.isFinite(ms) || !titulo) continue;
-    salida.push({ titulo: recortar(titulo), url: new URL(atributo(m[2]), base).toString(), fecha: new Date(ms).toISOString(), solo_fecha: false });
+    const url = enlaceWeb(atributo(m[2]), base);
+    if (!Number.isFinite(ms) || !titulo || !url) continue;
+    salida.push({ titulo: recortar(titulo), url, fecha: new Date(ms).toISOString(), solo_fecha: false });
   }
   return salida;
+}
+
+/** Enlace absoluto http(s); cualquier otro esquema (javascript:, data:) se descarta. */
+function enlaceWeb(href: string, base: string): string | null {
+  try {
+    const u = new URL(href, base);
+    return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 const MESES_ES: Record<string, string> = {

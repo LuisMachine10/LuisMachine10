@@ -49,7 +49,7 @@ export async function leerInstituciones(limite = 400) {
 
 export async function leerOperacionesSec(dias = 10) {
   const db = await mercado();
-  const desde = new Date(Date.now() - dias * 86_400_000).toISOString().slice(0, 10);
+  const desde = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santo_Domingo" }).format(new Date(Date.now() - dias * 86_400_000));
   const [ops, tareas] = await Promise.all([
     db.from("operaciones_sec").select("form, tipo, empresa, cik, fecha, url, indice_fecha, recogido_en").gte("fecha", desde).order("fecha", { ascending: false }).limit(300),
     estados("sec-edgar"),

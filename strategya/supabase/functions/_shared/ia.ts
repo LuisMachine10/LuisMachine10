@@ -203,9 +203,51 @@ export function numerosPermitidos(entrada: string): Set<string> {
   return permitidos;
 }
 
-/** Tokens numéricos del texto que no aparecen en la entrada. Vacío = el texto no inventa cifras. */
+const MESES = "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre";
+/** «15 de octubre», «octubre de 2026»: son fechas, no cifras del mercado. */
+const ES_FECHA_DESPUES = new RegExp(`^\\s+de\\s+(${MESES})\\b`, "i");
+const ES_ANIO_DESPUES_DE_MES = new RegExp(`\\b(${MESES})(\\s+de)?\\s+$`, "i");
+
+/**
+ * Tokens numéricos del texto que no aparecen en los datos. Vacío = el texto no inventa cifras.
+ * Se permiten solo las fechas escritas como fecha («15 de octubre», «octubre de 2026»), nunca un número suelto.
+ */
 export function numerosAjenos(texto: string, permitidos: Set<string>): string[] {
-  return tokensNumericos(texto).filter((t) => !lecturasNumero(t).some((l) => permitidos.has(l)));
+  const ajenos: string[] = [];
+  for (const m of texto.matchAll(TOKEN_NUMERICO)) {
+    const t = m[0];
+    const i = m.index ?? 0;
+    const despues = texto.slice(i + t.length);
+    const antes = texto.slice(0, i);
+    if (/^\d{1,2}$/.test(t) && Number(t) >= 1 && Number(t) <= 31 && ES_FECHA_DESPUES.test(despues)) continue;
+    if (/^20\d\d$/.test(t) && ES_ANIO_DESPUES_DE_MES.test(antes) && !/^\s*%/.test(despues)) continue;
+    if (!lecturasNumero(t).some((l) => permitidos.has(l))) ajenos.push(t);
+  }
+  return ajenos;
+}
+
+// ───────────────────────────── Dirección: no puede contradecir el dato ─────────────────────────────
+
+// Límites de palabra con letras acentuadas (\b de JS no reconoce «ó» como letra).
+const palabra = (alternativas: string) => new RegExp(`(?<!\\p{L})(${alternativas})(?!\\p{L})`, "iu");
+const VERBO_SUBE = palabra("sub(e|en|i[óo]|ieron|iendo)|alz[aó]|al alza|gan(a|an|[óo]|aron)|avanz\\p{L}*|repunt\\p{L}*|se dispar\\p{L}*|trep\\p{L}*|se aprecia\\p{L}*");
+const VERBO_BAJA = palabra("baj(a|an|[óo]|aron|ando)|a la baja|ca(e|en|y[óo]|yeron|yendo)|ca[íi]da|descend\\p{L}*|retroced\\p{L}*|perd(i[óo]|ieron|iendo)|se desplom\\p{L}*|ced(e|en|i[óo]|ieron)|se depreci\\p{L}*");
+
+export type Direccion = "sube" | "baja";
+
+export function direccionDe(cambio: string | null | undefined): Direccion | undefined {
+  if (!cambio || !/^-?\d+(\.\d+)?$/.test(cambio)) return undefined;
+  const n = new Big(cambio);
+  return n.gt(0) ? "sube" : n.lt(0) ? "baja" : undefined;
+}
+
+/** Motivo de rechazo si el texto dice que la serie subió cuando bajó (o al revés). */
+export function contradiceDireccion(texto: string, d: Direccion | undefined): string | null {
+  if (!d) return null;
+  const sube = VERBO_SUBE.test(texto), baja = VERBO_BAJA.test(texto);
+  if (d === "baja" && sube && !baja) return "dice que subió, pero el dato bajó";
+  if (d === "sube" && baja && !sube) return "dice que bajó, pero el dato subió";
+  return null;
 }
 
 // ───────────────────────────── Validación de la salida ─────────────────────────────
@@ -229,6 +271,8 @@ export interface ContextoValidacion {
   permitidos: Set<string>;
   /** url → titular guardado. */
   enlaces: Map<string, string>;
+  /** Solo en el porqué de una serie: hacia dónde se movió de verdad. */
+  direccion?: Direccion;
 }
 
 export type Validacion<T> = { ok: true; valor: T } | { ok: false; motivo: string };
@@ -283,6 +327,8 @@ export function validarPorque(json: unknown, ctx: ContextoValidacion): Validacio
   if (!json.explicado) return { ok: true, valor: { explicado: false, texto: CAUSA_NO_CONFIRMADA, fuentes: [] } };
   const p = revisarTexto("texto", json.texto, 400, ctx, 2);
   if (p) return { ok: false, motivo: p };
+  const dir = contradiceDireccion(json.texto as string, ctx.direccion);
+  if (dir) return { ok: false, motivo: `texto: ${dir}` };
   if (json.fuentes.length < 1 || json.fuentes.length > 3) return { ok: false, motivo: "fuentes: se esperan de 1 a 3" };
   const fuentes: FuenteTexto[] = [];
   for (const f of json.fuentes) {
@@ -463,8 +509,17 @@ export function lineaTitular(t: Titular): string {
   return `- ${t.titular}${meta ? ` (${meta})` : ""} — ${t.url}`;
 }
 
-export function contextoDe(mensaje: string, titulares: Titular[]): ContextoValidacion {
-  return { permitidos: numerosPermitidos(mensaje), enlaces: new Map(titulares.map((t) => [t.url, t.titular])) };
+/**
+ * Lo que la IA puede citar: los valores de los datos (y sus redondeos) y las cifras que traen los
+ * titulares en su texto. NO las fechas, horas ni URL del mensaje: de ahí saldrían números ajenos
+ * (un «15» de la fecha no es un «subió 15 %»).
+ */
+export function contextoDe(datos: DatoSerie[], titulares: Titular[], direccion?: Direccion): ContextoValidacion {
+  const fuentes = [
+    ...datos.flatMap((d) => [d.valor, d.cambio, d.cambio_pct].filter((v): v is string => Boolean(v))),
+    ...titulares.map((t) => t.titular),
+  ];
+  return { permitidos: numerosPermitidos(fuentes.join(" \n ")), enlaces: new Map(titulares.map((t) => [t.url, t.titular])), direccion };
 }
 
 export const REGLAS_COMUNES = [

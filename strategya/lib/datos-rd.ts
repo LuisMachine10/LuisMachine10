@@ -64,8 +64,9 @@ function exigir<T>(r: { data: unknown; error: { message: string } | null }, que:
   return (r.data ?? []) as T;
 }
 
+/** Fecha (AAAA-MM-DD) de hace N días en hora RD: de 8 PM a medianoche, UTC ya es mañana. */
 function haceDias(dias: number): string {
-  return new Date(Date.now() - dias * 86_400_000).toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santo_Domingo" }).format(new Date(Date.now() - dias * 86_400_000));
 }
 
 export const datosRD = cache(async () => {

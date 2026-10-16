@@ -99,17 +99,17 @@ describe("rotación de consultas", () => {
 describe("tarea noticias-gdelt", () => {
   const ahora = () => new Date(Date.UTC(2026, 9, 15, 0, 0, 5)); // turno 0 de la rotación del día
 
-  it("UNA sola llamada por corrida (por ctx.api: sin pedir robots.txt antes) y guarda en noticias", async () => {
+  it("UNA sola consulta por corrida, por el lector (robots.txt) y guarda en noticias", async () => {
     const { almacen, tablas } = almacenMemoria();
     const llamadas: string[] = [];
     const r = await correrTarea(tareaGdelt, almacen, {
       ahora,
-      obtener: async () => {
-        throw new Error("no debe usarse");
-      },
-      api: async (url) => {
+      obtener: async (url) => {
         llamadas.push(url);
         return ok(url, MUESTRA);
+      },
+      api: async () => {
+        throw new Error("no debe usarse: GDELT pasa por robots.txt");
       },
     });
     expect(llamadas).toHaveLength(1);
@@ -123,8 +123,7 @@ describe("tarea noticias-gdelt", () => {
     const { almacen, tablas } = almacenMemoria();
     const r = await correrTarea(tareaGdelt, almacen, {
       ahora,
-      obtener: async () => ok("", ""),
-      api: async (url) => {
+      obtener: async (url) => {
         throw new ErrorIngesta(`Falló tras 3 intentos (HTTP 429): ${url}`, url);
       },
     });
@@ -138,8 +137,7 @@ describe("tarea noticias-gdelt", () => {
     const { almacen } = almacenMemoria();
     const r = await correrTarea(tareaGdelt, almacen, {
       ahora,
-      obtener: async () => ok("", ""),
-      api: async (url) => ok(url, "Please limit requests to one every 5 seconds"),
+      obtener: async (url) => ok(url, "Please limit requests to one every 5 seconds"),
     });
     expect(r.estado).toBe("parcial");
     expect(r.error).toMatch(/GDELT pidió esperar/);
@@ -149,8 +147,7 @@ describe("tarea noticias-gdelt", () => {
     const { almacen } = almacenMemoria();
     const r = await correrTarea(tareaGdelt, almacen, {
       ahora,
-      obtener: async () => ok("", ""),
-      api: async () => {
+      obtener: async () => {
         throw new Error("sin red");
       },
     });

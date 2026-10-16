@@ -142,6 +142,24 @@ describe("tarea ia-porque", () => {
     expect(rows).toEqual([{ texto: CAUSA_NO_CONFIRMADA, confirmada: false, costo_usd: "0.000195", motivo: expect.stringMatching(/cifras/) }]);
   });
 
+  it("los porqués paran al 70 % del tope para dejar presupuesto a los resúmenes", async () => {
+    await pool.query("delete from mercado.explicaciones");
+    await servicio("insert into mercado.explicaciones (tipo, texto, modelo, costo_usd) values ('porque', 'x', 'claude-haiku-5-5', 0.36)");
+    let llamadas = 0;
+    const r = await correrTarea(tareaIaPorque, almacenPg(pool), {
+      obtener: () => Promise.reject(new Error("no")),
+      api: async () => {
+        llamadas++;
+        throw new Error("no debió llamar");
+      },
+      entorno: entorno({ IA_TOPE_MENSUAL_USD: "0.5" }),
+    });
+    expect(llamadas).toBe(0);
+    expect(r.estado).toBe("parcial");
+    expect(r.error).toMatch(/su parte del tope/);
+    await pool.query("delete from mercado.explicaciones");
+  });
+
   it("con el tope alcanzado no llama a la IA", async () => {
     await pool.query("delete from mercado.explicaciones");
     await servicio("insert into mercado.explicaciones (tipo, texto, modelo, costo_usd) values ('cinco_del_dia', 'x', 'claude-sonnet-5-5', 0.5)");

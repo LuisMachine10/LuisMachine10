@@ -95,8 +95,8 @@ describe("validaciones de salida", () => {
     { titular: "Gold jumps as Fed signals pause", url: "https://ejemplo.org/oro" },
     { titular: "Ceasefire talks stall", url: "https://ejemplo.org/tregua" },
   ];
-  const mensaje = "- Oro · valor 4312.5 · cambio % 2.35 · fecha 2026-10-15";
-  const ctx = contextoDe(mensaje, titulares);
+  const oro = { serie_id: "ORO", nombre: "Oro", unidad: "US$/oz", valor: "4312.5", cambio_pct: "2.35", fecha_dato: "2026-10-15", fuente: "FMP" };
+  const ctx = contextoDe([oro], titulares, "sube");
 
   it("porqué válido: toma el titular guardado como título de la fuente", () => {
     const v = validarPorque({ explicado: true, texto: "El oro subió 2.35 % tras señales de pausa de la Fed.", fuentes: [{ url: "https://ejemplo.org/oro" }] }, ctx);
@@ -123,6 +123,19 @@ describe("validaciones de salida", () => {
     expect(validarPorque({ ...base, texto: "Buen momento: compre oro." }, ctx)).toMatchObject({ ok: false, motivo: /recomendación/ });
     expect(validarPorque({ ...base, texto: "Una. Dos. Tres." }, ctx)).toMatchObject({ ok: false, motivo: /oraciones/ });
     expect(validarPorque({ ...base, texto: "Ver https://ejemplo.org/oro" }, ctx)).toMatchObject({ ok: false });
+  });
+  it("no toma números de fechas, horas ni URL del mensaje, y respeta el signo del dato", () => {
+    const cae = { ...oro, valor: "4100.2", cambio_pct: "-1.807" };
+    const tit = [{ titular: "Gold slides as dollar firms", url: "https://ejemplo.org/2026/10/15/oro-35", fecha: "2026-10-15T14:35:00+00:00" }];
+    const c = contextoDe([cae], tit, "baja");
+    const base = { explicado: true, fuentes: [{ url: tit[0].url }] };
+    expect(validarPorque({ ...base, texto: "El oro bajó 15 % por el dólar." }, c)).toMatchObject({ ok: false, motivo: /cifras/ });
+    expect(validarPorque({ ...base, texto: "El oro subió 1.81 % por el dólar." }, c)).toMatchObject({ ok: false, motivo: /subió, pero el dato bajó/ });
+    expect(validarPorque({ ...base, texto: "El oro cayó 1.81 % el 15 de octubre por el dólar." }, c)).toMatchObject({ ok: true });
+  });
+  it("las cifras del texto de un titular sí se pueden citar", () => {
+    const c = contextoDe([oro], [{ titular: "Fed cuts rates by 25 basis points", url: "https://ejemplo.org/fed" }]);
+    expect(validarPorque({ explicado: true, texto: "El oro subió tras el recorte de 25 puntos básicos de la Fed.", fuentes: [{ url: "https://ejemplo.org/fed" }] }, c)).toMatchObject({ ok: true });
   });
   it("«EE. UU.» no cuenta como fin de oración", () => {
     expect(contarOraciones("La Fed de EE. UU. pausó. El oro subió.")).toBe(2);

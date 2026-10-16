@@ -73,7 +73,7 @@ describe("ingesta de punta a punta", () => {
   it("GDELT: guarda titulares con categoría, país y coordenadas exactas; la segunda corrida no duplica", async () => {
     // SINTÉTICA: reemplazar por real (sondas/lotes/21-gdelt-artlist.txt).
     const muestra = leer("gdelt", "artlist-sintetica.json");
-    const dep = { ahora: () => new Date("2026-10-15T00:00:05Z"), obtener: async () => ok("", ""), api: async (url: string) => ok(url, muestra) };
+    const dep = { ahora: () => new Date("2026-10-15T00:00:05Z"), obtener: async (url: string) => ok(url, muestra) };
     const r1 = await correrTarea(tareaGdelt, almacenPg(pool), dep);
     expect(r1).toMatchObject({ estado: "ok", filas: 6 });
     const r2 = await correrTarea(tareaGdelt, almacenPg(pool), dep);
@@ -87,8 +87,7 @@ describe("ingesta de punta a punta", () => {
 
   it("GDELT 429: la corrida queda «parcial» en /estado con el motivo", async () => {
     const r = await correrTarea(tareaGdelt, almacenPg(pool), {
-      obtener: async () => ok("", ""),
-      api: async (url) => {
+      obtener: async (url) => {
         throw new ErrorIngesta(`Falló tras 3 intentos (HTTP 429): ${url}`, url);
       },
     });

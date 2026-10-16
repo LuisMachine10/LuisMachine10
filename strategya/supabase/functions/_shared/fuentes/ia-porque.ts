@@ -7,6 +7,7 @@ import type { ContextoTarea, Tarea } from "../ingesta.ts";
 import {
   CAUSA_NO_CONFIRMADA,
   contextoDe,
+  direccionDe,
   type DatoSerie,
   ESQUEMA_PORQUE,
   estadoTope,
@@ -62,6 +63,9 @@ function datosDe(c: CandidatoPorque, motivo?: string): Record<string, unknown> {
   return { fecha_dato: c.fecha_dato, valor: c.valor, cambio_pct: c.cambio_pct ?? null, ...(motivo ? { motivo } : {}) };
 }
 
+/** Parte del tope mensual que pueden gastar los porqués. */
+export const PARTE_PORQUE = "0.7";
+
 export const tareaIaPorque: Tarea = {
   nombre: "ia-porque",
   fuenteId: "anthropic",
@@ -77,6 +81,12 @@ export const tareaIaPorque: Tarea = {
       advertencias.push(`Tope de IA alcanzado (US$${tope.gasto} de US$${tope.tope} este mes): no se llama a la IA`);
       return { parcial: true, advertencias, detalle };
     }
+    // Los porqués se detienen al 70 % del tope: el resto queda para «Las 5 del día» y «Guerras».
+    const limitePorque = new Big(tope.tope).times(PARTE_PORQUE).toFixed(6);
+    if (new Big(tope.gasto).gte(limitePorque)) {
+      advertencias.push(`Los porqués ya usaron su parte del tope (US$${limitePorque} de US$${tope.tope}); lo que queda es para los resúmenes`);
+      return { parcial: true, advertencias, detalle: { ...detalle, limite_porque_usd: limitePorque } };
+    }
 
     const candidatos = (await ctx.rpc<CandidatoPorque[] | null>("ia_candidatos_porque", { p_ahora: ctx.ahora.toISOString(), p_limite: 8 })) ?? [];
     const desde = new Date(ctx.ahora.getTime() - 24 * 3_600_000).toISOString();
@@ -88,7 +98,7 @@ export const tareaIaPorque: Tarea = {
     let llamadas = 0;
     let confirmadas = 0;
     for (const c of candidatos) {
-      if (new Big(gasto).gte(tope.tope)) {
+      if (new Big(gasto).gte(limitePorque)) {
         detalle.tope_alcanzado = true;
         advertencias.push(`Tope de IA alcanzado a mitad de la corrida (US$${gasto}); quedan series sin explicar`);
         break;
@@ -127,7 +137,7 @@ export const tareaIaPorque: Tarea = {
           fila.tokens_entrada = r.uso.input_tokens;
           fila.tokens_salida = r.uso.output_tokens;
           fila.costo_usd = r.costo;
-          const v = r.ok ? validarPorque(r.json, contextoDe(mensaje, titulares)) : { ok: false as const, motivo: r.motivo };
+          const v = r.ok ? validarPorque(r.json, contextoDe([c], titulares, direccionDe(c.cambio_pct ?? c.cambio))) : { ok: false as const, motivo: r.motivo };
           if (v.ok && v.valor.explicado) {
             fila.texto = v.valor.texto;
             fila.fuentes = v.valor.fuentes;

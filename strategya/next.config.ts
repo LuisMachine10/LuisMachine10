@@ -5,6 +5,8 @@ const config: NextConfig = {
   // El repositorio también contiene otra app en la raíz: Strategya se construye aislada en su carpeta.
   turbopack: { root: import.meta.dirname },
   outputFileTracingRoot: import.meta.dirname,
+  // Importar Mena Capital acepta hasta 2 MB y el paso de confirmar reenvía el archivo: 5 MB deja margen.
+  experimental: { serverActions: { bodySizeLimit: "5mb" } },
   async headers() {
     return [
       {

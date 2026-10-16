@@ -159,9 +159,9 @@ export const tareaGdelt: Tarea = {
     const consulta = consultaDelTurno(ctx.ahora);
     let texto: string;
     try {
-      // API documentada (sin clave): ctx.api no pide robots.txt antes, así la corrida hace una sola
-      // llamada a GDELT y no dos seguidas que dispararían su límite de una cada 5 s.
-      texto = (await ctx.api(urlGdelt(consulta))).texto;
+      // API pública sin clave: pasa por el lector como cualquier página (robots.txt antes de leer).
+      // Una sola consulta por corrida; si GDELT responde 429, la corrida queda parcial.
+      texto = (await ctx.obtener(urlGdelt(consulta))).texto;
     } catch (e) {
       const m = (e as Error).message;
       if (/HTTP 429/.test(m)) {

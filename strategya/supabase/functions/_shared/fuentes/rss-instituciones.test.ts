@@ -136,3 +136,12 @@ describe("tareas de instituciones", () => {
     expect(r.error).toMatch(/no se encontró ningún comunicado/);
   });
 });
+
+describe("enlaces del Tesoro: solo http(s)", () => {
+  it("descarta un enlace javascript:", () => {
+    const html =
+      '<time datetime="2026-10-14T16:00:00Z">x</time><h3 class="featured-stories__headline"><a href="javascript:alert(1)">Malo</a></h3>' +
+      '<time datetime="2026-10-14T17:00:00Z">x</time><h3 class="featured-stories__headline"><a href="/news/press-releases/sb1">Bueno</a></h3>';
+    expect(parsearTesoroHtml(html).map((i) => i.url)).toEqual(["https://home.treasury.gov/news/press-releases/sb1"]);
+  });
+});

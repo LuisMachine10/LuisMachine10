@@ -89,7 +89,9 @@ begin
       from mercado.observaciones x
       where x.serie_id = r.serie_id
         and x.estado = 'ok'
-        and x.fecha_dato between v_hoy - 7 and v_hoy
+        -- v_hoy + 1: los futuros (oro, plata, Brent) abren la sesión del día siguiente a las 6:00 PM
+        -- de Nueva York, y su fecha_dato ya es mañana mientras en RD todavía es hoy.
+        and x.fecha_dato between v_hoy - 7 and v_hoy + 1
         and x.recogido_en <= p_ahora
         and (x.hora_dato is null or x.hora_dato <= p_ahora)
       order by x.fecha_dato desc, x.hora_dato desc nulls last
@@ -97,9 +99,9 @@ begin
     ) o
     where r.activa
       and case r.tipo
-        when 'cambio_pct_dia' then o.fecha_dato = v_hoy and o.cambio_pct is not null and abs(o.cambio_pct) >= r.umbral
-        when 'nivel_sobre' then o.fecha_dato = v_hoy and o.valor > r.umbral
-        when 'nivel_bajo' then o.fecha_dato = v_hoy and o.valor < r.umbral
+        when 'cambio_pct_dia' then o.fecha_dato >= v_hoy and o.cambio_pct is not null and abs(o.cambio_pct) >= r.umbral
+        when 'nivel_sobre' then o.fecha_dato >= v_hoy and o.valor > r.umbral
+        when 'nivel_bajo' then o.fecha_dato >= v_hoy and o.valor < r.umbral
         when 'cualquier_cambio' then o.cambio is not null and o.cambio <> 0
           and (o.recogido_en at time zone 'America/Santo_Domingo')::date = v_hoy
         else false

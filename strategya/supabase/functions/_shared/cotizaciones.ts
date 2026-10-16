@@ -3,6 +3,7 @@
 
 import Big from "big.js";
 import type { ContextoTarea } from "./ingesta.ts";
+import { ocultarClaves } from "./http.ts";
 import { esMercado, type Mercado } from "./mercados.ts";
 import type { SeriePlan } from "./planificador.ts";
 
@@ -85,7 +86,7 @@ export async function guardarIntentos(ctx: ContextoTarea, proveedor: string, int
     proveedor,
     serie_id: i.serie_id,
     ultimo_intento: ahora,
-    ultimo_error: (i.error ?? "sin detalle").slice(0, 500),
+    ultimo_error: ocultarClaves(i.error ?? "sin detalle").slice(0, 500),
     denegado_hasta: i.denegado ? new Date(ctx.ahora.getTime() + HORAS_DENEGADO * 3_600_000).toISOString() : null,
   }));
   if (buenos.length) await ctx.guardar("consultas_api", buenos, { conflicto: "proveedor,serie_id" });

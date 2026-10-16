@@ -126,7 +126,7 @@ export const tareaIaResumen: Tarea = {
           return;
         }
         gasto = sumar(gasto, r.costo);
-        const ctxV = contextoDe(mensaje, p.titulares);
+        const ctxV = contextoDe(datos ?? [], p.titulares);
         const fila: Record<string, unknown> = {
           tipo: p.tipo,
           fecha: ahora,

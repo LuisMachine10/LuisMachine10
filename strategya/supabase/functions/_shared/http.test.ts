@@ -161,3 +161,23 @@ describe("Lector (robots.txt antes de cada lectura)", () => {
     expect(esperas).toEqual([4000]);
   });
 });
+
+describe("seguridad de las lecturas", () => {
+  it("no sigue una redirección hacia un dominio prohibido", async () => {
+    const f = (async (u: string) => {
+      const r = new Response("x", { status: 200 });
+      Object.defineProperty(r, "url", { value: "https://bhdfondos.com.do/rendimientos" });
+      void u;
+      return r;
+    }) as unknown as typeof fetch;
+    await expect(obtenerTexto("https://x.gov/a", { ...base, fetch: f })).rejects.toThrow(/dominio prohibido/);
+  });
+
+  it("un error de red no deja la clave de la API en el mensaje", async () => {
+    const f = (async () => {
+      throw new TypeError("error sending request for url (https://financialmodelingprep.com/stable/quote-short?symbol=GCUSD&apikey=SECRETA123)");
+    }) as unknown as typeof fetch;
+    const e = await obtenerTexto("https://financialmodelingprep.com/stable/quote-short?symbol=GCUSD&apikey=SECRETA123", { ...base, fetch: f, reintentos: 0 }).catch((x: Error) => x);
+    expect(String(e)).not.toContain("SECRETA123");
+  });
+});

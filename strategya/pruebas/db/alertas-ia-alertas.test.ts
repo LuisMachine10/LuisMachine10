@@ -108,6 +108,13 @@ describe("evaluar_alertas", () => {
     ]);
   });
 
+  it("de noche: Brent ya cotiza con la fecha del día siguiente y la alerta sale enseguida", async () => {
+    // 6:00 PM de Nueva York abre la sesión de mañana: fecha_dato = mañana mientras en RD sigue siendo hoy.
+    await registrar([{ serie_id: "BRENT", valor: "112", fecha_dato: diaRD(1), hora_dato: new Date(Date.now() - 60_000).toISOString(), cambio: "2", cambio_pct: "1.8" }]);
+    const { rows } = await pool.query("select mercado.evaluar_alertas() as r");
+    expect(rows[0].r).toEqual([expect.objectContaining({ serie_id: "BRENT", tipo: "nivel_sobre" })]);
+  });
+
   it("una regla inactiva no dispara", async () => {
     await pool.query("update mercado.reglas_alerta set activa = false where serie_id = 'UST_10A'");
     await registrar([{ serie_id: "UST_10A", valor: "5.5", fecha_dato: diaRD() }]);
@@ -127,7 +134,7 @@ describe("tarea alertas de punta a punta", () => {
     expect(r.estado).toBe("parcial");
     expect(r.error).toMatch(/RESEND_API_KEY/);
     const { rows } = await pool.query("select count(*)::int as n from mercado.alertas_disparadas where enviada_en is null");
-    expect(rows[0].n).toBe(4); // ORO, TPM, USDDOP y el 10 años (reactivado)
+    expect(rows[0].n).toBe(5); // ORO, BRENT (de noche), TPM, USDDOP y el 10 años (reactivado)
   });
 
   it("con clave: envía las pendientes, marca enviada_en y no reenvía", async () => {
@@ -142,10 +149,10 @@ describe("tarea alertas de punta a punta", () => {
     };
     const r = await correrTarea(tareaAlertas, almacenPg(pool), deps);
     expect(r.estado).toBe("ok");
-    expect(asuntos).toHaveLength(4);
+    expect(asuntos).toHaveLength(5);
     expect(asuntos).toContain("ALERTA · Oro · 4,312.50 US$/oz (+2.35 % en el día)");
     const { rows } = await pool.query("select count(*)::int as n from mercado.alertas_disparadas where enviada_en is not null and canal = 'correo'");
-    expect(rows[0].n).toBe(4); // ORO, TPM, USDDOP y el 10 años (reactivado)
+    expect(rows[0].n).toBe(5); // ORO, BRENT (de noche), TPM, USDDOP y el 10 años (reactivado)
 
     asuntos.length = 0;
     await correrTarea(tareaAlertas, almacenPg(pool), deps);
@@ -160,7 +167,7 @@ describe("permisos", () => {
       expect(r.rowCount).toBe(1);
       await debeFallar(c, "update mercado.reglas_alerta set serie_id = 'ORO' where id = 1", /permission denied/);
       const h = await c.query("select count(*)::int as n from mercado.alertas_disparadas");
-      expect(h.rows[0].n).toBe(4);
+      expect(h.rows[0].n).toBe(5);
     });
   });
 
