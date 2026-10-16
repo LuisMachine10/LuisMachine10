@@ -1,0 +1,51 @@
+{
+ "type": "FeatureCollection",
+ "_comentario": "SINTÉTICA: reemplazar por real. Forma según https://www.nhc.noaa.gov/productexamples/NHC_JSON_Sample.json y las pruebas de God's Eye View (src/data/cyclonesProxy.test.mjs, MIT © 2026 Bilawal Sidhu). Ver sondas/lotes/27-globo.txt.",
+ "features": [
+  {
+   "type": "Feature",
+   "id": 1,
+   "properties": {
+    "idp_source": "al142026-012_5day_lin",
+    "advisnum": "12"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -64.0,
+      16.5
+     ],
+     [
+      -65.9,
+      16.8
+     ],
+     [
+      -67.8,
+      17.2
+     ],
+     [
+      -69.6,
+      17.6
+     ],
+     [
+      -71.3,
+      18.1
+     ],
+     [
+      -74.6,
+      19.3
+     ],
+     [
+      -77.5,
+      20.6
+     ],
+     [
+      -80.0,
+      22.0
+     ]
+    ]
+   }
+  }
+ ]
+}

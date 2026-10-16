@@ -1,0 +1,37 @@
+{
+ "_comentario": "SINTÉTICA: reemplazar por real. Forma según https://www.nhc.noaa.gov/productexamples/NHC_JSON_Sample.json y las pruebas de God's Eye View (src/data/cyclonesProxy.test.mjs, MIT © 2026 Bilawal Sidhu). Ver sondas/lotes/27-globo.txt.",
+ "activeStorms": [
+  {
+   "id": "al142026",
+   "binNumber": "AT4",
+   "name": "Prueba",
+   "classification": "HU",
+   "intensity": "75",
+   "pressure": "987",
+   "latitude": "16.5N",
+   "longitude": "64.0W",
+   "latitudeNumeric": 16.5,
+   "longitudeNumeric": -64.0,
+   "movementDir": 280,
+   "movementSpeed": 12,
+   "lastUpdate": "2026-10-15T09:00:00.000Z",
+   "publicAdvisory": {
+    "advNum": "012",
+    "issuance": "2026-10-15T09:00:00.000Z",
+    "fileUpdateTime": "2026-10-15T09:00:00.000Z",
+    "url": "https://www.nhc.noaa.gov/text/MIATCPAT4.shtml"
+   },
+   "forecastAdvisory": {
+    "advNum": "012",
+    "issuance": "2026-10-15T09:00:00.000Z",
+    "fileUpdateTime": "2026-10-15T09:00:00.000Z",
+    "url": "https://www.nhc.noaa.gov/text/MIATCMAT4.shtml"
+   },
+   "trackCone": {
+    "advNum": "012",
+    "issuance": "2026-10-15T09:00:00.000Z",
+    "url": "https://www.nhc.noaa.gov/storm_graphics/api/AL142026_012adv_CONE.kmz"
+   }
+  }
+ ]
+}

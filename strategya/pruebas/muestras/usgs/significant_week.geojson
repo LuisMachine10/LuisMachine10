@@ -1,0 +1,94 @@
+{
+ "type": "FeatureCollection",
+ "_comentario": "SINTÉTICA: reemplazar por real. Construida según https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php (ver sondas/lotes/27-globo.txt).",
+ "metadata": {
+  "generated": 1792065600000,
+  "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson",
+  "title": "USGS Significant Earthquakes, Past Week",
+  "status": 200,
+  "api": "1.14.1",
+  "count": 2
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.8,
+    "place": "95 km E of Hualien City, Taiwan",
+    "time": 1792002602450,
+    "updated": 1792033200000,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000r9d4",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us7000r9d4.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": "green",
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 651,
+    "net": "us",
+    "code": "7000r9d4",
+    "ids": ",us7000r9d4,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": null,
+    "dmin": 1.234,
+    "rms": 0.81,
+    "gap": 48,
+    "magType": "mww",
+    "type": "earthquake",
+    "title": "M 5.8 - 95 km E of Hualien City, Taiwan"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     122.5512,
+     23.9301,
+     20.0
+    ]
+   },
+   "id": "us7000r9d4"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 6.4,
+    "place": "110 km E of Namie, Japan",
+    "time": 1791684669000,
+    "updated": 1791799200000,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000r8z9",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us7000r8z9.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": "yellow",
+    "status": "reviewed",
+    "tsunami": 1,
+    "sig": 800,
+    "net": "us",
+    "code": "7000r8z9",
+    "ids": ",us7000r8z9,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": null,
+    "dmin": 1.234,
+    "rms": 0.81,
+    "gap": 48,
+    "magType": "mww",
+    "type": "earthquake",
+    "title": "M 6.4 - 110 km E of Namie, Japan"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     142.3101,
+     37.4402,
+     33.0
+    ]
+   },
+   "id": "us7000r8z9"
+  }
+ ]
+}

@@ -1,0 +1,4 @@
+{
+ "_comentario": "SINTÉTICA: reemplazar por real. Forma según https://www.nhc.noaa.gov/productexamples/NHC_JSON_Sample.json y las pruebas de God's Eye View (src/data/cyclonesProxy.test.mjs, MIT © 2026 Bilawal Sidhu). Ver sondas/lotes/27-globo.txt.",
+ "activeStorms": []
+}

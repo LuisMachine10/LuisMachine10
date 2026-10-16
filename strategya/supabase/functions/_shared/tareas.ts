@@ -3,9 +3,15 @@
 
 import type { Tarea } from "./ingesta.ts";
 import { tareaTesoro } from "./fuentes/tesoro.ts";
+import { tareaSismosUsgs } from "./fuentes/sismos-usgs.ts";
+import { tareaCiclonesNhc } from "./fuentes/ciclones-nhc.ts";
+import { tareaBuquesAis } from "./fuentes/buques-ais.ts";
 
 const LISTA: Tarea[] = [
   tareaTesoro,
+  tareaSismosUsgs,
+  tareaCiclonesNhc,
+  tareaBuquesAis,
 ];
 
 export const TAREAS: Readonly<Record<string, Tarea>> = Object.fromEntries(LISTA.map((t) => [t.nombre, t]));
