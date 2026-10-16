@@ -1,0 +1,4 @@
+# Módulo RD · historial de las tasas promedio ponderado de los bancos múltiples (la portada solo trae el último mes).
+# Enlaces tomados de pruebas/muestras/bcrd/portada.html. Guardar en pruebas/muestras/bcrd/.
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/sector-monetario-y-financiero/documents/tbm_activad.xlsx 4000000
+fetchb64 https://cdn.bancentral.gov.do/documents/estadisticas/sector-monetario-y-financiero/documents/tbm_pasivad.xlsx 4000000
