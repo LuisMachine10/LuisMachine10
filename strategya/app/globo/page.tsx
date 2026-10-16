@@ -49,7 +49,7 @@ export default async function Globo() {
   } catch (e) {
     return (
       <>
-        <Encabezado actual="terminal" ultimaActualizacion={null} />
+        <Encabezado actual="globo" ultimaActualizacion={null} />
         <main className="globo-pagina">
           <PanelError titulo="Globo · ojo de Dios" mensaje={(e as Error).message} />
         </main>
@@ -61,7 +61,7 @@ export default async function Globo() {
 
   return (
     <>
-      <Encabezado actual="terminal" ultimaActualizacion={ultima} />
+      <Encabezado actual="globo" ultimaActualizacion={ultima} />
       <main className="globo-pagina">
         <h1 className="panel-titulo">Globo · ojo de Dios</h1>
         <p className="globo-intro">

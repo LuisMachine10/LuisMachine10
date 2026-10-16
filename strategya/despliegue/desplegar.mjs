@@ -72,6 +72,9 @@ export function secretosFuncion(env, secreto) {
   copiar("FINNHUB_API_KEY");
   copiar("RESEND_API_KEY");
   copiar("ANTHROPIC_API_KEY");
+  copiar("AISSTREAM_API_KEY");
+  // Buques en pasos críticos: apagado salvo que se pida (consume la conexión de AISStream cada hora).
+  if (env.AISSTREAM_API_KEY && env.GLOBO_AIS_ACTIVO === "1") s.push({ name: "GLOBO_AIS_ACTIVO", value: "1" });
   copiar("STRATEGYA_EMAIL", "ALERTAS_EMAIL_DESTINO");
   // La SEC exige un correo de contacto en el User-Agent; solo se usa con sec.gov.
   copiar("STRATEGYA_EMAIL", "STRATEGYA_CONTACTO");

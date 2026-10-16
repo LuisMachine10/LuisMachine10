@@ -76,6 +76,8 @@ jobs:
       FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
+      GLOBO_AIS_ACTIVO: ${{ vars.GLOBO_AIS_ACTIVO }}
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4

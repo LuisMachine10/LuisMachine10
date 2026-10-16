@@ -2,6 +2,7 @@ import { Actualizador } from "@/componentes/Actualizador";
 import { BannerAlertas } from "@/componentes/alertas/BannerAlertas";
 import { ResumenCaja } from "@/componentes/caja/ResumenCaja";
 import { HallazgosCapital, ResumenCapital } from "@/componentes/capital/ResumenCapital";
+import { PanelGlobo } from "@/componentes/globo/PanelGlobo";
 import { CurvaTesoro } from "@/componentes/CurvaTesoro";
 import { Encabezado } from "@/componentes/Encabezado";
 import { GuerrasEnElMundo } from "@/componentes/ia/GuerrasEnElMundo";
@@ -111,6 +112,7 @@ export default async function Terminal() {
         {/* 3 */}
         <Mapa ahora={ahora} />
         <LasCincoDelDia />
+        <PanelGlobo />
         {/* 4 */}
         <GuerrasEnElMundo />
         {/* 5–7 */}
