@@ -186,3 +186,28 @@ describe("tarea ciclones-nhc (almacén en memoria)", () => {
     expect(llamadasRpc).toEqual([]);
   });
 });
+
+describe("muestras REALES del NHC (16 oct 2026: Trudy y Simon en el Pacífico oriental)", () => {
+  const AHORA_REAL = Date.parse("2026-10-16T18:30:00Z");
+  const ciclones = parsearEstadoCiclones(muestra("CurrentStorms-real-2026-10-16.json"), AHORA_REAL);
+
+  it("lee las dos tormentas con su viento, presión y aviso oficial", () => {
+    expect(ciclones.map((c) => [c.id, c.nombre, c.clasificacion, c.vientoKt, c.presionHpa])).toEqual([
+      ["ep212026", "Trudy", "HU", "95", "963"],
+      ["ep202026", "Simon", "TS", "35", "1002"],
+    ]);
+    expect(ciclones[0]).toMatchObject({ lat: "14.7", lon: "-102.5", avisoNumero: "13", urlAviso: "https://www.nhc.noaa.gov/text/MIATCMEP1.shtml" });
+  });
+
+  it("une puntos, trayectoria y cono del MapServer a la tormenta que corresponde", () => {
+    const unidos = unirGeometria(ciclones, [
+      muestra("gis-5-puntos-real-2026-10-16.geojson"),
+      muestra("gis-6-trayectoria-real-2026-10-16.geojson"),
+      muestra("gis-7-cono-real-2026-10-16.geojson"),
+    ]);
+    const simon = unidos.find((c) => c.id === "ep202026")!;
+    expect(simon.geometria).toBe("vigente");
+    expect(simon.puntos.length).toBeGreaterThan(0);
+    expect(simon.cono).not.toBeNull();
+  });
+});

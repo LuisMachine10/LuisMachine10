@@ -30,17 +30,20 @@ describe("parsearPrensa", () => {
 });
 
 describe("feeds de prensa", () => {
-  it("los dominicanos están apagados hasta confirmarlos con la sonda; Al Jazeera y France 24 activos", () => {
-    expect(FEEDS_PRENSA.filter((f) => f.confirmado).map((f) => f.medio)).toEqual(["Al Jazeera", "France 24"]);
-    expect(FEEDS_PRENSA.filter((f) => f.rd).every((f) => !f.confirmado)).toBe(true);
+  it("activos los confirmados por la sonda del 16 oct 2026; Listín Diario apagado (sin feed)", () => {
+    expect(FEEDS_PRENSA.filter((f) => f.confirmado).map((f) => f.medio)).toEqual(["Al Jazeera", "France 24", "Diario Libre", "elDinero", "Dominican Today"]);
+    expect(FEEDS_PRENSA.find((f) => f.medio === "Listín Diario")?.confirmado).toBe(false);
   });
 });
 
 describe("tarea noticias-prensa", () => {
+  // Los dos feeds internacionales (los dominicanos tienen su propia prueba de categoría «rd»).
+  const tareaInternacional = crearTareaPrensa(FEEDS_PRENSA.filter((f) => !f.rd || !f.confirmado));
+
   it("lee solo los feeds confirmados y guarda los titulares que encajan, sin duplicados", async () => {
     const { almacen, tablas } = almacenMemoria();
     const pedidas: string[] = [];
-    const r = await correrTarea(tareaPrensa, almacen, {
+    const r = await correrTarea(tareaInternacional, almacen, {
       obtener: async (url) => {
         pedidas.push(url);
         return ok(url, RSS);
@@ -53,7 +56,7 @@ describe("tarea noticias-prensa", () => {
     const sudan = tablas.noticias.find((n) => String(n.titular).startsWith("Sudan"));
     expect(sudan).toMatchObject({ categoria: "guerra", lugar: "Darfur", pais: "Sudán", origen: "rss" });
     expect(r.detalle).toMatchObject({ descartadas: 2 });
-    expect((r.detalle as { sin_confirmar: string[] }).sin_confirmar).toHaveLength(4);
+    expect((r.detalle as { sin_confirmar: string[] }).sin_confirmar).toEqual(["Listín Diario (https://listindiario.com/rss/portada.xml)"]);
   });
 
   it("un medio dominicano marca «rd» lo que no es guerra", async () => {
@@ -67,7 +70,7 @@ describe("tarea noticias-prensa", () => {
 
   it("robots.txt que lo prohíbe en un feed: el otro se guarda y queda «parcial»", async () => {
     const { almacen, tablas } = almacenMemoria();
-    const r = await correrTarea(tareaPrensa, almacen, {
+    const r = await correrTarea(tareaInternacional, almacen, {
       obtener: async (url) => {
         if (url.includes("france24")) throw new Error("Lectura no permitida: robots.txt de www.france24.com no permite /en/rss");
         return ok(url, RSS);
@@ -87,4 +90,20 @@ describe("tarea noticias-prensa", () => {
     });
     expect(r.estado).toBe("error");
   });
+});
+
+describe("feeds REALES (16 oct 2026)", () => {
+  const real = (n: string) => readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "pruebas", "muestras", "prensa", n), "utf8");
+  for (const [archivo, medio] of [
+    ["aljazeera-real-2026-10-16.xml", "Al Jazeera"],
+    ["france24-real-2026-10-16.xml", "France 24"],
+    ["eldinero-real-2026-10-16.xml", "elDinero"],
+    ["dominicantoday-real-2026-10-16.xml", "Dominican Today"],
+  ] as const) {
+    it(`${medio}: titulares con enlace http(s) y fecha`, () => {
+      const a = parsearPrensa(real(archivo), medio);
+      expect(a.length).toBeGreaterThan(5);
+      expect(a.every((x) => /^https?:\/\//.test(x.url) && x.titular.length > 0 && !Number.isNaN(Date.parse(x.fecha)))).toBe(true);
+    });
+  }
 });

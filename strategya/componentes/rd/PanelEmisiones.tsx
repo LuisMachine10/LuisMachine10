@@ -35,12 +35,15 @@ function Emision({ e }: { e: EmisionRD }) {
           e.emisor,
           e.fuente === "SIMV" || e.fuente === "BVRD" ? e.numero : null,
           e.monto ? `monto ${moneda} ${cifra(e.monto, 2)}`.replace("  ", " ") : null,
-          e.tasa ? `tasa ${cifra(e.tasa, 4)}%` : null,
+          e.tasa ? `${e.fuente === "CREDITO_PUBLICO" ? "tasa de corte" : "tasa"} ${cifra(e.tasa, 4)}%` : null,
           e.origen === "manual" ? "carga manual" : null,
         ]
           .filter(Boolean)
           .join(" · ")}
       </span>
+      {e.descripcion && /no coincide/.test(e.descripcion) ? (
+        <span className="rd-meta rd-aviso">⚠ {e.descripcion.slice(e.descripcion.indexOf("El Consolidado indica"), e.descripcion.indexOf("revisar el PDF oficial.") + 23)}</span>
+      ) : null}
     </li>
   );
 }

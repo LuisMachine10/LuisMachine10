@@ -148,3 +148,16 @@ describe("tarea sismos-usgs (almacén en memoria)", () => {
     expect(tablas.eventos_geo.map((f) => f.id_externo)).not.toContain("us7000r8z9");
   });
 });
+
+describe("muestras REALES de USGS (16 oct 2026)", () => {
+  it("el feed 4.5_day real se valida completo, con página oficial por sismo", () => {
+    const l = parsearFeedUsgs(muestra("4.5_day-real-2026-10-16.geojson"), "4.5_day");
+    expect(l.filas.length).toBe(11);
+    expect(l.filas.every((f) => f.url.startsWith("https://earthquake.usgs.gov/earthquakes/eventpage/"))).toBe(true);
+    expect(l.filas.every((f) => /^\d+(\.\d+)?$/.test(String(f.magnitud)))).toBe(true);
+  });
+  it("el feed significant_week real también", () => {
+    const l = parsearFeedUsgs(muestra("significant_week-real-2026-10-16.geojson"), "significant_week");
+    expect(l.filas.length).toBeGreaterThan(0);
+  });
+});

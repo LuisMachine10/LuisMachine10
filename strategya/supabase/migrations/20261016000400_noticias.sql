@@ -10,14 +10,14 @@ insert into mercado.fuentes (id, nombre, url, tipo, requiere_clave, lectura_auto
    'Feed público. Solo titular, enlace y fecha. robots.txt se revisa en cada lectura.'),
   ('france24_rss', 'France 24 · RSS (inglés)', 'https://www.france24.com/en/rss', 'rss', false, true,
    'Feed público. Solo titular, enlace y fecha. robots.txt se revisa en cada lectura.'),
-  ('diariolibre_rss', 'Diario Libre · RSS', 'https://www.diariolibre.com/', 'rss', false, true,
-   'URL del feed por confirmar con la sonda (sondas/lotes/22-prensa-rss.txt). Apagado hasta confirmarlo.'),
-  ('listin_rss', 'Listín Diario · RSS', 'https://listindiario.com/', 'rss', false, true,
-   'URL del feed por confirmar con la sonda (sondas/lotes/22-prensa-rss.txt). Apagado hasta confirmarlo.'),
-  ('eldinero_rss', 'elDinero · RSS', 'https://eldinero.com.do/', 'rss', false, true,
-   'URL del feed por confirmar con la sonda (sondas/lotes/22-prensa-rss.txt). Apagado hasta confirmarlo.'),
-  ('dominicantoday_rss', 'Dominican Today · RSS', 'https://dominicantoday.com/', 'rss', false, true,
-   'URL del feed por confirmar con la sonda (sondas/lotes/22-prensa-rss.txt). Apagado hasta confirmarlo.')
+  ('diariolibre_rss', 'Diario Libre · RSS', 'https://www.diariolibre.com/rss/portada.xml', 'rss', false, true,
+   'Feed de portada confirmado con la sonda (16 oct 2026). Solo titular, enlace y fecha.'),
+  ('listin_rss', 'Listín Diario · RSS', 'https://listindiario.com/', 'rss', false, false,
+   'Sin feed: /rss/portada.xml y /rss responden 404 (sonda del 16 oct 2026). No se lee.'),
+  ('eldinero_rss', 'elDinero · RSS', 'https://eldinero.com.do/feed/', 'rss', false, true,
+   'Feed confirmado con la sonda (16 oct 2026). Solo titular, enlace y fecha.'),
+  ('dominicantoday_rss', 'Dominican Today · RSS', 'https://dominicantoday.com/feed/', 'rss', false, true,
+   'Feed confirmado con la sonda (16 oct 2026). Solo titular, enlace y fecha.')
 on conflict (id) do nothing;
 
 update mercado.fuentes set notas_de_uso = coalesce(notas_de_uso || ' ', '') ||

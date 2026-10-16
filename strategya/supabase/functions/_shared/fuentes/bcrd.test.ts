@@ -10,6 +10,7 @@ import {
   parsearCuadroTasas,
   parsearDolarExcel,
   parsearPortadaBcrd,
+  parsearTbm,
   parsearTpmExcel,
   tareaBcrdPortada,
   URL_DOLAR_XLSX,
@@ -220,10 +221,25 @@ describe("tareas del BCRD de punta a punta (almacén en memoria)", () => {
   const ARCHIVOS: Record<string, string> = {
     [URL_DOLAR_XLSX]: "TASA_DOLAR_REFERENCIA_MC.xlsx",
     [URL_TPM_XLSX]: "Serie_TPM.xlsx",
+    [urlMonetario("tbm_activad.xlsx")]: "tbm_activad-real-2026-10-16.xlsx",
+    [urlMonetario("tbm_pasivad.xlsx")]: "tbm_pasivad-real-2026-10-16.xlsx",
+  [urlMonetario("tbm_activad.xlsx")]: "tbm_activad-real-2026-10-16.xlsx",
+  [urlMonetario("tbm_pasivad.xlsx")]: "tbm_pasivad-real-2026-10-16.xlsx",
     ...Object.fromEntries(CUADROS_TASAS.map((c) => [urlMonetario(c.archivo), c.archivo])),
   };
 
-  it("bcrd-excel lee los 6 libros y registra el historial reciente", async () => {
+  it("tbm: historial mensual del promedio ponderado, sin el mes en curso preliminar ni los días", () => {
+    const act = parsearTbm(leerXlsx(bytes("tbm_activad-real-2026-10-16.xlsx")), "TASA_ACT_MN_PROMEDIO", "u", "2023-10-01");
+    const pas = parsearTbm(leerXlsx(bytes("tbm_pasivad-real-2026-10-16.xlsx")), "TASA_PAS_MN_PROMEDIO", "u", "2023-10-01");
+    expect(act.advertencias).toEqual([]);
+    expect(act.filas.at(-1)).toMatchObject({ fecha_dato: "2026-09-30", valor: "13.65" }); // 13.6485 publicado como 13.65
+    expect(pas.filas.at(-1)).toMatchObject({ fecha_dato: "2026-09-30", valor: "6.97" }); // 6.9691
+    expect(act.filas.find((f) => f.fecha_dato === "2026-01-31")?.valor).toBe("13.59"); // «Enero 2026» 13.5906
+    expect(act.filas[0].fecha_dato).toBe("2023-10-31");
+    expect(act.filas.some((f) => f.fecha_dato.startsWith("2026-10"))).toBe(false);
+  });
+
+  it("bcrd-excel lee los 8 libros y registra el historial reciente", async () => {
     const { almacen, observaciones } = almacenMemoria();
     const pedidas: string[] = [];
     const tarea = crearTareaBcrdExcel(() => async (url) => {
@@ -232,8 +248,8 @@ describe("tareas del BCRD de punta a punta (almacén en memoria)", () => {
     });
     const r = await correrTarea(tarea, almacen, { ahora, obtener: () => Promise.reject(new Error("no se usa")) });
     expect(r.estado).toBe("ok");
-    expect(pedidas).toHaveLength(6);
-    expect(r.detalle).toMatchObject({ archivos: 6, ultima_fecha_dolar: "2026-10-13", ultimo_mes_tpm: "2026-10-01" });
+    expect(pedidas).toHaveLength(8);
+    expect(r.detalle).toMatchObject({ archivos: 8, ultima_fecha_dolar: "2026-10-13", ultimo_mes_tpm: "2026-10-01" });
     // Dólar desde jul 2025 (15 meses), tasas desde oct 2023 (36 meses), TPM completa.
     const dolar = observaciones.filter((o) => o.serie_id === "USDDOP_COMPRA").map((o) => o.fecha_dato).sort();
     expect(dolar[0]).toBe("2025-07-01");

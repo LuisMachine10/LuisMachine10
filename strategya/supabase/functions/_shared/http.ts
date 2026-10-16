@@ -9,6 +9,12 @@ export const DOMINIOS_PROHIBIDOS: readonly string[] = ["calculadora.apislab.bvrd
 
 export const PRODUCTO = "Strategya";
 
+/** Pausa mínima (segundos) entre llamadas a un mismo sitio, aunque su robots.txt no pida Crawl-delay. */
+export const PAUSAS_MINIMAS: Readonly<Record<string, number>> = {
+  // GDELT: «Please limit requests to one every 5 seconds» (respuesta 429 del 16 oct 2026).
+  "api.gdeltproject.org": 6,
+};
+
 export function agenteUsuario(contacto?: string): string {
   const extra = contacto && contacto.trim() ? `; contacto: ${contacto.trim()}` : "";
   return `${PRODUCTO}/0.1 (uso personal${extra})`;
@@ -208,6 +214,8 @@ export class Lector {
   private reglasDe(origen: string): Promise<ReglasRobots | DecisionRobots> {
     let p = this.cache.get(origen);
     if (!p) {
+      // La lectura de robots.txt también cuenta para la pausa entre llamadas al sitio.
+      this.ultimaLlamada.set(origen, (this.op.ahora ?? Date.now)());
       p = obtenerTexto(`${origen}/robots.txt`, { ...this.op, reintentos: 1 }).then(
         (r) => parsearRobots(r.texto),
         (e: unknown) => {
@@ -249,8 +257,9 @@ export class Lector {
     const origen = new URL(url).origin;
     const ahora = this.op.ahora ?? Date.now;
     const previa = this.ultimaLlamada.get(origen);
-    if (d.crawlDelaySeg && previa !== undefined) {
-      const falta = previa + d.crawlDelaySeg * 1000 - ahora();
+    const pausa = Math.max(d.crawlDelaySeg ?? 0, PAUSAS_MINIMAS[new URL(url).hostname] ?? 0);
+    if (pausa && previa !== undefined) {
+      const falta = previa + pausa * 1000 - ahora();
       if (falta > 0) await (this.op.dormir ?? dormirReal)(Math.min(falta, 30_000));
     }
     this.ultimaLlamada.set(origen, ahora());

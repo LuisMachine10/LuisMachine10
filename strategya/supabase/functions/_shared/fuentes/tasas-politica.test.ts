@@ -107,3 +107,20 @@ describe("tarea tasas-politica", () => {
     expect(r.estado).toBe("error");
   });
 });
+
+describe("muestras REALES (16 oct 2026)", () => {
+  const real = (...p: string[]) => readFileSync(join(MUESTRAS, ...p), "utf8");
+  it("FRED: rango objetivo de la Fed 3.75 %–4.00 % (subió el 17 sep 2026)", () => {
+    const sup = parsearCsvFed(real("fed", "fredgraph-DFEDTARU-real-2026-10-16.csv"), "DFEDTARU", 40);
+    const inf = parsearCsvFed(real("fed", "fredgraph-DFEDTARL-real-2026-10-16.csv"), "DFEDTARL", 40);
+    expect(sup.advertencias).toEqual([]);
+    expect(sup.filas.at(-1)).toMatchObject({ valor: "4", fecha_dato: "2026-10-16" });
+    expect(inf.filas.at(-1)).toMatchObject({ valor: "3.75", fecha_dato: "2026-10-16" });
+    expect(sup.filas.find((f) => f.fecha_dato === "2026-09-16")?.valor).toBe("3.75");
+  });
+  it("BCE: facilidad de depósito 2.5 % (el CSV real trae más columnas que la muestra sintética)", () => {
+    const l = parsearCsvBce(real("bce", "DFR-csvdata-real-2026-10-16.csv"));
+    expect(l.advertencias).toEqual([]);
+    expect(l.filas.at(-1)).toMatchObject({ valor: "2.5", fecha_dato: "2026-10-16" });
+  });
+});

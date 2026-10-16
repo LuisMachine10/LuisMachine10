@@ -155,10 +155,10 @@ describe("Lector (robots.txt antes de cada lectura)", () => {
         reloj += ms;
       },
     });
-    await lector.obtener("https://x.gov/a");
+    await lector.obtener("https://x.gov/a"); // la lectura de robots.txt cuenta: espera 5 s completos
     reloj += 1000;
     await lector.obtener("https://x.gov/b");
-    expect(esperas).toEqual([4000]);
+    expect(esperas).toEqual([5000, 4000]);
   });
 });
 
@@ -179,5 +179,19 @@ describe("seguridad de las lecturas", () => {
     }) as unknown as typeof fetch;
     const e = await obtenerTexto("https://financialmodelingprep.com/stable/quote-short?symbol=GCUSD&apikey=SECRETA123", { ...base, fetch: f, reintentos: 0 }).catch((x: Error) => x);
     expect(String(e)).not.toContain("SECRETA123");
+  });
+});
+
+describe("pausa mínima por sitio", () => {
+  it("GDELT: espera 6 s después de leer su robots.txt antes de consultar la API", async () => {
+    let reloj = 0;
+    const esperas: number[] = [];
+    const { f } = fetchFalso({
+      "https://api.gdeltproject.org/robots.txt": [{ status: 404 }],
+      "https://api.gdeltproject.org/api/v2/doc/doc?q=x": [{ status: 200, texto: "{}" }],
+    });
+    const lector = new Lector({ ...base, fetch: f, ahora: () => reloj, dormir: async (ms) => { esperas.push(ms); reloj += ms; } });
+    await lector.obtener("https://api.gdeltproject.org/api/v2/doc/doc?q=x");
+    expect(esperas).toEqual([6000]);
   });
 });

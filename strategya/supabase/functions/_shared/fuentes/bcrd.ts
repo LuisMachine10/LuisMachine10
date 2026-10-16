@@ -429,6 +429,54 @@ export function parsearCuadroTasas(libro: LibroXlsx, cuadro: CuadroTasas, desde:
 // Tarea bcrd-excel
 // ---------------------------------------------------------------------------
 
+/**
+ * Historial mensual del promedio ponderado de los bancos múltiples (tbm_activad.xlsx / tbm_pasivad.xlsx).
+ * Filas: «2017» (promedio anual, se omite), «Enero 2017» o «Febrero » (el año sale de la última fila con
+ * año), «*Octubre 2/» (mes en curso preliminar, se omite) y luego un renglón por día (se omite).
+ * La columna es la que dice «Ponderado». Se redondea a 2 decimales, la precisión con que el BCRD publica
+ * la misma cifra en su portada: así la portada y el Excel no se corrigen el uno al otro en cada corrida.
+ */
+export function parsearTbm(libro: LibroXlsx, serie: "TASA_ACT_MN_PROMEDIO" | "TASA_PAS_MN_PROMEDIO", url: string, desde: string): LecturaBcrd {
+  const h = libro.hojas[0];
+  if (!h) throw new Error("Libro sin hojas");
+  let colPonderado: string | null = null;
+  let filaEnc = 0;
+  for (const n of h.numerosDeFila.slice(0, 15)) {
+    const c = [...h.fila(n).values()].find((x) => x.tipo === "texto" && /^ponderado$/i.test(x.texto.trim()));
+    if (c) {
+      colPonderado = c.columna;
+      filaEnc = n;
+      break;
+    }
+  }
+  if (!colPonderado) throw new Error("Formato inesperado: no se encontró la columna «Ponderado»");
+  const filas: FilaObservacion[] = [];
+  const advertencias: string[] = [];
+  let anio: number | null = null;
+  for (const n of h.numerosDeFila.filter((x) => x > filaEnc)) {
+    const etiqueta = h.texto(`A${n}`);
+    if (!etiqueta || etiqueta.startsWith("*")) continue; // vacío, año en curso o mes preliminar
+    const m = /^([A-Za-zÁÉÍÓÚáéíóú]+)\s*(\d{4})?\s*$/.exec(etiqueta);
+    if (!m) continue; // años sueltos, días del mes en curso, notas
+    const mes = numeroMes(m[1]);
+    if (!mes) continue;
+    if (m[2]) anio = Number(m[2]);
+    if (!anio) continue;
+    const fecha = finDeMes(anio, mes);
+    if (fecha < desde) continue;
+    const crudo = numeroExcel(h.celda(`${colPonderado}${n}`)?.texto);
+    if (crudo === null) continue;
+    const valor = new Big(crudo).round(2, Big.roundHalfUp).toFixed(2);
+    if (!enRango(valor, 0, 100)) {
+      advertencias.push(`${serie} ${fecha}: ${valor}% fuera de rango, descartado`);
+      continue;
+    }
+    filas.push({ serie_id: serie, valor, fecha_dato: fecha, url_dato: url });
+  }
+  if (filas.length === 0) advertencias.push(`${serie}: no se encontraron meses completos en el archivo`);
+  return { filas, advertencias, detalle: { [`ultimo_${serie}`]: filas.at(-1)?.fecha_dato ?? null } };
+}
+
 /** Historial que se registra en cada corrida (las corridas repetidas no reescriben nada). */
 const MESES_DOLAR = 15;
 const MESES_TASAS = 36;
@@ -442,6 +490,13 @@ export function lecturasExcel(): Lectura[] {
   return [
     { url: URL_DOLAR_XLSX, leer: (l, ctx) => parsearDolarExcel(l, mesesAtras(hoyRD(ctx.ahora), MESES_DOLAR)) },
     { url: URL_TPM_XLSX, leer: (l) => parsearTpmExcel(l) },
+    ...([
+      ["TASA_ACT_MN_PROMEDIO", "tbm_activad.xlsx"],
+      ["TASA_PAS_MN_PROMEDIO", "tbm_pasivad.xlsx"],
+    ] as const).map(([serie, archivo]) => ({
+      url: urlMonetario(archivo),
+      leer: (l: LibroXlsx, ctx: ContextoTarea) => parsearTbm(l, serie, urlMonetario(archivo), mesesAtras(hoyRD(ctx.ahora), MESES_TASAS)),
+    })),
     ...CUADROS_TASAS.map((c) => ({
       url: urlMonetario(c.archivo),
       leer: (l: LibroXlsx, ctx: ContextoTarea) => parsearCuadroTasas(l, c, mesesAtras(hoyRD(ctx.ahora), MESES_TASAS)),

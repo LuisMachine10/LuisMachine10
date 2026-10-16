@@ -12,7 +12,7 @@ import {
   URL_TPM_XLSX,
   urlMonetario,
 } from "../../supabase/functions/_shared/fuentes/bcrd.ts";
-import { tareaCreditoPublico } from "../../supabase/functions/_shared/fuentes/credito-publico.ts";
+import { crearTareaCreditoPublico } from "../../supabase/functions/_shared/fuentes/credito-publico.ts";
 import { tareaMicm } from "../../supabase/functions/_shared/fuentes/micm.ts";
 import { tareaSimv } from "../../supabase/functions/_shared/fuentes/simv.ts";
 import { correrTarea } from "../../supabase/functions/_shared/ingesta.ts";
@@ -29,6 +29,8 @@ const ahora = () => new Date("2026-10-15T14:00:00Z");
 const ARCHIVOS: Record<string, string> = {
   [URL_DOLAR_XLSX]: "TASA_DOLAR_REFERENCIA_MC.xlsx",
   [URL_TPM_XLSX]: "Serie_TPM.xlsx",
+  [urlMonetario("tbm_activad.xlsx")]: "tbm_activad-real-2026-10-16.xlsx",
+  [urlMonetario("tbm_pasivad.xlsx")]: "tbm_pasivad-real-2026-10-16.xlsx",
   ...Object.fromEntries(CUADROS_TASAS.map((c) => [urlMonetario(c.archivo), c.archivo])),
 };
 const tareaExcel = crearTareaBcrdExcel(() => async (url) => new Uint8Array(readFileSync(join(M, "bcrd", ARCHIVOS[url]))));
@@ -90,7 +92,8 @@ describe("ingesta RD de punta a punta", () => {
 
   it("bcrd-portada: el dólar del 14 oct entra después del Excel y su cambio diario sale de los dos valores oficiales", async () => {
     const r = await correrTarea(tareaBcrdPortada, almacenPg(pool), { ahora, obtener: respuesta(texto("bcrd/portada.html")) });
-    expect(r).toMatchObject({ estado: "ok", filas: 6 });
+    // 4 y no 6: las tasas promedio de septiembre (13.65 y 6.97) ya las trajo el Excel con la misma cifra.
+    expect(r).toMatchObject({ estado: "ok", filas: 4 });
     // 61.6788 (portada, 14 oct) − 61.5396 (Excel, 13 oct)
     expect(await ultimo("USDDOP_VENTA")).toMatchObject({ fecha_dato: "2026-10-14", valor: "61.6788", cambio: "0.1392" });
     expect(await ultimo("USDDOP_COMPRA")).toMatchObject({ fecha_dato: "2026-10-14", valor: "61.1477", cambio: "0.0328" });
@@ -105,21 +108,23 @@ describe("ingesta RD de punta a punta", () => {
     expect(r2.filas).toBe(0);
   });
 
-  it("crédito público: 8 subastas en emisiones_rd, idempotente", async () => {
+  it("crédito público: 8 subastas con monto y tasa del Consolidado, idempotente", async () => {
     const html = texto("credito-publico/subastas-2026.html");
+    const bytes = new Uint8Array(readFileSync(join(import.meta.dirname, "..", "muestras", "credito-publico", "02Consolidado-2026-real-2026-10-16.xlsx")));
+    const tareaCreditoPublico = crearTareaCreditoPublico(() => async () => bytes);
     const r = await correrTarea(tareaCreditoPublico, almacenPg(pool), { ahora, obtener: respuesta(html) });
     expect(r).toMatchObject({ estado: "ok", filas: 8 });
     await correrTarea(tareaCreditoPublico, almacenPg(pool), { ahora, obtener: respuesta(html) });
     const { rows } = await pool.query(
-      "select fuente, fecha::text, instrumento, monto, tasa, origen from mercado.emisiones_rd order by fecha desc",
+      "select fuente, fecha::text, instrumento, monto::text, tasa::text, origen from mercado.emisiones_rd order by fecha desc",
     );
     expect(rows).toHaveLength(8);
     expect(rows[0]).toEqual({
       fuente: "CREDITO_PUBLICO",
       fecha: "2026-09-09",
-      instrumento: "Segunda ronda subasta extraordinaria no competitiva",
-      monto: null,
-      tasa: null,
+      instrumento: "MH2-2041 · Segunda ronda subasta extraordinaria no competitiva",
+      monto: "20000000000",
+      tasa: "9.9",
       origen: "automatica",
     });
   });

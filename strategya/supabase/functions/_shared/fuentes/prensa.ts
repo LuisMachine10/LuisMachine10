@@ -22,10 +22,11 @@ export interface FeedPrensa {
 export const FEEDS_PRENSA: readonly FeedPrensa[] = [
   { fuenteId: "aljazeera_rss", medio: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml", rd: false, confirmado: true },
   { fuenteId: "france24_rss", medio: "France 24", url: "https://www.france24.com/en/rss", rd: false, confirmado: true },
-  { fuenteId: "diariolibre_rss", medio: "Diario Libre", url: "https://www.diariolibre.com/rss/portada.xml", rd: true, confirmado: false },
+  { fuenteId: "diariolibre_rss", medio: "Diario Libre", url: "https://www.diariolibre.com/rss/portada.xml", rd: true, confirmado: true },
+  // Listín Diario: /rss/portada.xml y /rss responden 404 (sonda del 16 oct 2026); sin feed conocido.
   { fuenteId: "listin_rss", medio: "Listín Diario", url: "https://listindiario.com/rss/portada.xml", rd: true, confirmado: false },
-  { fuenteId: "eldinero_rss", medio: "elDinero", url: "https://eldinero.com.do/feed/", rd: true, confirmado: false },
-  { fuenteId: "dominicantoday_rss", medio: "Dominican Today", url: "https://dominicantoday.com/feed/", rd: true, confirmado: false },
+  { fuenteId: "eldinero_rss", medio: "elDinero", url: "https://eldinero.com.do/feed/", rd: true, confirmado: true },
+  { fuenteId: "dominicantoday_rss", medio: "Dominican Today", url: "https://dominicantoday.com/feed/", rd: true, confirmado: true },
 ];
 
 /** Cuántos titulares por feed y corrida (los más recientes). */
