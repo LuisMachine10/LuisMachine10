@@ -52,6 +52,36 @@ export function migracionesLocales(carpeta = join(RAIZ, "supabase", "migrations"
 }
 
 /** SQL de una migración dentro de una transacción, registrada como lo hace la CLI de Supabase. */
+/**
+ * SQL que crea (o actualiza) el usuario dueño directamente en auth.users, para cuando la API de Auth del
+ * proyecto no es alcanzable desde donde corre el despliegue. Mismo resultado que POST /auth/v1/admin/users
+ * con email_confirm: contraseña con bcrypt (pgcrypto), identidad «email» y autorización en Strategya.
+ */
+export function sqlUsuarioDueno(email, clave) {
+  const literal = (t) => `'${String(t).replaceAll("'", "''")}'`;
+  return `do $$
+declare v_id uuid; v_email text := lower(${literal(email.trim())}); v_clave text := ${literal(clave)};
+begin
+  select id into v_id from auth.users where lower(email) = v_email;
+  if v_id is null then
+    v_id := gen_random_uuid();
+    insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+      confirmation_token, recovery_token, email_change_token_new, email_change)
+    values ('00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated', v_email,
+      extensions.crypt(v_clave, extensions.gen_salt('bf')), now(),
+      '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', '');
+    insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+    values (gen_random_uuid(), v_id, v_id::text,
+      jsonb_build_object('sub', v_id::text, 'email', v_email, 'email_verified', true), 'email', now(), now(), now());
+  else
+    update auth.users set encrypted_password = extensions.crypt(v_clave, extensions.gen_salt('bf')),
+      email_confirmed_at = coalesce(email_confirmed_at, now()), updated_at = now() where id = v_id;
+  end if;
+  insert into mercado.usuarios_autorizados (user_id) values (v_id) on conflict do nothing;
+end $$;`;
+}
+
 export function sqlMigracion(version, nombre, sql) {
   const literal = (t) => `'${String(t).replaceAll("'", "''")}'`;
   return [
@@ -173,7 +203,22 @@ async function aplicarMigraciones(ref) {
   console.log(n ? `${n} migraciones aplicadas.` : "Base al día (sin migraciones nuevas).");
 }
 
+/** ¿Se llega a https://<ref>.supabase.co desde donde corre el despliegue? (Algunos entornos solo dejan la API de gestión.) */
+async function alcanzable(ref) {
+  try {
+    await fetch(`https://${ref}.supabase.co/auth/v1/health`, { signal: AbortSignal.timeout(15_000) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function usuarioDueno(ref, claveServidor) {
+  if (!(await alcanzable(ref))) {
+    await sql(ref, sqlUsuarioDueno(env.STRATEGYA_EMAIL, env.STRATEGYA_CLAVE));
+    console.log("Usuario de Mena: listo (por SQL; la API de Auth del proyecto no es alcanzable desde aquí).");
+    return;
+  }
   const base = `https://${ref}.supabase.co/auth/v1/admin/users`;
   const enc = { apikey: claveServidor, Authorization: `Bearer ${claveServidor}` };
   const email = env.STRATEGYA_EMAIL.trim().toLowerCase();
@@ -233,6 +278,14 @@ async function pasoTareas() {
   await sql(ref, `select mercado.configurar_tareas('https://${ref}.supabase.co', '${secreto}');`);
   console.log("Vault configurado: pg_cron ya puede llamar a la ingesta.");
 
+  if (!(await alcanzable(ref))) {
+    // Sin acceso directo a la función: la primera lectura la dispara la propia base (pg_net), como pg_cron.
+    const filas = await sql(ref, "select distinct substring(command from '\"tarea\":\"([a-z0-9-]+)\"') as tarea from cron.job where command like '%invocar_tarea%'");
+    const tareas = filas.map((f) => f.tarea).filter((t) => t && !t.startsWith("ia-") && t !== "alertas");
+    for (const t of tareas) await sql(ref, `select mercado.invocar_tarea('ingesta', '{"tarea":"${t}"}');`);
+    console.log(`Primera lectura pedida para ${tareas.length} tareas; en unos minutos se ve en /estado.`);
+    return;
+  }
   // Prueba de humo: cada tarea registrada corre una vez. Un error no detiene el despliegue: queda en /estado.
   const url = `https://${ref}.supabase.co/functions/v1/ingesta`;
   const { datos: lista } = await pedir(url, {
@@ -320,7 +373,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(2);
   }
   paso().catch((e) => {
-    console.error(`::error::${e.message}`);
+    console.error(`::error::${e.message}${e.cause ? ` (${e.cause.code ?? ""} ${e.cause.message ?? e.cause})` : ""}`);
     process.exit(1);
   });
 }

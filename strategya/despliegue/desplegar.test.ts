@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error: módulo .mjs sin tipos
-import { clavesDe, elegirProyecto, migracionesLocales, secretoTareas, secretosFuncion, sqlMigracion } from "./desplegar.mjs";
+import { clavesDe, elegirProyecto, migracionesLocales, secretoTareas, secretosFuncion, sqlMigracion, sqlUsuarioDueno } from "./desplegar.mjs";
 
 describe("despliegue", () => {
   it("elige el proyecto pedido, el llamado strategya o el único", () => {
@@ -48,5 +48,16 @@ describe("despliegue", () => {
       "STRATEGYA_SECRETO_TAREAS", "FMP_API_KEY", "ALERTAS_EMAIL_DESTINO", "STRATEGYA_CONTACTO", "IA_TOPE_MENSUAL_USD", "FMP_LLAMADAS_DIA",
     ]);
     expect(nombres).not.toContain("FINNHUB_API_KEY");
+  });
+});
+
+describe("usuario dueño por SQL (cuando la API de Auth del proyecto no es alcanzable)", () => {
+  it("crea o actualiza con bcrypt, confirma el correo, crea la identidad y autoriza; escapa comillas", () => {
+    const s = sqlUsuarioDueno(" Mena@Ejemplo.do ", "cla've-larga-123");
+    expect(s).toContain("lower('Mena@Ejemplo.do')");
+    expect(s).toContain("'cla''ve-larga-123'");
+    expect(s).toContain("extensions.crypt(v_clave, extensions.gen_salt('bf'))");
+    expect(s).toContain("insert into auth.identities");
+    expect(s).toContain("insert into mercado.usuarios_autorizados (user_id) values (v_id) on conflict do nothing");
   });
 });
