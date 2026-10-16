@@ -1,0 +1,182 @@
+{
+ "type": "FeatureCollection",
+ "_comentario": "SINTÉTICA: reemplazar por real. Construida según https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php (ver sondas/lotes/27-globo.txt).",
+ "metadata": {
+  "generated": 1792065600000,
+  "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson",
+  "title": "USGS Magnitude 4.5+ Earthquakes, Past Day",
+  "status": 200,
+  "api": "1.14.1",
+  "count": 4
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 4.7,
+    "place": "38 km NNE of Punta Cana, Dominican Republic",
+    "time": 1792057272120,
+    "updated": 1792058700000,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000r9a1",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us7000r9a1.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 300,
+    "net": "us",
+    "code": "7000r9a1",
+    "ids": ",us7000r9a1,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": null,
+    "dmin": 1.234,
+    "rms": 0.81,
+    "gap": 48,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 4.7 - 38 km NNE of Punta Cana, Dominican Republic"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -68.2311,
+     18.8902,
+     35.5
+    ]
+   },
+   "id": "us7000r9a1"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.1,
+    "place": "62 km SE of Calama, Chile",
+    "time": 1792037875880,
+    "updated": 1792040470000,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000r9b2",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us7000r9b2.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 400,
+    "net": "us",
+    "code": "7000r9b2",
+    "ids": ",us7000r9b2,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": null,
+    "dmin": 1.234,
+    "rms": 0.81,
+    "gap": 48,
+    "magType": "mww",
+    "type": "earthquake",
+    "title": "M 5.1 - 62 km SE of Calama, Chile"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -68.5501,
+     -22.8789,
+     112.03
+    ]
+   },
+   "id": "us7000r9b2"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 4.5,
+    "place": "Kepulauan Talaud, Indonesia",
+    "time": 1792015420000,
+    "updated": 1792017600000,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000r9c3",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us7000r9c3.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 300,
+    "net": "us",
+    "code": "7000r9c3",
+    "ids": ",us7000r9c3,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": null,
+    "dmin": 1.234,
+    "rms": 0.81,
+    "gap": 48,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 4.5 - Kepulauan Talaud, Indonesia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     126.8123,
+     4.1022,
+     10
+    ]
+   },
+   "id": "us7000r9c3"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.8,
+    "place": "95 km E of Hualien City, Taiwan",
+    "time": 1792002602450,
+    "updated": 1792026720000,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000r9d4",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us7000r9d4.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": "green",
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 650,
+    "net": "us",
+    "code": "7000r9d4",
+    "ids": ",us7000r9d4,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": null,
+    "dmin": 1.234,
+    "rms": 0.81,
+    "gap": 48,
+    "magType": "mww",
+    "type": "earthquake",
+    "title": "M 5.8 - 95 km E of Hualien City, Taiwan"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     122.5512,
+     23.9301,
+     20.0
+    ]
+   },
+   "id": "us7000r9d4"
+  }
+ ],
+ "bbox": [
+  -68.55,
+  -22.88,
+  10,
+  126.81,
+  23.93,
+  112.03
+ ]
+}

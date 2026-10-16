@@ -1,0 +1,434 @@
+/* Strategya · Globo «Ojo de Dios». Usa solo los tokens de app/globals.css. Primero celular (390 px). */
+
+/* Tonos de marcador: cada clase fija --tono y el resto lo usa. */
+.tono-sube { --tono: var(--sube); }
+.tono-baja, .tono-guerra { --tono: var(--baja); }
+.tono-neutro { --tono: var(--texto-3); }
+.tono-ambar, .tono-ciclon { --tono: var(--ambar); }
+.tono-rd { --tono: var(--rd); }
+.tono-sismo, .tono-buques { --tono: var(--texto-2); }
+.tono-paso { --tono: var(--texto); }
+.tono-capa-mercados { --tono: var(--sube); }
+.tono-capa-noticias { --tono: var(--baja); }
+.tono-capa-rd { --tono: var(--rd); }
+.tono-capa-pasos { --tono: var(--texto); }
+.tono-capa-sismos { --tono: var(--texto-2); }
+.tono-capa-ciclones { --tono: var(--ambar); }
+.tono-capa-buques { --tono: var(--texto-2); }
+
+.globo-marca {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tono, var(--texto-3));
+  border: 1px solid var(--fondo);
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.tono-ciclon .globo-marca,
+.tono-capa-ciclones .globo-marca {
+  background: transparent;
+  border: 2px solid var(--tono);
+}
+
+/* Página */
+.globo-pagina {
+  display: grid;
+  gap: 12px;
+  padding: 12px 16px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  min-width: 0;
+}
+.globo-pagina > * {
+  min-width: 0;
+}
+.globo-intro {
+  margin: 0;
+  color: var(--texto-2);
+  font-size: 13px;
+}
+
+.globo {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .globo {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+  .globo-escena {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+}
+
+/* Escena (3D o 2D) */
+.globo-escena {
+  position: relative;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  height: min(70vh, 520px);
+  min-height: 320px;
+  overflow: hidden;
+}
+@media (min-width: 900px) {
+  .globo-escena {
+    height: min(78vh, 720px);
+  }
+}
+.globo-cesium,
+.globo-lienzo,
+.globo-mapa2d {
+  position: absolute;
+  inset: 0;
+}
+.globo-lienzo .cesium-viewer,
+.globo-lienzo .cesium-widget,
+.globo-lienzo canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+.globo-lienzo .cesium-viewer-bottom,
+.globo-lienzo .cesium-widget-credits {
+  display: none;
+}
+.globo-creditos {
+  position: absolute;
+  right: 4px;
+  bottom: 22px;
+  max-width: 60%;
+  font-size: 10px;
+  color: var(--texto-3);
+}
+.globo-creditos img {
+  max-height: 14px;
+}
+.globo-cargando {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--texto-3);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.globo-mapa2d {
+  display: grid;
+  place-items: center;
+  background: var(--fondo);
+}
+.globo-mapa2d svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+.globo2d-esfera {
+  fill: var(--panel);
+  stroke: var(--borde);
+}
+.globo2d-reticula {
+  fill: none;
+  stroke: var(--rejilla);
+  stroke-width: 0.5;
+}
+.globo2d-paises path {
+  fill: var(--panel-alto);
+  stroke: var(--borde);
+  stroke-width: 0.5;
+}
+.globo2d-forma.es-linea {
+  fill: none;
+  stroke: var(--tono);
+  stroke-width: 1.5;
+}
+.globo2d-forma.es-area {
+  fill: var(--tono);
+  fill-opacity: 0.15;
+  stroke: var(--tono);
+  stroke-opacity: 0.5;
+  stroke-width: 0.75;
+}
+.globo2d-punto {
+  fill: var(--tono);
+  stroke: var(--fondo);
+  stroke-width: 1;
+  cursor: pointer;
+}
+.globo2d-punto.es-ciclon {
+  fill: transparent;
+  stroke: var(--tono);
+  stroke-width: 2.5;
+}
+.globo2d-punto.elegido {
+  stroke: var(--texto);
+  stroke-width: 2;
+}
+
+/* HUD */
+.globo-hud {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 2;
+}
+.globo-hud > * {
+  pointer-events: auto;
+}
+.globo-hud-modo {
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--ambar);
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+  border: 1px solid var(--borde);
+}
+.globo-boton-capas {
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  color: var(--texto);
+  min-height: 32px;
+}
+
+.globo-panel-capas {
+  position: absolute;
+  top: 46px;
+  right: 8px;
+  left: 8px;
+  max-height: calc(100% - 80px);
+  overflow-y: auto;
+  z-index: 3;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid var(--borde);
+}
+@media (min-width: 520px) {
+  .globo-panel-capas {
+    left: auto;
+    width: 300px;
+  }
+}
+.globo-panel-capas[hidden] {
+  display: none;
+}
+.globo-panel-capas fieldset {
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.globo-panel-capas legend {
+  padding: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ambar);
+}
+.globo-capa {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--texto-2);
+  cursor: pointer;
+}
+.globo-capa input {
+  margin: 2px 0 0;
+  accent-color: var(--ambar);
+}
+.globo-capa .globo-marca {
+  margin-top: 4px;
+}
+.globo-capa-nota {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-3);
+}
+
+.globo-atribucion {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--texto-3);
+  background: color-mix(in srgb, var(--fondo) 80%, transparent);
+  z-index: 2;
+}
+.globo-atribucion a {
+  color: var(--texto-2);
+}
+.globo-aviso {
+  margin: 0;
+}
+
+/* Tarjeta del punto elegido */
+.globo-seleccion {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  padding: 10px 12px;
+  min-width: 0;
+}
+.globo-seleccion > .boton-texto {
+  margin-top: 8px;
+}
+.globo-tarjeta-punto {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.globo-tarjeta-titulo {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.globo-que {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.globo-cifras {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+.globo-cifra dt {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+}
+.globo-cifra dd {
+  margin: 0;
+}
+.globo-valor {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.globo-notas {
+  margin: 0 0 8px;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--texto-2);
+}
+.globo-enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+/* Lista accesible equivalente */
+.globo-lista {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  padding: 10px 12px;
+  min-width: 0;
+}
+.globo-lista .panel-titulo {
+  margin-bottom: 6px;
+}
+.globo-lista-capa {
+  border-top: 1px solid var(--borde);
+  padding: 6px 0;
+}
+.globo-lista-capa summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--texto);
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.globo-lista-capa ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.globo-lista-boton {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 4px 2px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--borde);
+  color: var(--texto-2);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.globo-lista-boton[aria-pressed="true"] {
+  color: var(--texto);
+  background: var(--panel-alto);
+}
+.globo-lista-titulo {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.globo-lista-tarjeta {
+  padding: 8px 4px 10px 18px;
+  border-bottom: 1px solid var(--borde);
+}
+
+/* Panel compacto de la terminal y secciones informativas */
+.globo-resumen {
+  display: grid;
+  gap: 10px;
+}
+.globo-resumen h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+.globo-resumen ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.globo-resumen li {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.globo-resumen p {
+  margin: 0;
+}
+.globo-info {
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.globo-info ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.globo-info li {
+  margin-bottom: 4px;
+}

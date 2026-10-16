@@ -1,0 +1,150 @@
+{
+ "type": "FeatureCollection",
+ "_comentario": "SINTÉTICA: reemplazar por real. Forma según https://www.nhc.noaa.gov/productexamples/NHC_JSON_Sample.json y las pruebas de God's Eye View (src/data/cyclonesProxy.test.mjs, MIT © 2026 Bilawal Sidhu). Ver sondas/lotes/27-globo.txt.",
+ "features": [
+  {
+   "type": "Feature",
+   "id": 1,
+   "properties": {
+    "idp_source": "al142026-012_5day_pts",
+    "advisnum": "12",
+    "tau": 0,
+    "maxwind": 75,
+    "gust": 90
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -64.0,
+     16.5
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 2,
+   "properties": {
+    "idp_source": "al142026-012_5day_pts",
+    "advisnum": "12",
+    "tau": 12,
+    "maxwind": 80,
+    "gust": 100
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -65.9,
+     16.8
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 3,
+   "properties": {
+    "idp_source": "al142026-012_5day_pts",
+    "advisnum": "12",
+    "tau": 24,
+    "maxwind": 85,
+    "gust": 105
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -67.8,
+     17.2
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 4,
+   "properties": {
+    "idp_source": "al142026-012_5day_pts",
+    "advisnum": "12",
+    "tau": 36,
+    "maxwind": 85,
+    "gust": 105
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -69.6,
+     17.6
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 5,
+   "properties": {
+    "idp_source": "al142026-012_5day_pts",
+    "advisnum": "12",
+    "tau": 48,
+    "maxwind": 80,
+    "gust": 100
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -71.3,
+     18.1
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 6,
+   "properties": {
+    "idp_source": "al142026-012_5day_pts",
+    "advisnum": "12",
+    "tau": 72,
+    "maxwind": 70,
+    "gust": 85
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -74.6,
+     19.3
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 7,
+   "properties": {
+    "idp_source": "al142026-012_5day_pts",
+    "advisnum": "12",
+    "tau": 96,
+    "maxwind": 60,
+    "gust": 75
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -77.5,
+     20.6
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 8,
+   "properties": {
+    "idp_source": "al142026-012_5day_pts",
+    "advisnum": "12",
+    "tau": 120,
+    "maxwind": 55,
+    "gust": 65
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -80.0,
+     22.0
+    ]
+   }
+  }
+ ]
+}
