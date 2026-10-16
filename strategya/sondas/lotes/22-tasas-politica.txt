@@ -1,10 +1,10 @@
 # Tasas de política. Fed (rango objetivo) por FRED, y la página del Data Download Program (H.15) por si se cambia.
 robots https://fred.stlouisfed.org/
-fetch https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&cosd=2026-09-15 50000
-fetch https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARL&cosd=2026-09-15 50000
+fetchb64 https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&cosd=2026-09-15 50000
+fetchb64 https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARL&cosd=2026-09-15 50000
 robots https://www.federalreserve.gov/
 fetch https://www.federalreserve.gov/datadownload/Choose.aspx?rel=H15 300000
 espera 2
 # BCE · facilidad de depósito
 robots https://data-api.ecb.europa.eu/
-fetch https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.DFR.LEV?format=csvdata&lastNObservations=5 50000
+fetchb64 https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.DFR.LEV?format=csvdata&lastNObservations=5 50000

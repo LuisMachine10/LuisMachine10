@@ -2,8 +2,8 @@
 # Sirve para reemplazar la muestra SINTÉTICA pruebas/muestras/gdelt/artlist-sintetica.json por una real.
 # GDELT limita por IP (respondió 429 desde GitHub aun esperando 12 s): pausas largas entre consultas.
 espera 30
-fetch https://api.gdeltproject.org/api/v2/doc/doc?query=(war%20OR%20missile%20OR%20ceasefire%20OR%20airstrike%20OR%20invasion%20OR%20troops)%20sourcelang:english&mode=artlist&format=json&maxrecords=50&timespan=24h&sort=datedesc 400000
+fetchb64 https://api.gdeltproject.org/api/v2/doc/doc?query=(war%20OR%20missile%20OR%20ceasefire%20OR%20airstrike%20OR%20invasion%20OR%20troops)%20sourcelang:english&mode=artlist&format=json&maxrecords=50&timespan=24h&sort=datedesc 400000
 espera 30
-fetch https://api.gdeltproject.org/api/v2/doc/doc?query=(%22stock%20market%22%20OR%20%22Federal%20Reserve%22%20OR%20%22oil%20prices%22%20OR%20%22bond%20yields%22%20OR%20%22central%20bank%22)%20sourcelang:english&mode=artlist&format=json&maxrecords=50&timespan=24h&sort=datedesc 400000
+fetchb64 https://api.gdeltproject.org/api/v2/doc/doc?query=(%22stock%20market%22%20OR%20%22Federal%20Reserve%22%20OR%20%22oil%20prices%22%20OR%20%22bond%20yields%22%20OR%20%22central%20bank%22)%20sourcelang:english&mode=artlist&format=json&maxrecords=50&timespan=24h&sort=datedesc 400000
 espera 30
-fetch https://api.gdeltproject.org/api/v2/doc/doc?query=(%22Dominican%20Republic%22%20OR%20%22Rep%C3%BAblica%20Dominicana%22%20OR%20%22Santo%20Domingo%22)&mode=artlist&format=json&maxrecords=50&timespan=24h&sort=datedesc 400000
+fetchb64 https://api.gdeltproject.org/api/v2/doc/doc?query=(%22Dominican%20Republic%22%20OR%20%22Rep%C3%BAblica%20Dominicana%22%20OR%20%22Santo%20Domingo%22)&mode=artlist&format=json&maxrecords=50&timespan=24h&sort=datedesc 400000

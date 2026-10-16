@@ -3,16 +3,16 @@
 # Los feeds dominicanos están APAGADOS (confirmado=false en supabase/functions/_shared/fuentes/prensa.ts)
 # hasta que esta sonda confirme URL, formato RSS y robots.txt. Se prueban varias rutas candidatas.
 robots https://www.aljazeera.com
-fetch https://www.aljazeera.com/xml/rss/all.xml 300000
+fetchb64 https://www.aljazeera.com/xml/rss/all.xml 300000
 robots https://www.france24.com
-fetch https://www.france24.com/en/rss 300000
+fetchb64 https://www.france24.com/en/rss 300000
 robots https://www.diariolibre.com
-fetch https://www.diariolibre.com/rss/portada.xml 300000
-fetch https://www.diariolibre.com/rss 300000
+fetchb64 https://www.diariolibre.com/rss/portada.xml 300000
+fetchb64 https://www.diariolibre.com/rss 300000
 robots https://listindiario.com
-fetch https://listindiario.com/rss/portada.xml 300000
-fetch https://listindiario.com/rss 300000
+fetchb64 https://listindiario.com/rss/portada.xml 300000
+fetchb64 https://listindiario.com/rss 300000
 robots https://eldinero.com.do
-fetch https://eldinero.com.do/feed/ 300000
+fetchb64 https://eldinero.com.do/feed/ 300000
 robots https://dominicantoday.com
-fetch https://dominicantoday.com/feed/ 300000
+fetchb64 https://dominicantoday.com/feed/ 300000
