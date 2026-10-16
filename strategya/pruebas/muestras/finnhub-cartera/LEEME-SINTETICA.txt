@@ -1,0 +1,9 @@
+SINTÉTICA: reemplazar por real.
+Estas respuestas se construyeron a mano según la documentación oficial de Finnhub
+(https://finnhub.io/docs/api/quote: c, d, dp, h, l, o, pc, t). Sus cifras NO son datos de mercado
+ni posiciones de nadie: el símbolo EJEMPLO no existe.
+  quote-EJEMPLO-SINTETICA.json      símbolo con cotización
+  quote-desconocido-SINTETICA.json  lo que Finnhub responde a un símbolo que no conoce (todo en 0)
+  error-token-SINTETICA.json        respuesta de error (clave inválida o ausente)
+La real se obtiene con la clave de Mena (no puede ir en este repositorio público):
+ver sondas/lotes/27-finnhub-cartera.txt.

@@ -1,0 +1,10 @@
+# Finnhub · /api/v1/quote para los precios de la cartera de Mena Capital (tarea precios-cartera).
+# La clave de Mena no puede ir en este repositorio público: sin clave la sonda solo confirma que el
+# host responde (debe dar 401 con {"error": ...}) y qué dice robots.txt.
+# Para la muestra real, con la clave en el entorno:
+#   curl -s "https://finnhub.io/api/v1/quote?symbol=SPY&token=$FINNHUB_API_KEY" > pruebas/muestras/finnhub-cartera/quote-SPY.json
+#   curl -s "https://finnhub.io/api/v1/quote?symbol=NOEXISTE123&token=$FINNHUB_API_KEY" > pruebas/muestras/finnhub-cartera/quote-desconocido.json
+# y reemplazar las SINTÉTICAS en supabase/functions/_shared/fuentes/precios-cartera.test.ts.
+robots https://finnhub.io/
+fetch https://finnhub.io/api/v1/quote?symbol=SPY 20000
+fetch https://finnhub.io/api/v1/quote?symbol=NOEXISTE123 20000
