@@ -62,7 +62,7 @@ export function ResumenGlobo({ capas, ahora }: { capas: Capas; ahora: Date }) {
             {resumen.sismosRelevantes.slice(0, 5).map((s) => (
               <li key={s.id}>
                 <span className="globo-marca tono-ambar" aria-hidden="true" />
-                <span className="mono">M{s.cifras[0]?.valor ?? "?"}</span> · {s.titulo}
+                <span className="mono">M{s.cifras[0]?.valor ?? "?"}</span> · {s.titulo.replace(/^M\s*[\d.]+\s*-\s*/, "")}
                 {s.notas[0] ? <span className="tenue chico"> — {s.notas[0]}</span> : null}
                 {s.cifras[0]?.sello ? <SelloFuente d={s.cifras[0].sello} ahora={ahora} /> : null}
               </li>

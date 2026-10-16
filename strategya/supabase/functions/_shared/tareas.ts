@@ -35,6 +35,7 @@ const LISTA: Tarea[] = [
   tareaMicm,
   tareaGdelt,
   tareaPrensa,
+  ...TAREAS_INSTITUCIONES,
   tareaSec,
   tareaAlertas,
   tareaIaPorque,

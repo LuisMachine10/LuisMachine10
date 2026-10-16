@@ -186,6 +186,7 @@ export function VisorGlobo({
                       <span className="globo-lista-titulo">{p.titulo}</span>
                       {p.cifras[0]?.valor ? (
                         <span className="mono chico">
+                          <span className="tenue">{p.cifras[0].etiqueta} </span>
                           {p.cifras[0].valor}
                           {p.cifras[0].cambio ? <span className={p.cifras[0].direccion ?? "igual"}> {p.cifras[0].cambio}</span> : null}
                         </span>
