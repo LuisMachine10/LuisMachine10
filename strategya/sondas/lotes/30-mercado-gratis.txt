@@ -1,0 +1,15 @@
+# Bloque 2 · respaldo gratuito de cotizaciones (proveedores que usa OpenBB, Apache-2.0).
+robots https://cdn.cboe.com
+fetchb64 https://cdn.cboe.com/api/global/delayed_quotes/quotes/all_us_indices.json 3000000
+fetchb64 https://cdn.cboe.com/api/global/delayed_quotes/quotes/SPY.json 200000
+fetchb64 https://cdn.cboe.com/api/global/delayed_quotes/quotes/_SPX.json 200000
+fetchb64 https://cdn.cboe.com/api/global/delayed_quotes/quotes/GLD.json 200000
+fetchb64 https://cdn.cboe.com/api/global/delayed_quotes/charts/historical/_SPX.json 2000000
+robots https://api.nasdaq.com
+fetchb64 https://api.nasdaq.com/api/marketmovers?assetclass=stocks 300000
+fetchb64 https://api.nasdaq.com/api/calendar/economicevents?date=2026-10-16 300000
+robots https://www.ecb.europa.eu
+fetchb64 https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml 50000
+robots https://fred.stlouisfed.org
+fetchb64 https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILBRENTEU&cosd=2026-09-01 50000
+fetchb64 https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500&cosd=2026-09-01 50000
