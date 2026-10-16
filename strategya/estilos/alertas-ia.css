@@ -1,0 +1,297 @@
+/* Alertas (Fase 5) e IA (Fase 6). Usa los tokens de app/globals.css. Primero celular: nada más ancho que 390 px. */
+
+.ambar {
+  color: var(--ambar);
+}
+.rd {
+  color: var(--rd);
+}
+
+/* Banner de alertas de hoy */
+.banner-alertas {
+  border: 1px solid var(--borde);
+  background: var(--panel);
+  min-width: 0;
+}
+.banner-alertas.sin-alertas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 12px;
+}
+.banner-alertas.con-alertas {
+  border-color: var(--ambar);
+  border-left-width: 4px;
+}
+.banner-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 8px 12px 4px;
+}
+.lista-alertas {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px 8px;
+  display: grid;
+  gap: 8px;
+}
+.alerta-item {
+  padding-top: 6px;
+  border-top: 1px solid var(--borde);
+  min-width: 0;
+}
+.alerta-item:first-child {
+  border-top: 0;
+}
+.alerta-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  overflow-wrap: anywhere;
+}
+.alerta-activo {
+  color: var(--texto);
+}
+.alerta-umbral {
+  color: var(--ambar);
+  font-size: 13px;
+}
+
+/* Umbrales editables */
+.rejilla-reglas {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 8px 0;
+}
+@media (min-width: 700px) {
+  .rejilla-reglas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .rejilla-reglas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.regla {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  background: var(--panel-alto);
+  min-width: 0;
+}
+.regla-titulo {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.regla-campos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.campo-umbral {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.regla input[name="umbral"],
+.regla textarea {
+  font: inherit;
+  font-family: var(--mono);
+  background: var(--fondo);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  padding: 6px 8px;
+  min-width: 0;
+}
+.regla input[name="umbral"] {
+  width: 9.5em;
+  max-width: 100%;
+}
+.regla input:focus-visible,
+.regla textarea:focus-visible,
+.boton:focus-visible {
+  outline: 2px solid var(--ambar);
+  outline-offset: 1px;
+}
+.campo-activa {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-2);
+}
+.campo-nota {
+  display: grid;
+  gap: 4px;
+  color: var(--texto-2);
+}
+.campo-nota textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--sans);
+}
+.regla-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.boton {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: var(--ambar);
+  color: #111;
+  border: 0;
+  cursor: pointer;
+}
+.boton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Avisos de IA y de correo */
+.aviso-ia {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border: 1px dashed var(--borde);
+  color: var(--texto-2);
+}
+.aviso-ia.tope {
+  border: 1px solid var(--ambar);
+  color: var(--ambar);
+}
+
+/* Paneles con IA */
+.ia-panel p {
+  margin: 4px 0;
+  line-height: 1.45;
+}
+.lista-cinco {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 12px;
+}
+.lista-cinco li::marker {
+  color: var(--ambar);
+  font-family: var(--mono);
+}
+.cinco-titulo,
+.guerra-nombre {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+.lista-guerras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.lista-guerras > li {
+  border-top: 1px solid var(--borde);
+  padding-top: 8px;
+}
+.lista-guerras > li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.guerra-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.estado-escala {
+  color: var(--baja);
+}
+.estado-tension {
+  color: var(--ambar);
+}
+.estado-tregua {
+  color: var(--sube);
+}
+.estado-baja-intensidad {
+  color: var(--texto-3);
+}
+.boton-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 12px;
+}
+
+/* Respaldo sin IA: titulares agrupados */
+.respaldo {
+  display: grid;
+  gap: 10px;
+}
+.grupo-nombre {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+.grupo-titulares ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.grupo-titulares li {
+  display: grid;
+  gap: 1px;
+  overflow-wrap: anywhere;
+}
+
+/* Gasto de IA */
+.gasto-cifra {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.barra-gasto {
+  height: 6px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  margin-bottom: 10px;
+}
+.barra-gasto span {
+  display: block;
+  height: 100%;
+  background: var(--ambar);
+}
+.barra-gasto span.llena {
+  background: var(--baja);
+}
+
+/* Porqué bajo una serie */
+.porque {
+  font-size: 13px;
+  color: var(--texto-2);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.porque-etiqueta {
+  color: var(--ambar);
+  font-weight: 600;
+}
+.porque.no-confirmado {
+  color: var(--texto-3);
+  font-style: italic;
+}
