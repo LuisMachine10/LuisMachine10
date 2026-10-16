@@ -141,6 +141,8 @@ export function armarItem(serie: SerieMercado, obs: ObsMercado | undefined, ctx:
     direccion: direccion(obs.cambio),
     etiquetaCierre: estado === "cerrado" ? etiquetaCierre(obs.fecha_dato) : null,
     horaDato: obs.hora_dato,
+    // quote-short de FMP no trae hora (se usa la de la consulta); Cboe, BCE y FRED sí traen la del dato.
+    horaEsConsulta: obs.fuente_id === "fmp",
     fuenteId: obs.fuente_id,
     sello: {
       fuente: fuente?.nombre ?? obs.fuente_id,

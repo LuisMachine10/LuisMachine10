@@ -7,6 +7,7 @@
 // confirme la URL y el formato; luego basta cambiar `confirmado` a true.
 
 import type { Tarea } from "../ingesta.ts";
+import type { Categoria } from "../geo.ts";
 import { type ArticuloGdelt, type FilaNoticia, filasNoticias } from "./gdelt.ts";
 import { parsearFeed, recortar } from "./feed.ts";
 
@@ -17,6 +18,8 @@ export interface FeedPrensa {
   /** Medio dominicano: sus titulares son «rd» salvo que hablen de una guerra. */
   rd: boolean;
   confirmado: boolean;
+  /** Categoría por defecto de un titular que no calza en ninguna regla (feeds de mercados → «mercado»). */
+  pista?: Categoria;
 }
 
 export const FEEDS_PRENSA: readonly FeedPrensa[] = [
@@ -27,6 +30,17 @@ export const FEEDS_PRENSA: readonly FeedPrensa[] = [
   { fuenteId: "listin_rss", medio: "Listín Diario", url: "https://listindiario.com/rss/portada.xml", rd: true, confirmado: false },
   { fuenteId: "eldinero_rss", medio: "elDinero", url: "https://eldinero.com.do/feed/", rd: true, confirmado: true },
   { fuenteId: "dominicantoday_rss", medio: "Dominican Today", url: "https://dominicantoday.com/feed/", rd: true, confirmado: true },
+  // Prensa financiera internacional (sonda del 16 oct 2026). Solo titulares: WSJ y FT tienen muro de pago
+  // y el artículo no se lee; el enlace lleva al sitio del medio.
+  { fuenteId: "wsj_rss", medio: "The Wall Street Journal", url: "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain", rd: false, confirmado: true, pista: "mercado" },
+  { fuenteId: "wsj_rss", medio: "The Wall Street Journal", url: "https://feeds.content.dowjones.io/public/rss/RSSWorldNews", rd: false, confirmado: true },
+  { fuenteId: "cnbc_rss", medio: "CNBC", url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", rd: false, confirmado: true },
+  { fuenteId: "cnbc_rss", medio: "CNBC", url: "https://www.cnbc.com/id/15839069/device/rss/rss.html", rd: false, confirmado: true, pista: "mercado" },
+  { fuenteId: "ft_rss", medio: "Financial Times", url: "https://www.ft.com/markets?format=rss", rd: false, confirmado: true, pista: "mercado" },
+  { fuenteId: "ft_rss", medio: "Financial Times", url: "https://www.ft.com/world?format=rss", rd: false, confirmado: true },
+  { fuenteId: "bloomberglinea_rss", medio: "Bloomberg Línea", url: "https://www.bloomberglinea.com/arc/outboundfeeds/rss/?outputType=xml", rd: false, confirmado: true },
+  { fuenteId: "eleconomista_rss", medio: "elEconomista", url: "https://www.eleconomista.es/rss/rss-mercados.php", rd: false, confirmado: true, pista: "mercado" },
+  { fuenteId: "expansion_rss", medio: "Expansión", url: "https://e00-expansion.uecdn.es/rss/mercados.xml", rd: false, confirmado: true, pista: "mercado" },
 ];
 
 /** Cuántos titulares por feed y corrida (los más recientes). */
@@ -57,10 +71,10 @@ export function crearTareaPrensa(feeds: readonly FeedPrensa[]): Tarea {
         try {
           const r = await ctx.obtener(f.url);
           const articulos = parsearPrensa(r.texto, f.medio);
-          const res = await filasNoticias(articulos, { fuenteId: f.fuenteId, origen: "rss", medioRD: f.rd });
+          const res = await filasNoticias(articulos, { fuenteId: f.fuenteId, origen: "rss", medioRD: f.rd, pista: f.pista });
           filas.push(...res.filas);
           descartadas += res.descartadas;
-          porMedio[f.medio] = res.filas.length;
+          porMedio[f.medio] = (porMedio[f.medio] ?? 0) + res.filas.length;
           leidos++;
         } catch (e) {
           advertencias.push(`${f.medio}: ${(e as Error).message}`);

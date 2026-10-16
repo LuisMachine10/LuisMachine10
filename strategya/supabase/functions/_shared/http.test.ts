@@ -195,3 +195,18 @@ describe("pausa mínima por sitio", () => {
     expect(esperas).toEqual([6000]);
   });
 });
+
+describe("robots.txt 403 de Amazon S3 (archivo inexistente, no bloqueo)", () => {
+  const S3 = '<?xml version="1.0" encoding="UTF-8"?>\n<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>6A67E4</RequestId><HostId>dMMS</HostId></Error>';
+  it("se puede leer (como un 404), igual que hace OpenBB con Cboe", async () => {
+    const { f } = fetchFalso({
+      "https://cdn.cboe.com/robots.txt": [{ status: 403, texto: S3 }],
+      "https://cdn.cboe.com/api/global/delayed_quotes/quotes/_SPX.json": [{ status: 200, texto: "{}" }],
+    });
+    expect((await new Lector({ ...base, fetch: f }).obtener("https://cdn.cboe.com/api/global/delayed_quotes/quotes/_SPX.json")).texto).toBe("{}");
+  });
+  it("un 403 de cortafuegos (Cloudflare) sigue siendo bloqueo", async () => {
+    const { f } = fetchFalso({ "https://simv.gob.do/robots.txt": [{ status: 403, texto: "<html>Sorry, you have been blocked</html>" }] });
+    await expect(new Lector({ ...base, fetch: f }).obtener("https://simv.gob.do/a")).rejects.toThrow(/rechaza/);
+  });
+});

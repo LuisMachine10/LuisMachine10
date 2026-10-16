@@ -5,6 +5,7 @@ import { almacenMemoria } from "../../../../pruebas/apoyo/almacen-memoria.ts";
 import type { Respuesta } from "../http.ts";
 import { correrTarea } from "../ingesta.ts";
 import { crearTareaPrensa, FEEDS_PRENSA, parsearPrensa, tareaPrensa } from "./prensa.ts";
+import { filasNoticias } from "./gdelt.ts";
 
 // SINTÉTICA: reemplazar por real (sondas/lotes/22-prensa-rss.txt).
 const RSS = readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "pruebas", "muestras", "prensa", "rss-sintetico.xml"), "utf8");
@@ -31,14 +32,20 @@ describe("parsearPrensa", () => {
 
 describe("feeds de prensa", () => {
   it("activos los confirmados por la sonda del 16 oct 2026; Listín Diario apagado (sin feed)", () => {
-    expect(FEEDS_PRENSA.filter((f) => f.confirmado).map((f) => f.medio)).toEqual(["Al Jazeera", "France 24", "Diario Libre", "elDinero", "Dominican Today"]);
+    expect(FEEDS_PRENSA.filter((f) => f.confirmado).map((f) => f.medio)).toEqual([
+      "Al Jazeera", "France 24", "Diario Libre", "elDinero", "Dominican Today",
+      "The Wall Street Journal", "The Wall Street Journal", "CNBC", "CNBC", "Financial Times", "Financial Times",
+      "Bloomberg Línea", "elEconomista", "Expansión",
+    ]);
     expect(FEEDS_PRENSA.find((f) => f.medio === "Listín Diario")?.confirmado).toBe(false);
   });
 });
 
 describe("tarea noticias-prensa", () => {
-  // Los dos feeds internacionales (los dominicanos tienen su propia prueba de categoría «rd»).
-  const tareaInternacional = crearTareaPrensa(FEEDS_PRENSA.filter((f) => !f.rd || !f.confirmado));
+  // Al Jazeera, France 24 y el apagado de Listín (los dominicanos tienen su propia prueba de categoría «rd»).
+  const tareaInternacional = crearTareaPrensa(
+    FEEDS_PRENSA.filter((f) => ["aljazeera_rss", "france24_rss", "listin_rss"].includes(f.fuenteId)),
+  );
 
   it("lee solo los feeds confirmados y guarda los titulares que encajan, sin duplicados", async () => {
     const { almacen, tablas } = almacenMemoria();
@@ -99,6 +106,11 @@ describe("feeds REALES (16 oct 2026)", () => {
     ["france24-real-2026-10-16.xml", "France 24"],
     ["eldinero-real-2026-10-16.xml", "elDinero"],
     ["dominicantoday-real-2026-10-16.xml", "Dominican Today"],
+    ["wsj-markets-real-2026-10-16.xml", "The Wall Street Journal"],
+    ["cnbc-top-real-2026-10-16.xml", "CNBC"],
+    ["ft-markets-real-2026-10-16.xml", "Financial Times"],
+    ["eleconomista-mercados-real-2026-10-16.xml", "elEconomista"],
+    ["expansion-mercados-real-2026-10-16.xml", "Expansión"],
   ] as const) {
     it(`${medio}: titulares con enlace http(s) y fecha`, () => {
       const a = parsearPrensa(real(archivo), medio);
@@ -106,4 +118,23 @@ describe("feeds REALES (16 oct 2026)", () => {
       expect(a.every((x) => /^https?:\/\//.test(x.url) && x.titular.length > 0 && !Number.isNaN(Date.parse(x.fecha)))).toBe(true);
     });
   }
+});
+
+describe("prensa financiera internacional", () => {
+  it("WSJ, CNBC, FT y medios en español están confirmados y con fuente propia", () => {
+    const medios = new Set(FEEDS_PRENSA.filter((f) => f.confirmado).map((f) => f.medio));
+    for (const m of ["The Wall Street Journal", "CNBC", "Financial Times", "Bloomberg Línea", "elEconomista", "Expansión"]) {
+      expect(medios.has(m)).toBe(true);
+    }
+    expect(FEEDS_PRENSA.filter((f) => f.fuenteId === "wsj_rss").every((f) => !f.rd)).toBe(true);
+  });
+
+  it("los feeds de mercados guardan como «mercado» un titular que no calza en ninguna regla", async () => {
+    const real = readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "pruebas", "muestras", "prensa", "ft-markets-real-2026-10-16.xml"), "utf8");
+    const a = parsearPrensa(real, "Financial Times");
+    const sin = await filasNoticias(a, { fuenteId: "ft_rss", origen: "rss" });
+    const con = await filasNoticias(a, { fuenteId: "ft_rss", origen: "rss", pista: "mercado" });
+    expect(con.filas.length).toBeGreaterThanOrEqual(sin.filas.length);
+    expect(con.descartadas).toBe(0);
+  });
 });

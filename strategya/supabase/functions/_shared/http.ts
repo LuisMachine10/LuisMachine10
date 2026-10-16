@@ -13,6 +13,8 @@ export const PRODUCTO = "Strategya";
 export const PAUSAS_MINIMAS: Readonly<Record<string, number>> = {
   // GDELT: «Please limit requests to one every 5 seconds» (respuesta 429 del 16 oct 2026).
   "api.gdeltproject.org": 6,
+  // Cboe: CDN sin robots.txt; una llamada por segundo como cortesía (≈13 por corrida).
+  "cdn.cboe.com": 1,
 };
 
 export function agenteUsuario(contacto?: string): string {
@@ -25,6 +27,8 @@ export class ErrorIngesta extends Error {
     message: string,
     readonly url: string,
     readonly status?: number,
+    /** Primeros caracteres del cuerpo de la respuesta de error (para distinguir un bloqueo de un archivo inexistente). */
+    readonly cuerpo?: string,
   ) {
     super(message);
     this.name = "ErrorIngesta";
@@ -104,10 +108,11 @@ export async function obtenerTexto(url: string, op: OpcionesHttp): Promise<Respu
         const texto = await r.text();
         return { url, status: r.status, tipo: r.headers.get("content-type") ?? "", texto, intentos: intento };
       }
-      await r.body?.cancel();
       if (r.status !== 429 && r.status < 500) {
-        throw new ErrorIngesta(`HTTP ${r.status} en ${ocultarClaves(url)}`, ocultarClaves(url), r.status);
+        const cuerpo = r.status === 401 || r.status === 403 ? (await r.text()).slice(0, 600) : (await r.body?.cancel(), undefined);
+        throw new ErrorIngesta(`HTTP ${r.status} en ${ocultarClaves(url)}`, ocultarClaves(url), r.status, cuerpo);
       }
+      await r.body?.cancel();
       retryAfter = r.headers.get("retry-after");
       ultimoError = `HTTP ${r.status}`;
     } catch (e) {
@@ -177,6 +182,11 @@ export function ocultarClaves(url: string): string {
   return url.replace(/([?&](?:apikey|api_key|token|key)=)[^&]+/gi, "$1***");
 }
 
+/** Respuesta típica de Amazon S3 a un objeto inexistente en un depósito sin listado público. */
+export function esS3SinArchivo(cuerpo: string | undefined): boolean {
+  return !!cuerpo && /<Error>\s*<Code>AccessDenied<\/Code>/.test(cuerpo) && /<RequestId>/.test(cuerpo) && /<HostId>/.test(cuerpo);
+}
+
 /** ¿La URL es un feed de sindicación (RSS/Atom)? */
 export function esFeed(u: URL): boolean {
   return /\/feed\/?$|\/rss\/?$|\.(rss|atom)$|\/feeds?\/[^/]+\.xml$/i.test(u.pathname);
@@ -220,6 +230,9 @@ export class Lector {
         (r) => parsearRobots(r.texto),
         (e: unknown) => {
           const status = e instanceof ErrorIngesta ? e.status : undefined;
+          // Un depósito de Amazon S3 sin robots.txt responde 403 «AccessDenied» en vez de 404: no es un
+          // bloqueo, es un archivo que no existe (RFC 9309: sin robots.txt se puede leer). Así publica Cboe.
+          if (status === 403 && e instanceof ErrorIngesta && esS3SinArchivo(e.cuerpo)) return { permitido: true } as const;
           if (status === 401 || status === 403) {
             return { permitido: false, motivo: `robots.txt respondió HTTP ${status}: el sitio rechaza la lectura automática` } as const;
           }

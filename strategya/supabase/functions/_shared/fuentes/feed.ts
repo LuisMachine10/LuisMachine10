@@ -75,10 +75,18 @@ export function fechaFeed(crudo: string): string | null {
   return new Date(ms).toISOString();
 }
 
+/**
+ * elEconomista publica `<pubDate/><![CDATA[Fri, 16 Oct 2026 22:09:36 +0200]]>` (etiqueta vacía y la fecha
+ * suelta detrás). Se reacomoda a `<pubDate>…</pubDate>`; ningún otro contenido se toca.
+ */
+function repararFechas(xml: string): string {
+  return xml.replace(/<pubDate\s*\/>\s*<!\[CDATA\[([^\]]{1,80})\]\]>/g, "<pubDate>$1</pubDate>");
+}
+
 /** Lee un feed RSS 2.0, RSS 1.0 (RDF, como el del BIS) o Atom. Lanza si el documento no es un feed. */
 export function parsearFeed(xml: string): EntradaFeed[] {
   // deno-lint-ignore no-explicit-any
-  const doc = parser.parse(xml.replace(/^﻿/, "")) as any;
+  const doc = parser.parse(repararFechas(xml.replace(/^﻿/, ""))) as any;
   const items: unknown[] | undefined = doc?.rss?.channel?.item ?? doc?.RDF?.item ?? doc?.feed?.entry;
   const esFeed = doc?.rss || doc?.RDF || doc?.feed;
   if (!esFeed) throw new Error("Formato inesperado: no es un feed RSS ni Atom");

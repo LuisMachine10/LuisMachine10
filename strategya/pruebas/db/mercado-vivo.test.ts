@@ -63,9 +63,9 @@ afterAll(async () => {
 });
 
 describe("migración mercado_vivo", () => {
-  it("marca inactivas las series que el plan de FMP niega", async () => {
+  it("marca inactivas las series que el plan de FMP niega (WTI y gas natural vuelven con FRED)", async () => {
     const { rows } = await pool.query("select id from mercado.series where not activa order by id");
-    expect(rows.map((r) => r.id)).toEqual(["DXY", "GAS_NATURAL", "IDX_GDAXI", "WTI"]);
+    expect(rows.map((r) => r.id)).toEqual(["DXY", "IDX_GDAXI"]);
   });
 
   it("programa las tareas con pg_cron", async () => {

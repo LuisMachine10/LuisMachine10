@@ -15,6 +15,8 @@ export interface FilaObservacion {
   cambio_pct?: string;
   url_dato?: string;
   estado?: EstadoObservacion;
+  /** Fuente de esta fila si no es la de la serie (respaldo: Cboe, BCE o FRED en una serie de FMP). */
+  fuente_id?: string;
 }
 
 export interface ConteoRegistro {
