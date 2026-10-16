@@ -1,0 +1,15 @@
+# Bloque 3 · páginas de fondos abiertos (dónde publican valor cuota, rendimientos y folletos).
+fetch https://www.afiuniversal.com.do/universal-liquidez/ 400000
+fetch https://www.afiuniversal.com.do/plazo-mensual-dolar/ 400000
+fetch https://www.afiuniversal.com.do/renta-valores/ 400000
+fetch https://www.afiuniversal.com.do/fondos-abiertos/ 400000
+fetch https://www.afireservas.com/fondos/fondo-quisqueya/ 400000
+fetch https://www.afireservas.com/fondos/fondo-larimar/ 400000
+fetch https://www.afireservas.com/fondos/fondo-caoba/ 400000
+fetch https://www.excel.com.do/informes-de-fondos-abiertos-liquidez-excel/ 400000
+robots https://fondosabiertos.excel.com.do
+fetch https://fondosabiertos.excel.com.do/ 400000
+fetch https://www.excel.com.do/fondo-abierto-dinamico-excel-portada/ 400000
+fetch https://www.pioneerfunds.do/fondo-nacional-pioneer-united-renta-fija/ 400000
+fetch https://www.afipopular.com.do/sitemap.xml 200000
+fetch https://www.afipopular.com.do/Paginas/fondos-de-inversion.aspx 300000
