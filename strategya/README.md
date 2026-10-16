@@ -7,17 +7,19 @@ tasas y noticias, actualizada sola. Moneda base RD$, secundaria USD. Privada, de
 fuente con nombre, enlace y fecha del dato. Si un dato no llegó, la pantalla dice «sin datos» o
 «desactualizado»; nunca rellena.
 
-## Estado: Fase 1 (base) lista para desplegar
+## Estado: todas las fases construidas, listas para desplegar
 
-| Pieza | Qué hace |
-| --- | --- |
-| Esquema `mercado` | Todas las tablas del modelo de datos, con RLS de un solo dueño. Esquema `personal` reservado para Mena Capital. |
-| Ingesta del Tesoro | Edge Function que lee el XML oficial de la curva par diaria (14 plazos), revisando robots.txt antes de leer. |
-| Tareas programadas | pg_cron la llama 3 veces por día hábil; las corridas quedan registradas. |
-| App | Login, terminal con la curva (gráfico + tabla, fuente y hora en cada cifra) y página `/estado`. |
-| Pruebas | 58 unitarias + 19 contra Postgres real (migraciones, RLS, ingesta de punta a punta con el XML real). |
-
-*Lista cuando:* abres la URL, inicias sesión y ves la curva del Tesoro con su fecha y hora.
+| Módulo | Qué hace | Pantalla |
+| --- | --- | --- |
+| Terminal | Las 17 secciones en una página: cinta, mapa, Las 5 del día, guerras, índices, acciones, fusiones e IPO, metales, energía, tasas y divisas, RD, boletín de tasas, emisiones, instituciones, agenda, glosario y pie con fuentes y «no confirmado». | `/` |
+| Mercado en vivo | FMP (índices, oro, plata, Brent, divisas, BTC; con presupuesto diario de llamadas) y Finnhub (ETF, cobre por CPER como sustituto). Tasas de la Fed y del BCE. | `/mercado` |
+| República Dominicana | Dólar y TPM del BCRD, tasas activas y pasivas, combustibles del MICM, subastas de Hacienda, SIMV (solo su feed). | `/rd`, `/carga` |
+| Noticias e instituciones | GDELT, RSS de prensa, Fed, BCE, BoJ, BoE, BIS, Tesoro, CEPAL, índice diario de la SEC (fusiones e IPO), agenda. | `/noticias` |
+| Alertas e IA | Umbrales editables, correo con Resend, porqués y resúmenes con Claude (tope mensual; una cifra que no esté en los datos se rechaza). | `/ajustes` |
+| Globo «ojo de Dios» | Globo 3D (adaptado de God's Eye View) con bolsas, noticias y guerras, RD, pasos marítimos, sismos (USGS), ciclones (NHC) y, opcional, buques en los pasos (AISStream). | `/globo` |
+| Mena Capital | Patrimonio, cartera, cierres, retorno (TWR/TIR), riesgo y futuro; importa el JSON del artefacto. Sin recomendaciones. | `/capital` |
+| Calendario de Caja | Calendario de flujo de caja con recurrentes, presupuesto y «puedes gastar hasta»; importa el JSON del artefacto. | `/caja` |
+| Estado | Cada lectura automática con su última corrida, filas y error. | `/estado` |
 
 ---
 
@@ -25,90 +27,70 @@ fuente con nombre, enlace y fecha del dato. Si un dato no llegó, la pantalla di
 
 | Cuenta | Para qué | Plan |
 | --- | --- | --- |
-| GitHub | Código y despliegue de Supabase con un clic | Ya la tienes |
+| GitHub | Código; despliega todo solo en cada push | Ya la tienes |
 | [Supabase](https://supabase.com) | Base de datos, login, tareas programadas, Edge Functions | Free para empezar |
 | [Vercel](https://vercel.com) | Publicar la app | Hobby (gratis, uso personal) |
+| [FMP](https://financialmodelingprep.com) | Cotizaciones | La que ya tienes |
+| [Finnhub](https://finnhub.io) | ETF (cobre por CPER) y precios de tu cartera | Free |
+| [Resend](https://resend.com) | Correo de alertas | Free |
+| [Anthropic](https://console.anthropic.com) | Porqués y resúmenes con IA (opcional) | Pago por uso, con tope |
+| [AISStream](https://aisstream.io) | Buques en los pasos marítimos (opcional, apagado) | Free |
 
-Fases siguientes: proveedor de cotizaciones (Fase 2), Resend para correos (Fase 5), API de
-Anthropic (Fase 6).
+## 2. Desplegar
 
-## 2. Desplegar (unos 20 minutos, una sola vez)
+El trabajo `desplegar` de **«Strategya · pruebas»** (`.github/workflows/strategya-ci.yml`) despliega todo
+después de que pasan las pruebas, en cada push a la rama de trabajo o a la principal. Si faltan los
+secretos, avisa y no hace nada.
 
-### 2.1 Supabase
+1. En GitHub: **Settings → Secrets and variables → Actions → New repository secret**:
 
-1. Crea un proyecto nuevo. Guarda la **contraseña de la base**. Región sugerida: `us-east-1`.
-2. **Project Settings → Data API → Exposed schemas**: agrega `mercado` y guarda.
-3. **Authentication → Sign In / Providers**: deja Email activo y **desactiva «Allow new users to sign up»**.
-4. **Authentication → Users → Add user**: crea tu usuario con tu correo y una contraseña larga
-   (marca «Auto Confirm User»).
-5. **Account → Access Tokens**: crea un token para GitHub.
+   | Secreto | Valor | ¿Obligatorio? |
+   | --- | --- | --- |
+   | `SUPABASE_ACCESS_TOKEN` | Supabase → Account → Access Tokens | Sí |
+   | `VERCEL_TOKEN` | Vercel → Account Settings → Tokens | Sí |
+   | `STRATEGYA_EMAIL` | tu correo (para entrar y para recibir alertas) | Sí |
+   | `STRATEGYA_CLAVE` | la contraseña con la que vas a entrar (larga) | Sí |
+   | `FMP_API_KEY` | FMP → Dashboard | Sí, para cotizaciones |
+   | `FINNHUB_API_KEY` | Finnhub → Dashboard | Sí, para ETF y cartera |
+   | `RESEND_API_KEY` | Resend → API Keys | Para alertas por correo |
+   | `ANTHROPIC_API_KEY` | Anthropic Console → API Keys | Para la IA |
+   | `AISSTREAM_API_KEY` | AISStream → API Keys | Solo si activas los buques |
+   | `SUPABASE_PROJECT_REF` | lo que va antes de `.supabase.co` | Solo si tienes varios proyectos |
 
-### 2.2 GitHub → despliegue de Supabase
+   Variables (pestaña **Variables**, no secretos): `GLOBO_AIS_ACTIVO` = `1` para encender los buques
+   (si no existe o vale otra cosa, la tarea no se conecta y no consume nada).
 
-1. En el repositorio: **Settings → Secrets and variables → Actions → New repository secret**:
-
-   | Secreto | Valor |
-   | --- | --- |
-   | `SUPABASE_ACCESS_TOKEN` | el token del paso 2.1.5 |
-   | `SUPABASE_PROJECT_REF` | lo que va antes de `.supabase.co` en la URL del proyecto |
-   | `SUPABASE_DB_PASSWORD` | la contraseña de la base |
-   | `STRATEGYA_SECRETO_TAREAS` | 64 caracteres al azar: `openssl rand -hex 32` (o cualquier generador; solo letras y números) |
-   | `STRATEGYA_CONTACTO` | opcional; un correo para el User-Agent |
-
-2. **Actions → «Strategya · desplegar Supabase» → Run workflow.** Aplica las migraciones, sube la
-   Edge Function, guarda el secreto en Vault, programa las tareas y hace una primera lectura del
-   Tesoro. El último paso imprime el resumen de esa lectura.
-
-3. **Autorízate** (una sola vez). En Supabase → **SQL Editor**:
-
-   ```sql
-   insert into mercado.usuarios_autorizados (user_id)
-   select id from auth.users where email = 'TU-CORREO';
-   ```
-
-   Sin esta fila, RLS no te muestra nada aunque inicies sesión.
-
-### 2.3 Vercel
-
-1. **Add New → Project →** importa este repositorio.
-2. **Root Directory: `strategya`** (el repositorio también tiene otra app en la raíz).
-3. **Environment Variables** (ver `.env.example`): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
-   `STRATEGYA_EMAIL_DUENO`.
-4. Deploy. Abre la URL, inicia sesión, y deberías ver la curva.
-
-### Sin GitHub Actions (alternativa con la CLI)
-
-```bash
-cd strategya
-npx supabase login
-npx supabase link --project-ref TU_REF
-npx supabase db push
-npx supabase secrets set STRATEGYA_SECRETO_TAREAS=... STRATEGYA_CONTACTO=...
-npx supabase functions deploy ingesta-tesoro --no-verify-jwt
-# y en el SQL Editor:
-#   select mercado.configurar_tareas('https://TU_REF.supabase.co', 'EL-MISMO-SECRETO');
-```
+2. Haz un push (o vuelve a correr el último «Strategya · pruebas»). El despliegue:
+   - crea el proyecto `strategya` en Supabase si no existe (o usa el único que tengas);
+   - aplica las migraciones, expone los esquemas `mercado` y `personal`, desactiva el registro de usuarios;
+   - crea tu usuario con `STRATEGYA_EMAIL` / `STRATEGYA_CLAVE` y lo autoriza;
+   - sube la Edge Function `ingesta` con sus secretos y programa las tareas con pg_cron;
+   - crea el proyecto en Vercel con sus variables y publica la app;
+   - al final imprime la URL de Strategya.
 
 ## 3. Variables de entorno
 
-Todas documentadas en [`.env.example`](.env.example). Resumen:
+Todas documentadas en [`.env.example`](.env.example). Las carga el despliegue; no hace falta tocarlas a mano.
 
 | Dónde | Variable | Nota |
 | --- | --- | --- |
-| Vercel | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | La clave publicable es pública por diseño; RLS protege los datos. Aun así no se manda al navegador: todo se lee en el servidor. |
+| Vercel | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | La clave publicable es pública por diseño; RLS protege los datos. Llega al navegador solo para escuchar Realtime (la cinta se refresca sola). |
 | Vercel | `STRATEGYA_EMAIL_DUENO` | El único correo que puede entrar. |
-| Supabase (secrets) | `STRATEGYA_SECRETO_TAREAS` | Igual al guardado en Vault. Lo exige cada Edge Function de ingesta. |
-| Supabase (secrets) | `STRATEGYA_CONTACTO` | Correo en el User-Agent (obligatorio para la SEC en la Fase 4). |
+| Supabase (secrets) | `STRATEGYA_SECRETO_TAREAS` | Lo genera el despliegue; igual al guardado en Vault. |
+| Supabase (secrets) | `STRATEGYA_CONTACTO`, `ALERTAS_EMAIL_DESTINO` | Tu correo (User-Agent para la SEC y destino de alertas). |
+| Supabase (secrets) | `FMP_API_KEY`, `FMP_LLAMADAS_DIA` (240), `FINNHUB_API_KEY` | Sin clave, cada tarea queda «parcial» con el motivo y no llama a nada. |
+| Supabase (secrets) | `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `IA_TOPE_MENSUAL_USD` (10) | Opcionales. |
+| Supabase (secrets) | `AISSTREAM_API_KEY`, `GLOBO_AIS_ACTIVO` | Opcionales; los buques solo corren con ambos. |
 
 La clave de servidor (service role) **nunca** sale de Supabase: la usa solo la Edge Function.
 
 ## 4. Cómo funciona la ingesta
 
 ```
-pg_cron (UTC) ──► mercado.invocar_tarea('ingesta-tesoro')
+pg_cron (UTC) ──► mercado.invocar_tarea('ingesta', '{"tarea":"<nombre>"}')
                      │  lee URL y secreto de Vault
                      ▼
-              pg_net POST /functions/v1/ingesta-tesoro  (x-strategya-secreto)
+              pg_net POST /functions/v1/ingesta  (x-strategya-secreto)
                      ▼
               Edge Function (Deno)
                 ├─ abre una corrida en mercado.corridas
@@ -124,8 +106,10 @@ Si una fuente falla, el último dato bueno se queda en pantalla con su fecha y s
 **DESACTUALIZADO** cuando pasa su antigüedad máxima (`series.max_antiguedad_min`). El error
 aparece en `/estado`.
 
-Horarios del Tesoro (hora RD, UTC−4 todo el año): 6:15 PM y 7:45 PM de lunes a viernes, y
-7:00 AM de lunes a sábado para recuperar lo que la noche no vio. Limpieza diaria a las 4:30 AM.
+Cada tarea tiene su horario en su migración (en UTC; RD es UTC−4 todo el año). Ejemplos: Tesoro
+6:15 PM y 7:45 PM de lunes a viernes y 7:00 AM de lunes a sábado; cotizaciones cada 5 minutos (el
+planificador decide cuántas llamadas gastar); BCRD 9:00 AM y 4:00 PM; sismos cada 15 minutos.
+`/estado` muestra la última corrida de cada una.
 
 ## 5. Cómo agregar una fuente nueva
 
@@ -137,32 +121,28 @@ Horarios del Tesoro (hora RD, UTC−4 todo el año): 6:15 PM y 7:45 PM de lunes 
    (incluye `notas_de_uso` y `lectura_automatica`) y sus `mercado.series`.
 3. **Parser.** `supabase/functions/_shared/fuentes/<fuente>.ts`: una función pura que recibe el
    texto y devuelve `FilaObservacion[]`, y un objeto `Tarea`. Pruebas con la muestra real al lado.
-4. **Edge Function.** Copia `ingesta-tesoro/` (index.ts + deno.json) y cambia la tarea.
-5. **Horario.** En la migración: `select cron.schedule('strategya-<fuente>', '<cron UTC>', $$select mercado.invocar_tarea('ingesta-<fuente>')$$);`
-6. **Despliegue.** Agrega `supabase functions deploy ingesta-<fuente>` al workflow.
+4. **Registro.** Importa la tarea en `supabase/functions/_shared/tareas.ts` y súmala a `LISTA`.
+5. **Horario.** En la migración: `select cron.schedule('strategya-<fuente>', '<cron UTC>', $$select mercado.invocar_tarea('ingesta', '{"tarea":"<fuente>"}')$$);`
+   Una prueba falla si programas una tarea que no está en el registro.
+6. **Despliegue.** Nada que hacer: el siguiente push la sube con la función `ingesta`.
 
 Dominios prohibidos (no se leen nunca, la regla está en código y en prueba):
 `calculadora.apislab.bvrd.com.do`, `bhdfondos.com.do`. Sus datos entran por `mercado.carga_manual`.
 
 ## 6. Cómo cambiar un umbral de alerta
 
-Las alertas llegan en la Fase 5 con su pantalla de Ajustes. La tabla `mercado.reglas_alerta` ya
-existe y Mena puede editar `umbral`, `activa` y `nota` (RLS lo permite solo a ella). Mientras
-tanto, desde el SQL Editor (ejemplo con la serie del dólar que se crea en la Fase 3):
-
-```sql
-update mercado.reglas_alerta set umbral = 63.50 where serie_id = 'USDDOP_VENTA' and tipo = 'nivel_sobre';
-```
+En **Ajustes** (`/ajustes`): cada regla tiene su umbral, un interruptor «Activa» y una nota. Se guarda
+al instante y se usa en la siguiente evaluación (después de cada ingesta). Una alerta por activo y día.
 
 ## 7. Pruebas
 
 ```bash
 cd strategya
 npm install
-npm test              # parsers, robots.txt, cliente HTTP, formato de cifras, frescura, curva
+npm test              # parsers de cada fuente, robots.txt, HTTP, planificador, motores de Capital y Caja, globo
 npm run test:db       # migraciones + RLS + ingesta de punta a punta (necesita Postgres 15+)
 npm run typecheck     # TypeScript estricto
-npx deno check --config supabase/functions/ingesta-tesoro/deno.json supabase/functions/ingesta-tesoro/index.ts
+npm run check:funciones   # deno check de la Edge Function ingesta
 npm run build
 ```
 
@@ -172,45 +152,63 @@ reales. En GitHub corre todo en cada push («Strategya · pruebas»).
 
 ## 8. Costo mensual estimado
 
-| Servicio | Fase 1 | Con todo funcionando (Fases 2–7) | Nota |
+| Servicio | Solo Tesoro | Con todo funcionando | Nota |
 | --- | --- | --- | --- |
 | Vercel Hobby | US$0 | US$0 | Uso personal no comercial. Su cron solo corre 1 vez al día, por eso los horarios viven en Supabase. |
 | Supabase Free | US$0 | US$0 – 25 | Free: 500 MB de base y **pausa tras 7 días con poca actividad** (documentación oficial). 500 mil invocaciones de Edge Functions al mes según fuentes secundarias: confirmar en supabase.com/pricing. Pro (US$25) quita la pausa. |
-| Proveedor de cotizaciones | — | por decidir | Ver preguntas de la Fase 2. |
+| FMP | — | tu plan actual | 240 llamadas al día por defecto (`FMP_LLAMADAS_DIA`). |
+| Finnhub | — | US$0 | Plan gratis (60 llamadas por minuto). |
+| AISStream | — | US$0 | Opcional y apagado. |
 | Resend (correo) | — | US$0 | Plan gratis. |
 | Anthropic (IA) | — | ≤ US$10 | Tope mensual configurable (`IA_TOPE_MENSUAL_USD`). |
 | GitHub Actions | US$0 | US$0 | Repositorio público. |
 
-Uso esperado en Supabase Free: la Fase 1 hace ~70 invocaciones al mes. Con cotizaciones cada
+Uso esperado en Supabase Free: solo el Tesoro hace ~70 invocaciones al mes. Con cotizaciones cada
 5 minutos y el resto de fuentes, entre 15 y 40 mil al mes (3–8% de ese límite). El dato que más pesa
-en la base serán las cotizaciones intradía: la Fase 2 incluye una política de retención
+en la base serán las cotizaciones intradía: hay una política de retención
 (intradía 7 días, luego un cierre por día) para no pasar de 500 MB.
 
 ## 9. Hallazgos de la sonda de fuentes (15 oct 2026)
 
 | Fuente | Resultado | Consecuencia |
 | --- | --- | --- |
-| Tesoro EE. UU. | robots.txt `Allow: /`; XML con 14 plazos (incluye 6 semanas) | Fase 1 de punta a punta |
-| SIMV | **403 de Cloudflare («Sorry, you have been blocked»)** incluso para robots.txt | No se esquiva: carga manual, o pedir acceso a la SIMV |
-| SEC | robots.txt prohíbe `/cgi-bin/` (donde vive el feed Atom de 8-K/S-1) | Fase 4 usará los índices diarios de EDGAR (`/Archives/edgar/daily-index/`, permitidos) |
+| Tesoro EE. UU. | robots.txt `Allow: /`; XML con 14 plazos (incluye 6 semanas) | Curva diaria de punta a punta |
+| SIMV | **403 de Cloudflare** en las páginas y en robots.txt; su feed RSS (`/feed/`) sí responde | Se lee solo el feed (la vía que el sitio publica para máquinas); las resoluciones entran por carga manual |
+| SEC | robots.txt prohíbe `/cgi-bin/` (donde vive el feed Atom de 8-K/S-1) | Se usan los índices diarios de EDGAR (`/Archives/edgar/daily-index/`, permitidos) |
 | BCE | Permite el RSS; pide `Crawl-delay: 5` | El lector espera 5 s entre llamadas al BCE |
 | BCRD, Crédito Público | Sin robots.txt real (responden una página HTML) | Se pueden leer; se hará con la cortesía de 2 veces al día |
-| MICM, Fed, BoJ, GDELT | Sin restricciones | — |
+| MICM, Fed, BoJ | Sin restricciones | — |
+| GDELT | 429 desde las IP compartidas de GitHub | Una consulta por corrida cada 10 min; si responde 429, la corrida queda parcial con el motivo |
+| FMI, OCDE, OFAC | 403 | No se leen; el panel de instituciones lo dice |
+| FMP (tu plan) | Niega DAX, WTI, gas natural y DXY | Se muestran sus ETF sustitutos (USO, UNG, UUP), rotulados |
 
 ## 10. Estructura
 
 ```
 strategya/
-  app/                    páginas: terminal (/), /login, /estado
-  componentes/            encabezado, curva (gráfico + tabla), sello de fuente
-  lib/                    formato exacto de cifras, frescura, armado de la curva, acceso a datos
+  app/                    páginas: /, /mercado, /rd, /carga, /noticias, /globo, /capital, /caja, /ajustes, /estado, /login
+  componentes/            una carpeta por módulo + piezas comunes (encabezado, sello de fuente, error)
+  lib/                    formato exacto de cifras, frescura, horarios de mercado, motores de Capital y Caja, acceso a datos
+  estilos/                CSS de cada módulo (usa las variables de app/globals.css)
   proxy.ts                sesión de Supabase y acceso solo del dueño
   supabase/
-    migrations/           esquema, catálogo, tareas programadas
-    functions/_shared/    HTTP + robots.txt + orquestador + parsers (sin Deno ni Node: corre en ambos)
-    functions/ingesta-tesoro/
+    migrations/           esquema, catálogo, tareas programadas, un archivo por módulo
+    functions/_shared/    HTTP + robots.txt + orquestador + una fuente por archivo en fuentes/
+    functions/ingesta/    la única Edge Function: corre la tarea que pide pg_cron
+  despliegue/             despliegue automático (Supabase + Vercel) desde GitHub Actions
   pruebas/
-    muestras/             respuestas reales de las fuentes (no se editan a mano)
+    muestras/             respuestas reales de las fuentes (las SINTÉTICAS lo dicen en el nombre)
     db/                   pruebas contra Postgres
   sondas/                 verificación de endpoints en GitHub Actions
+  THIRD_PARTY_NOTICES.md  licencia de God's Eye View (MIT) y atribuciones de datos del globo
 ```
+
+## 11. El globo y God's Eye View
+
+`/globo` adapta piezas de [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) (MIT, © 2026
+Bilawal Sidhu): el visor CesiumJS sin claves, la validación de los datos de USGS y NHC y el manejo de la
+conexión con AISStream. Cada archivo adaptado lo dice arriba y la licencia completa está en
+`THIRD_PARTY_NOTICES.md`. Se dejaron fuera, a propósito, las cámaras (CCTV y lectores de placas), Street
+View, tráfico simulado, vuelos y satélites, la voz con OpenAI, los mosaicos 3D de Google (cuestan) y los
+cables submarinos de TeleGeography (licencia no comercial). Cesium se copia a `public/cesium` al instalar
+(`scripts/copiar-cesium.mjs`); si el navegador no tiene WebGL, el globo cae a un mapa 2D con las mismas capas.
