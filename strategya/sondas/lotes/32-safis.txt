@@ -1,0 +1,17 @@
+# Bloque 3 · administradoras de fondos de RD: robots.txt y portada (para hallar los fondos y sus folletos).
+robots https://www.afipopular.com.do
+fetch https://www.afipopular.com.do/ 300000
+robots https://www.afireservas.com
+fetch https://www.afireservas.com/ 300000
+robots https://www.afiuniversal.com.do
+fetch https://www.afiuniversal.com.do/ 300000
+robots https://www.jmmb.com.do
+fetch https://www.jmmb.com.do/ 300000
+robots https://www.excel.com.do
+fetch https://www.excel.com.do/ 300000
+robots https://www.gamcapital.com.do
+fetch https://www.gamcapital.com.do/ 300000
+robots https://www.pioneerfunds.do
+fetch https://www.pioneerfunds.do/ 300000
+robots https://www.bvrd.com.do
+fetch https://www.bvrd.com.do/ 300000

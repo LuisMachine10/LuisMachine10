@@ -1,0 +1,18 @@
+# Bloque 2 · titulares (solo titular, resumen corto y enlace) de medios financieros.
+robots https://feeds.content.dowjones.io
+fetchb64 https://feeds.content.dowjones.io/public/rss/RSSMarketsMain 400000
+fetchb64 https://feeds.content.dowjones.io/public/rss/RSSWorldNews 400000
+robots https://www.cnbc.com
+fetchb64 https://www.cnbc.com/id/100003114/device/rss/rss.html 400000
+fetchb64 https://www.cnbc.com/id/15839069/device/rss/rss.html 400000
+robots https://www.ft.com
+fetchb64 https://www.ft.com/markets?format=rss 400000
+fetchb64 https://www.ft.com/world?format=rss 400000
+robots https://www.bloomberglinea.com
+fetchb64 https://www.bloomberglinea.com/arc/outboundfeeds/rss/?outputType=xml 400000
+robots https://www.eleconomista.es
+fetchb64 https://www.eleconomista.es/rss/rss-mercados.php 400000
+robots https://www.expansion.com
+fetchb64 https://e00-expansion.uecdn.es/rss/mercados.xml 400000
+robots https://cnnespanol.cnn.com
+fetchb64 https://cnnespanol.cnn.com/category/economia/feed/ 400000
