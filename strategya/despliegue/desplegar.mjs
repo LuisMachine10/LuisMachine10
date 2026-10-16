@@ -129,8 +129,13 @@ async function proyectoSupabase() {
   let p = elegirProyecto(proyectos, env.SUPABASE_PROJECT_REF);
   if (!p && env.SUPABASE_PROJECT_REF) throw new Error(`No existe el proyecto ${env.SUPABASE_PROJECT_REF}`);
   if (!p) {
-    const { datos: orgs } = await supa("/organizations");
-    if (!orgs?.length) throw new Error("La cuenta de Supabase no tiene organización");
+    let { datos: orgs } = await supa("/organizations");
+    if (!orgs?.length) {
+      // Cuenta recién creada: se crea su organización (plan gratis) para poder crear el proyecto.
+      aviso("La cuenta de Supabase no tiene organización: se crea «Strategya».");
+      const { datos: org } = await supa("/organizations", { metodo: "POST", cuerpo: { name: "Strategya" } });
+      orgs = [org];
+    }
     aviso(`Creando el proyecto «${NOMBRE}» en Supabase (${REGION}).`);
     const clave = randomBytes(24).toString("base64url");
     enmascarar(clave);

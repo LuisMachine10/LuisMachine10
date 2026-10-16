@@ -7,6 +7,8 @@ tasas y noticias, actualizada sola. Moneda base RD$, secundaria USD. Privada, de
 fuente con nombre, enlace y fecha del dato. Si un dato no llegó, la pantalla dice «sin datos» o
 «desactualizado»; nunca rellena.
 
+> **¿Primera vez?** Lee [`docs/GUIA.md`](docs/GUIA.md): cómo activarla en 10 minutos y cómo usar cada pantalla.
+
 ## Estado: todas las fases construidas, listas para desplegar
 
 | Módulo | Qué hace | Pantalla |
