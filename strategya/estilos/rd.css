@@ -1,140 +1,704 @@
-/* Strategya · módulo República Dominicana. Usa los tokens de app/globals.css. */
+/* Strategya · módulo República Dominicana. Usa los tokens de app/globals.css (no define colores propios
+   salvo mezclas de los del sistema). Rejilla de 8 px; primero el celular. */
 
+/* ── Pestañas del módulo ───────────────────────────────────────────── */
 .rd-subnav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  max-width: 1280px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 10px 16px 0;
-  font-size: 13px;
+  padding: 16px 20px 0;
 }
-.rd-subnav a {
-  color: var(--texto-2);
-}
-.rd-subnav a[aria-current="page"] {
-  color: var(--rd);
-  border-bottom: 2px solid var(--rd);
-}
-
-.rd-marca {
-  color: var(--rd);
-}
-
-/* Cifras grandes del panel principal */
-.rd-cifras {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  margin: 0;
-}
-.rd-cifra {
-  min-width: 0;
-  padding: 8px 10px;
-  background: var(--panel-alto);
+.rd-pestanas {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--panel);
   border: 1px solid var(--borde);
-  border-left: 3px solid var(--rd);
+  border-radius: 10px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.rd-cifra dt {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--texto-3);
+.rd-pestanas a {
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--texto-2);
+  white-space: nowrap;
 }
-.rd-cifra dd {
-  margin: 0;
-}
-.rd-valor {
-  display: block;
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 20px;
-  font-weight: 600;
+.rd-pestanas a:hover {
   color: var(--texto);
-  overflow-wrap: anywhere;
+  background: var(--panel-alto);
+  text-decoration: none;
 }
-.rd-detalle {
-  display: block;
-  font-size: 12px;
-  color: var(--texto-2);
+.rd-pestanas a[aria-current="page"] {
+  background: var(--acento-suave);
+  color: #fff;
 }
-.rd-detalle .mono {
-  font-size: 12px;
-}
-.rd-cifra .sello {
-  margin-top: 4px;
+@media (max-width: 899px) {
+  .rd-subnav {
+    padding: 12px 12px 0;
+  }
 }
 
-.rd-sin-dato {
-  display: block;
-  font-size: 13px;
+/* Contiene los textos .sr-solo (posición absoluta) para que no ensanchen la página. */
+.rd-panel,
+.rd-subastas,
+.rd-subasta {
+  position: relative;
+}
+
+/* ── Sello de fuente discreto dentro del módulo ────────────────────── */
+.rd-panel .sello {
+  font-size: 11.5px;
+  line-height: 1.5;
   color: var(--texto-3);
 }
-
-.rd-bloque + .rd-bloque {
-  margin-top: 14px;
-}
-.rd-bloque > h3 {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.rd-panel .sello a {
   color: var(--texto-2);
+}
+.rd-panel .sello a:hover {
+  color: #a9c1ff;
+}
+.rd-panel .sello .vencido {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ambar) 16%, transparent);
+  color: var(--ambar);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.rd-panel .panel-cabecera > .sello {
+  margin-left: auto;
 }
 .rd-sellos {
   display: grid;
   gap: 2px;
-  margin-top: 6px;
-}
-.rd-mes {
-  display: block;
-  font-family: var(--sans);
-  font-size: 11px;
-  color: var(--texto-3);
+  margin-top: 8px;
 }
 
-/* Listas de emisiones y avisos */
-.rd-lista {
+/* ── Tarjetas grandes: dólar, TPM, inflación ───────────────────────── */
+.rd-kpis {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 1100px) {
+  .rd-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.rd-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  background: linear-gradient(180deg, var(--panel-alto), color-mix(in srgb, var(--panel-alto) 55%, var(--panel)));
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+.rd-kpi-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-2);
+}
+.rd-kpi-icono {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--rd) 16%, transparent);
+  color: var(--rd);
+}
+.rd-kpi-valor {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 4px 0 0;
+  min-width: 0;
+}
+.rd-kpi-valor .cifra-grande {
+  font-size: 28px;
+  overflow-wrap: anywhere;
+}
+.rd-moneda {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-3);
+}
+.rd-kpi-cambio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 0;
+}
+.rd-kpi-ref {
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.rd-kpi-extra {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.rd-kpi .sello,
+.rd-kpi .rd-sin-dato {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--borde);
+}
+@media (max-width: 599px) {
+  .rd-kpis {
+    gap: 8px;
+  }
+  .rd-kpi {
+    padding: 12px;
+  }
+  .rd-kpi-titulo {
+    font-size: 12px;
+    gap: 6px;
+  }
+  .rd-kpi-icono {
+    width: 24px;
+    height: 24px;
+  }
+  .rd-kpi-valor .cifra-grande {
+    font-size: 22px;
+  }
+  .rd-moneda {
+    font-size: 11px;
+  }
+}
+
+/* ── Gráfico del dólar ─────────────────────────────────────────────── */
+.rd-grafico-bloque {
+  margin-top: 24px;
+}
+.rd-grafico-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+.rd-grafico-cabeza .rd-h3 {
+  margin: 0;
+}
+.rd-leyenda {
+  display: flex;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-.rd-lista li {
-  padding: 6px 0;
-  border-bottom: 1px solid var(--borde);
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-.rd-lista li:last-child {
-  border-bottom: 0;
-}
-.rd-lista .rd-fecha {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--texto-3);
-  margin-right: 6px;
-}
-.rd-lista .rd-meta {
-  display: block;
   font-size: 12px;
   color: var(--texto-2);
 }
+.rd-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rd-clave {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 2px solid var(--rd);
+}
+.rd-clave-compra {
+  border-top: 2px dotted var(--texto-2);
+}
+.rd-brecha {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde);
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.rd-brecha .mono {
+  color: var(--texto);
+  font-weight: 600;
+}
+.rd-grafico {
+  position: relative;
+  width: 100%;
+  height: 260px;
+}
+@media (max-width: 599px) {
+  .rd-grafico {
+    height: 210px;
+  }
+  .rd-brecha {
+    margin-left: 0;
+  }
+}
 
-.rd-rejilla-2 {
+/* ── Desplegables (tablas equivalentes) ────────────────────────────── */
+.rd-detalles {
+  margin-top: 12px;
+  border-top: 1px solid var(--borde);
+}
+.rd-detalles > summary {
+  padding: 10px 0 2px;
+  font-size: 13px;
+  color: var(--texto-2);
+  list-style-position: inside;
+}
+.rd-detalles > summary:hover {
+  color: var(--texto);
+}
+.rd-detalles[open] > summary {
+  margin-bottom: 8px;
+}
+
+/* ── Bloques y subtítulos ──────────────────────────────────────────── */
+.rd-bloque {
+  min-width: 0;
+}
+.rd-bloque + .rd-bloque {
+  margin-top: 16px;
+}
+.rd-separado {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--borde);
+}
+.rd-h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.rd-h3-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--rd) 16%, transparent);
+  color: var(--rd);
+}
+.rd-rejilla-2,
+.rd-rejilla-3 {
   display: grid;
-  gap: 14px;
+  gap: 24px;
+}
+.rd-rejilla-2 > .rd-bloque + .rd-bloque,
+.rd-rejilla-3 > .rd-bloque + .rd-bloque {
+  margin-top: 0;
 }
 @media (min-width: 900px) {
   .rd-rejilla-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .rd-rejilla-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-/* Carga manual */
-.rd-formularios {
+/* ── Estado vacío amable ───────────────────────────────────────────── */
+.rd-sin-dato {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--texto-3);
+}
+.rd-sin-dato p {
+  margin: 0;
+}
+.rd-bloque > .rd-sin-dato,
+.panel-cuerpo > .rd-sin-dato {
+  padding: 16px;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel-alto) 40%, transparent);
+}
+.rd-sin-dato-error {
+  color: var(--baja);
+  font-size: 12px;
+}
+.rd-boton-chico {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.rd-boton-chico:hover {
+  text-decoration: none;
+  color: var(--texto);
+}
+
+/* ── Boletín de tasas ──────────────────────────────────────────────── */
+.rd-tabla-tasas tbody th {
+  white-space: normal;
+  color: var(--texto-2);
+  font-size: 13px;
+}
+.rd-tabla-tasas td,
+.rd-tabla-tasas tbody th {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  vertical-align: middle;
+}
+.rd-celda-tasa {
+  line-height: 1.25;
+}
+.rd-tasa {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--texto);
+}
+.rd-tasa-cambio {
+  display: block;
+  font-size: 11.5px;
+}
+.rd-tasa-cambio .mono {
+  font-size: 11.5px;
+}
+.rd-mes {
+  display: block;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--texto-3);
+}
+.rd-vencido {
+  margin-top: 2px;
+  font-size: 10px;
+}
+.rd-safis {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 900px) {
+  .rd-safis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.rd-safi {
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel-alto) 40%, transparent);
+}
+.rd-caption {
+  caption-side: top;
+  text-align: left;
+  padding: 10px 8px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+/* ── Combustibles: lista de precios ────────────────────────────────── */
+.rd-lista-precios {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rd-lista-precios tbody tr > * {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--borde);
+  vertical-align: middle;
+}
+.rd-lista-precios tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.rd-lista-precios th {
+  text-align: left;
+  font-weight: 500;
+}
+.rd-producto {
+  display: block;
+  font-size: 14px;
+  color: var(--texto);
+}
+.rd-unidad {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--texto-3);
+}
+.rd-precio {
+  text-align: right;
+  font-size: 17px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding-left: 12px !important;
+}
+.rd-precio-cambio {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+  padding-left: 12px !important;
+}
+
+/* ── Subastas de Hacienda ──────────────────────────────────────────── */
+.rd-subastas {
   display: grid;
   gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+}
+/* En el celular las subastas se deslizan de lado (dentro del panel, sin mover la página). */
+@media (max-width: 599px) {
+  .rd-subastas {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 86%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    margin: 0 -16px;
+    padding: 0 16px 8px;
+    scroll-padding: 0 16px;
+    scrollbar-width: thin;
+  }
+  .rd-subastas > .rd-subasta {
+    scroll-snap-align: start;
+  }
+}
+.rd-subasta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+.rd-subasta:hover {
+  border-color: var(--borde-fuerte);
+}
+.rd-subasta-destacada {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rd) 8%, var(--panel-alto)), var(--panel-alto));
+}
+.rd-subasta-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.rd-fecha-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--panel-hover);
+  border: 1px solid var(--borde);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--texto-2);
+  white-space: nowrap;
+}
+.rd-subasta-doc {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  border-radius: 8px;
+  color: var(--texto-2);
+}
+.rd-subasta-doc:hover {
+  background: var(--panel-hover);
+  color: var(--texto);
+}
+.rd-subasta-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+.rd-subasta-cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.rd-subasta-cifras > div {
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--fondo) 55%, transparent);
+}
+.rd-subasta-cifras dt {
+  font-size: 11.5px;
+  color: var(--texto-3);
+}
+.rd-subasta-cifras dd {
+  margin: 2px 0 0;
+}
+.rd-subasta-num {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--texto);
+  white-space: nowrap;
+}
+/* Celular: las tres cifras como filas (etiqueta a la izquierda, cifra a la derecha). */
+@media (max-width: 599px) {
+  .rd-subasta-cifras {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 4px 12px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--fondo) 55%, transparent);
+  }
+  .rd-subasta-cifras > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    background: none;
+    border-radius: 0;
+  }
+  .rd-subasta-cifras > div + div {
+    border-top: 1px solid var(--borde);
+  }
+  .rd-subasta-cifras dd {
+    margin: 0;
+    text-align: right;
+  }
+  .rd-subasta-u {
+    display: inline;
+    margin-left: 4px;
+  }
+}
+.rd-subasta-u {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.rd-subasta-destacada .rd-subasta-num {
+  font-size: 19px;
+}
+.rd-subasta-detalle,
+.rd-subasta-nota {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.rd-subasta .sello {
+  margin-top: auto;
+}
+.rd-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ambar) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ambar) 28%, transparent);
+  color: var(--ambar);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.rd-aviso svg {
+  flex: none;
+  margin-top: 1px;
+}
+.rd-aviso-chico {
+  margin-top: 6px;
+  padding: 6px 8px;
+}
+.rd-verificado {
+  margin: 12px 0 0;
+}
+
+/* ── Listas de emisiones y avisos ──────────────────────────────────── */
+.rd-lista {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.rd-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.rd-item:last-child {
+  border-bottom: 0;
+}
+.rd-item .rd-fecha-chip {
+  margin-top: 1px;
+}
+.rd-item-cuerpo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.rd-item-titulo {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+.rd-item-titulo:hover {
+  color: #a9c1ff;
+}
+.rd-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12px;
+  color: var(--texto-3);
+  overflow-wrap: anywhere;
+}
+
+/* ── Carga manual ──────────────────────────────────────────────────── */
+.rd-carga-intro {
+  padding: 8px 4px 0;
+}
+.rd-carga-titulo {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.rd-carga-intro p {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 13.5px;
+  color: var(--texto-2);
+}
+.rd-carga-cabecera {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+.rd-carga-ayuda {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.rd-formularios {
+  display: grid;
+  gap: 16px;
+  align-items: start;
 }
 @media (min-width: 900px) {
   .rd-formularios {
@@ -143,72 +707,94 @@
 }
 .rd-form {
   display: grid;
-  gap: 10px;
+  gap: 16px;
 }
 .rd-form label {
   display: grid;
-  gap: 4px;
-  font-size: 13px;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 500;
   color: var(--texto-2);
 }
 .rd-form .rd-fila {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 .rd-form input,
 .rd-form select,
 .rd-form textarea {
   width: 100%;
   min-width: 0;
-  font: inherit;
   font-size: 14px;
-  padding: 7px 9px;
-  background: var(--fondo);
-  color: var(--texto);
-  border: 1px solid var(--borde);
+  font-weight: 400;
+  min-height: 40px;
+}
+.rd-form textarea {
+  resize: vertical;
+}
+.rd-form input:hover,
+.rd-form select:hover,
+.rd-form textarea:hover {
+  border-color: var(--borde-fuerte);
+}
+.rd-form input:focus-visible,
+.rd-form select:focus-visible,
+.rd-form textarea:focus-visible {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-suave);
+  outline: none;
 }
 .rd-form input.mono {
   font-family: var(--mono);
 }
-.rd-form button {
-  justify-self: start;
-  font: inherit;
-  font-weight: 600;
-  padding: 8px 14px;
-  background: var(--ambar);
-  color: #111;
-  border: 0;
-  cursor: pointer;
-}
-.rd-form button:disabled {
-  opacity: 0.6;
-  cursor: progress;
+.rd-opcional,
+.rd-unidad-campo {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--texto-3);
 }
 .rd-form .rd-ayuda {
-  margin: 0;
+  margin: -4px 0 0;
   font-size: 12px;
   color: var(--texto-3);
 }
+.rd-form-acciones {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+}
+@media (max-width: 599px) {
+  .rd-form-acciones .boton {
+    width: 100%;
+  }
+}
 .rd-mensaje {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
   font-size: 13px;
 }
 .rd-mensaje.ok {
+  background: var(--sube-suave);
   color: var(--sube);
 }
 .rd-mensaje.error {
-  color: var(--baja);
+  background: var(--baja-suave);
+  color: #ff8a94;
+}
+.rd-mensaje-icono {
+  font-weight: 700;
 }
 
-.rd-caption {
-  caption-side: top;
-  text-align: left;
-  padding: 4px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--texto-2);
-}
-.rd-lista .rd-aviso {
-  color: var(--ambar);
+@media (prefers-reduced-motion: reduce) {
+  .rd-panel *,
+  .rd-subnav * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

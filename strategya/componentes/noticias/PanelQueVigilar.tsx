@@ -22,20 +22,24 @@ function Fila({ m, ahora }: { m: Movimiento; ahora: Date }) {
   return (
     <tr>
       <th scope="row">
-        {m.nombre_corto}
-        {m.sustituto_de ? <span className="tenue chico"> · sustituto de {m.sustituto_de}</span> : null}
+        <span className="nt-serie">
+          {m.nombre_corto}
+          {m.sustituto_de ? <span className="tenue chico"> · sustituto de {m.sustituto_de}</span> : null}
+        </span>
         <span className="sello nt-sello-fila">
           <a href={m.url_dato ?? m.fuente_url} target="_blank" rel="noopener noreferrer">
             {m.fuente_nombre} ↗
           </a>
           <span>· {m.hora_dato ? `${horaRD(m.hora_dato)} RD` : `dato del ${fechaCorta(m.fecha_dato)}`}</span>
           <span title={fechaHoraRD(m.recogido_en)}>· verificado {hace(m.recogido_en, ahora)}</span>
-          {f.desactualizado ? <span className="vencido">· DESACTUALIZADO</span> : null}
+          {f.desactualizado ? <span className="etiqueta error nt-vencido">desactualizado</span> : null}
         </span>
       </th>
-      <td className="num">{cifra(m.valor, decimales(m))}</td>
-      <td className={`num ${dir}`}>
-        {FLECHA[dir]} {cifraConSigno(m.cambio_pct!, 2)}%
+      <td className="num nt-ultimo">{cifra(m.valor, decimales(m))}</td>
+      <td className="num">
+        <span className={`pastilla ${dir}`}>
+          {FLECHA[dir]} {cifraConSigno(m.cambio_pct!, 2)}%
+        </span>
       </td>
     </tr>
   );
@@ -53,26 +57,18 @@ export async function PanelQueVigilar({ ahora = new Date() }: { ahora?: Date }) 
   const movidas = masMovidas(movimientos, ahora, 5);
 
   return (
-    <section className="panel" aria-labelledby="titulo-vigilar">
-      <Cabecera id="titulo-vigilar" titulo="Qué vigilar" />
+    <section className="panel nt-panel" aria-labelledby="titulo-vigilar">
+      <Cabecera id="titulo-vigilar" titulo="Qué vigilar">
+        <span className="sello" title="Datos y fechas de las fuentes; no es una recomendación de inversión">
+          Solo datos guardados · sin pronósticos
+        </span>
+      </Cabecera>
       <div className="panel-cuerpo">
-        <div className="nt-bloque">
-          <h3 className="nt-subtitulo">Próximos 7 días</h3>
-          {eventos.length ? (
-            <ol className="nt-agenda">
-              {eventos.map((e) => (
-                <LineaEvento key={e.id} e={e} ahora={ahora} />
-              ))}
-            </ol>
-          ) : (
-            <p className="chico tenue">Ningún evento de la agenda en los próximos 7 días.</p>
-          )}
-        </div>
         <div className="nt-bloque">
           <h3 className="nt-subtitulo">Lo que más se movió hoy</h3>
           {movidas.length ? (
             <div className="desplazable">
-              <table className="tabla">
+              <table className="tabla nt-tabla-movidas">
                 <caption className="sr-solo">Series con mayor cambio porcentual hoy, con su fuente</caption>
                 <thead>
                   <tr>
@@ -93,10 +89,21 @@ export async function PanelQueVigilar({ ahora = new Date() }: { ahora?: Date }) 
               </table>
             </div>
           ) : (
-            <p className="chico tenue">Todavía no hay cambios registrados hoy (hora RD) en las series del catálogo.</p>
+            <p className="nt-vacio-mini">Todavía no hay cambios registrados hoy (hora RD) en las series del catálogo.</p>
           )}
         </div>
-        <p className="chico tenue">Datos y fechas de las fuentes; no es una recomendación de inversión.</p>
+        <div className="nt-bloque">
+          <h3 className="nt-subtitulo">Próximos 7 días</h3>
+          {eventos.length ? (
+            <ol className="nt-agenda">
+              {eventos.map((e) => (
+                <LineaEvento key={e.id} e={e} ahora={ahora} />
+              ))}
+            </ol>
+          ) : (
+            <p className="nt-vacio-mini">Ningún evento de la agenda en los próximos 7 días.</p>
+          )}
+        </div>
       </div>
     </section>
   );

@@ -14,23 +14,21 @@ import {
 export const metadata: Metadata = { title: "Noticias · Strategya" };
 export const dynamic = "force-dynamic";
 
-// El encabezado común todavía no tiene la sección «noticias»: con este valor ningún enlace queda
-// marcado como actual (el integrador agrega el enlace a /noticias en componentes/Encabezado.tsx).
-const SECCION = "noticias" as const;
-
 export default function PaginaNoticias() {
   const ahora = new Date();
   return (
     <>
-      <Encabezado actual={SECCION} ultimaActualizacion={null} />
+      <Encabezado actual="noticias" ultimaActualizacion={null} />
       <main className="terminal">
+        <Mapa ahora={ahora} />
         <PanelQueVigilar ahora={ahora} />
         <PanelAgenda ahora={ahora} />
-        <Mapa ahora={ahora} />
-        <PanelNoticias ahora={ahora} limite={25} />
+        <PanelNoticias ahora={ahora} limite={24} ancho />
         <PanelInstituciones ahora={ahora} />
-        <PanelFusionesIPO ahora={ahora} />
-        <Glosario ahora={ahora} />
+        <div className="nt-columna">
+          <PanelFusionesIPO ahora={ahora} />
+          <Glosario ahora={ahora} />
+        </div>
       </main>
       <footer className="pie">
         <h2>Fuentes</h2>
