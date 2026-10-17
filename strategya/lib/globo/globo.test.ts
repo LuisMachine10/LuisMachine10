@@ -11,6 +11,7 @@ import {
 } from "./capas";
 import { distanciaKm, distanciaMinimaKm, interpolar, kmParaMostrar, normalizarLon, SANTO_DOMINGO, sismoRelevante, zonasCercanas } from "./geo";
 import { PASOS, pasoPorId } from "./pasos";
+import { alturaInicial, anchoEtiqueta, descongestionar, esAlerta, escalaResolucion, escribirPreferencias, factorEtiqueta, leerPreferencias, pixelesPorPunto, textoEtiqueta } from "./visor";
 
 const AHORA = new Date("2026-10-15T14:00:00Z");
 
@@ -315,5 +316,70 @@ describe("alertasPasos", () => {
 describe("fechaRD", () => {
   it("usa el día de RD (UTC−4)", () => {
     expect(fechaRD("2026-10-16T02:00:00Z")).toBe("2026-10-15");
+  });
+});
+
+describe("visor · nitidez", () => {
+  it("dibuja a la densidad del dispositivo con tope 2", () => {
+    expect(pixelesPorPunto(1)).toBe(1);
+    expect(pixelesPorPunto(2)).toBe(2);
+    expect(pixelesPorPunto(3)).toBe(2);
+    expect(pixelesPorPunto(undefined)).toBe(1);
+    expect(pixelesPorPunto(0.5)).toBe(1);
+  });
+  it("resolutionScale compensa el devicePixelRatio que Cesium ya aplica", () => {
+    for (const dpr of [1, 1.5, 2, 3]) expect(dpr * escalaResolucion(dpr)).toBeCloseTo(pixelesPorPunto(dpr), 10);
+    expect(escalaResolucion(Number.NaN)).toBe(1);
+  });
+  it("las etiquetas se rasterizan al menos al doble", () => {
+    expect(factorEtiqueta(1)).toBe(2);
+    expect(factorEtiqueta(2)).toBe(2);
+    expect(factorEtiqueta(3)).toBe(2);
+  });
+  it("la cámara inicial acerca más en escenas anchas que en angostas", () => {
+    const celular = alturaInicial(358, 520);
+    const escritorio = alturaInicial(900, 720);
+    expect(celular).toBeGreaterThan(escritorio);
+    expect(celular).toBeLessThan(22_000_000);
+    expect(alturaInicial(0, 0)).toBeGreaterThanOrEqual(6_000_000);
+  });
+});
+
+describe("visor · preferencias", () => {
+  it("guarda y lee la vista; valores raros vuelven a 3D", () => {
+    const p = leerPreferencias(null);
+    expect(p.vista).toBe("3d");
+    expect(leerPreferencias(escribirPreferencias({ ...p, vista: "2d" })).vista).toBe("2d");
+    expect(leerPreferencias('{"vista":"4d","mapa":"imagen"}')).toMatchObject({ vista: "3d", mapa: "imagen" });
+    expect(leerPreferencias("no es json").capas.buques).toBe(false);
+  });
+});
+
+describe("visor · presentación", () => {
+  it("solo sismos, ciclones y pasos resaltados cuentan como alerta", () => {
+    expect(esAlerta({ capa: "sismos", destacado: true })).toBe(true);
+    expect(esAlerta({ capa: "pasos", destacado: true })).toBe(true);
+    expect(esAlerta({ capa: "rd", destacado: true })).toBe(false);
+    expect(esAlerta({ capa: "noticias", destacado: true })).toBe(false);
+    expect(esAlerta({ capa: "ciclones", destacado: false })).toBe(false);
+  });
+  it("etiquetas cortas", () => {
+    expect(textoEtiqueta({ capa: "mercados", titulo: "Nueva York (NYSE / Nasdaq)" })).toBe("Nueva York");
+    expect(textoEtiqueta({ capa: "rd", titulo: "República Dominicana · Santo Domingo" })).toBe("RD · Santo Domingo");
+    expect(textoEtiqueta({ capa: "noticias", titulo: "x".repeat(50) })).toHaveLength(34);
+  });
+});
+
+describe("visor · etiquetas sin encimarse", () => {
+  it("gana la de mayor prioridad y se descartan las que chocan", () => {
+    const m = descongestionar([
+      { id: "noticia", x: 100, y: 100, ancho: 120, alto: 22, prioridad: 3 },
+      { id: "paso", x: 110, y: 105, ancho: 80, alto: 22, prioridad: 0 },
+      { id: "lejos", x: 400, y: 100, ancho: 80, alto: 22, prioridad: 4 },
+    ]);
+    expect([...m].sort()).toEqual(["lejos", "paso"]);
+  });
+  it("el ancho crece con el texto", () => {
+    expect(anchoEtiqueta("Canal de Suez")).toBeGreaterThan(anchoEtiqueta("RD"));
   });
 });

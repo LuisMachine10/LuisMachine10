@@ -8,6 +8,7 @@ import { datosGlobo } from "@/lib/datos-globo";
 import { armarCapas, type Capas } from "@/lib/globo/capas";
 import { ZONAS_VIGILANCIA } from "@/lib/globo/geo";
 import { EIA_CHOKEPOINTS } from "@/lib/globo/pasos";
+import { esAlerta } from "@/lib/globo/visor";
 import "@/estilos/globo.css";
 
 export const metadata: Metadata = { title: "Globo · Strategya" };
@@ -58,67 +59,96 @@ export default async function Globo() {
   }
 
   const ultima = capas.puntos.map((p) => p.momento).filter((m): m is string => !!m).sort().at(-1) ?? null;
+  const alertas = capas.puntos.filter(esAlerta).length;
 
   return (
     <>
       <Encabezado actual="globo" ultimaActualizacion={ultima} />
       <main className="globo-pagina">
-        <h1 className="panel-titulo">Globo · ojo de Dios</h1>
-        <p className="globo-intro">
-          Mapa vivo: bolsas (verde sube, rojo baja, gris sin dato), noticias y guerras de las últimas 48 h, República
-          Dominicana, pasos marítimos críticos para las materias primas, sismos (USGS) y ciclones (NHC). Cada cifra lleva
-          su fuente y su fecha.
-        </p>
-
-        <VisorGlobo puntos={capas.puntos} estados={capas.estados} ahoraIso={ahora.toISOString()} />
-
-        <section className="panel" aria-labelledby="titulo-resumen-globo">
-          <div className="panel-cabecera">
-            <h2 id="titulo-resumen-globo" className="panel-titulo">
-              Resumen
-            </h2>
+        <header className="globo-titular">
+          <div className="globo-titular-textos">
+            <h1 className="globo-titulo">Globo</h1>
+            <p className="globo-subtitulo">Mercados, noticias, RD, pasos marítimos, sismos y ciclones en un mapa vivo</p>
           </div>
-          <div className="panel-cuerpo">
-            <ResumenGlobo capas={capas} ahora={ahora} />
+          <div className="globo-titular-datos">
+            {alertas > 0 ? (
+              <span className="etiqueta alerta">
+                <span className="mono">{alertas}</span> {alertas === 1 ? "alerta" : "alertas"}
+              </span>
+            ) : (
+              <span className="etiqueta ok">Sin alertas</span>
+            )}
+            <span className="etiqueta neutra">
+              <span className="mono">{capas.puntos.length}</span> puntos
+            </span>
+            <details className="globo-ayuda">
+              <summary>Cómo leer el mapa</summary>
+              <div className="globo-ayuda-cuerpo">
+                <p>
+                  Bolsas en verde si suben, rojo si bajan y gris sin dato; noticias y guerras de las últimas 48 h; República
+                  Dominicana; pasos marítimos críticos para las materias primas; sismos (USGS) y ciclones (NHC). Los puntos con
+                  halo tienen una alerta. Cada cifra lleva su fuente y su fecha.
+                </p>
+              </div>
+            </details>
           </div>
-        </section>
+        </header>
 
-        <section className="panel" aria-labelledby="titulo-reglas-globo">
+        <VisorGlobo
+          puntos={capas.puntos}
+          estados={capas.estados}
+          ahoraIso={ahora.toISOString()}
+          lateral={
+            <section className="panel" aria-labelledby="titulo-resumen-globo">
+              <div className="panel-cabecera">
+                <h2 id="titulo-resumen-globo" className="panel-titulo">
+                  Alertas
+                </h2>
+              </div>
+              <div className="panel-cuerpo">
+                <ResumenGlobo capas={capas} ahora={ahora} />
+              </div>
+            </section>
+          }
+        />
+
+        <section className="panel globo-info" aria-labelledby="titulo-reglas-globo">
           <div className="panel-cabecera">
             <h2 id="titulo-reglas-globo" className="panel-titulo">
-              Cómo se resalta
+              Cómo funciona
             </h2>
           </div>
-          <div className="panel-cuerpo globo-info">
-            <p>Reglas fijas de Strategya (distancias aproximadas sobre la esfera; no son de la fuente):</p>
-            <ul>
-              <li>Sismo M4.5+ dentro del radio de una zona vigilada:</li>
-              {ZONAS_VIGILANCIA.map((z) => (
-                <li key={z.id}>
-                  {z.nombre} ({z.motivo}): <span className="mono">{z.radioKm}</span> km
-                </li>
-              ))}
-              <li>Ciclón: a 500 km o menos de Santo Domingo (posición actual o pronóstico oficial).</li>
-              <li>Paso con alerta: noticia de guerra a menos de 800 km, sismo M5+ a menos de 500 km o ciclón a menos de 500 km.</li>
-            </ul>
-          </div>
-        </section>
-
-        <section className="panel" aria-labelledby="titulo-no-incluye">
-          <div className="panel-cabecera">
-            <h2 id="titulo-no-incluye" className="panel-titulo">
-              Qué no incluye
-            </h2>
-          </div>
-          <div className="panel-cuerpo globo-info">
-            <p>Piezas del proyecto original que Strategya deja fuera a propósito:</p>
-            <ul>
-              {NO_INCLUYE.map((n) => (
-                <li key={n.que}>
-                  <strong>{n.que}.</strong> {n.porque}
-                </li>
-              ))}
-            </ul>
+          <div className="panel-cuerpo globo-info-cuerpo">
+            <details className="globo-plegable">
+              <summary>Cómo se resalta un punto</summary>
+              <p className="tenue">Reglas fijas de Strategya (distancias aproximadas sobre la esfera; no son de la fuente).</p>
+              <h3 className="globo-info-sub">Sismo M4.5+ dentro del radio de una zona vigilada</h3>
+              <ul className="globo-zonas">
+                {ZONAS_VIGILANCIA.map((z) => (
+                  <li key={z.id}>
+                    <span>
+                      {z.nombre} <span className="tenue">· {z.motivo}</span>
+                    </span>
+                    <span className="mono">{z.radioKm} km</span>
+                  </li>
+                ))}
+              </ul>
+              <ul className="globo-reglas">
+                <li>Ciclón: a 500 km o menos de Santo Domingo (posición actual o pronóstico oficial).</li>
+                <li>Paso con alerta: noticia de guerra a menos de 800 km, sismo M5+ a menos de 500 km o ciclón a menos de 500 km.</li>
+              </ul>
+            </details>
+            <details className="globo-plegable">
+              <summary>Qué no incluye y por qué</summary>
+              <p className="tenue">Piezas del proyecto original que Strategya deja fuera a propósito.</p>
+              <ul className="globo-reglas">
+                {NO_INCLUYE.map((n) => (
+                  <li key={n.que}>
+                    <strong>{n.que}.</strong> {n.porque}
+                  </li>
+                ))}
+              </ul>
+            </details>
           </div>
         </section>
       </main>
