@@ -135,12 +135,12 @@ export function hallazgos(ctx: Contexto, m: string): Hallazgo[] {
     });
   }
 
-  const sinTasa = ctx.activos.filter((a) => a.clase === "accionesusa" && n(a.tasa).eq(0) && (valorDOP(ctx, a) ?? CERO).gt(0));
+  const sinTasa = ctx.activos.filter((a) => a.clase === "rentavariable" && n(a.tasa).eq(0) && (valorDOP(ctx, a) ?? CERO).gt(0));
   if (sinTasa.length) {
     A.push({
       n: "alerta",
       t: `${sinTasa.length} posición(es) de renta variable con dividendo en cero`,
-      d: `${sinTasa.map((a) => a.simbolo || a.nombre).join(", ")}. Si pagan dividendo, el ingreso pasivo está subestimado (cárgalo en Cartera; recuerda la retención de 30% a no residentes de EE. UU.).`,
+      d: `${sinTasa.map((a) => a.simbolo || a.nombre).join(", ")}. Si pagan dividendo, el ingreso pasivo está subestimado (cárgalo en Cartera; si es de EE. UU., recuerda la retención de 30% a no residentes).`,
     });
   }
 

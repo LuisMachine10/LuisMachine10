@@ -189,7 +189,7 @@ describe("riesgo", () => {
     expect(rf.pctA.toFixed()).toBe("0.4");
     expect(rf.estado).toBe("bajo meta");
     expect(rf.dif.toFixed()).toBe("25000");
-    expect(filas.find((f) => f.id === "accionesusa")!.estado).toBe("bajo meta"); // 24 % contra 30 %
+    expect(filas.find((f) => f.id === "rentavariable")!.estado).toBe("bajo meta"); // 24 % contra 30 %
     expect(filas.find((f) => f.id === "ahorros")!.estado).toBe("sobre meta"); // 32 % contra 10 %
   });
 

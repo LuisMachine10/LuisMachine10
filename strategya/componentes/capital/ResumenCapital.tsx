@@ -9,9 +9,9 @@ import { hallazgos, ordenar } from "@/lib/capital/alertas";
 import { cambioDelMes, fotoHasta, indicadores } from "@/lib/capital/cierres";
 import { n } from "@/lib/capital/decimal";
 import { mesCorto, mesLargo } from "@/lib/capital/fechas";
-import { num, pctSg, rd, tono } from "@/lib/capital/formato";
+import { num, rd, tono } from "@/lib/capital/formato";
 import { datosCapital, type DatosCapital } from "@/lib/datos-capital";
-import { ConSigno, Kpi, ListaHallazgos, SinDatos } from "./Piezas";
+import { ConSigno, Estado, Kpi, ListaHallazgos, Pastilla, SinDatos } from "./Piezas";
 import { SelloFx, SelloRegistros } from "./Sellos";
 
 async function cargar(): Promise<{ datos: DatosCapital } | { error: string }> {
@@ -29,10 +29,12 @@ function PanelFalla({ titulo, mensaje }: { titulo: string; mensaje: string }) {
         <h2 className="panel-titulo" id="cap-term-error">
           {titulo}
         </h2>
-        <span className="etiqueta error">✕ sin conexión a los datos</span>
+        <Estado tono="error">sin conexión a los datos</Estado>
       </div>
-      <div className="vacio">
-        <p className="baja chico">{mensaje}</p>
+      <div className="panel-cuerpo">
+        <p className="chico" style={{ margin: 0, color: "var(--texto-2)" }}>
+          {mensaje}
+        </p>
         {/schema must be one of|Invalid schema/i.test(mensaje) ? (
           <p className="chico">
             Falta exponer el esquema <span className="mono">personal</span> en Supabase → Project Settings → Data API → Exposed schemas.
@@ -62,30 +64,41 @@ export async function ResumenCapital() {
         <SelloRegistros foto={ind.foto} mesCierre={mesFoto ? mesLargo(mesFoto) : null} />
       </div>
       {!datos.configurado && !ctx.activos.length ? (
-        <SinDatos>
-          Sin datos todavía. Importa tu archivo de Mena Capital en <Link href="/capital/importar">Capital → Importar</Link>.
-        </SinDatos>
+        <div className="panel-cuerpo">
+          <SinDatos accion={{ href: "/capital/cartera", texto: "Agregar instrumentos" }}>Sin datos todavía: agrega tus instrumentos o importa tu archivo en Capital.</SinDatos>
+        </div>
       ) : (
-        <>
-          <div className="cap-kpis">
-            <Kpi rotulo="Patrimonio neto" valor={rd(ind.foto.patrimonio)} meta={mesLargo(mes)} tono="neutra" />
-            <div className="cap-kpi neutra">
-              <div className="cap-rotulo">Cambio del mes</div>
-              <div className="k">{cambio ? <ConSigno v={cambio.cambio} /> : "—"}</div>
-              <div className="m">{cambio ? `${pctSg(cambio.pct, 1)} vs ${mesCorto(cambio.previo)}` : "sin mes previo cerrado"}</div>
+        <div className="panel-cuerpo" style={{ display: "grid", gap: 12 }}>
+          <div className="cap-heroe">
+            <div className="rotulo">Patrimonio neto · {mesLargo(mes)}</div>
+            <div className="valor" style={{ fontSize: 28 }}>
+              <small>RD$</small>
+              {num(ind.foto.patrimonio)}
             </div>
-            <Kpi rotulo="Líquidos" valor={rd(ind.foto.liquidos)} meta="efectivo + ahorros" tono="neutra" />
+            <div className="sub">
+              {cambio ? (
+                <>
+                  <Pastilla v={cambio.pct} />
+                  <ConSigno v={cambio.cambio} />
+                  <span>vs {mesCorto(cambio.previo)}</span>
+                </>
+              ) : (
+                <span>Sin mes previo cerrado para comparar</span>
+              )}
+            </div>
+          </div>
+          <div className="cap-mosaicos">
+            <Kpi rotulo="Líquidos" valor={rd(ind.foto.liquidos)} meta="efectivo + cuentas de ahorro" tono="neutra" />
             <Kpi
               rotulo="Fondo de emergencia"
-              valor={ind.fondoMeses ? `${num(ind.fondoMeses, 1)} meses` : "—"}
+              valor={ind.fondoMeses ? num(ind.fondoMeses, 1) : "—"}
+              unidad={ind.fondoMeses ? "meses" : undefined}
               meta={ind.fondoMeses ? `meta ≥ ${num(metaFondo, 0)}` : "sin gasto registrado"}
               tono={ind.fondoMeses && metaFondo.gt(0) ? tono(ind.fondoMeses, metaFondo, 3) : "neutra"}
             />
           </div>
-          <div className="panel-cuerpo">
-            <SelloFx fx={ctx.mercado.fx.USD} moneda="USD" ahora={datos.ahora} hoy={ctx.hoy} />
-          </div>
-        </>
+          <SelloFx fx={ctx.mercado.fx.USD} moneda="USD" ahora={datos.ahora} hoy={ctx.hoy} />
+        </div>
       )}
     </section>
   );
@@ -104,13 +117,13 @@ export async function HallazgosCapital({ maximo = 5 }: { maximo?: number }) {
         <h2 className="panel-titulo" id="cap-term-hallazgos">
           Mena Capital · hallazgos
         </h2>
-        <span className="sello">
-          {mesLargo(mes)} · {lista.filter((h) => h.n !== "ok").length} fuera de meta
+        <span className="tenue chico">
+          {mesLargo(mes)} · {lista.filter((h) => h.n !== "ok").length} para revisar
         </span>
       </div>
       <ListaHallazgos lista={visibles} />
       {lista.length > visibles.length ? (
-        <p className="cap-nota" style={{ padding: "0 12px 10px" }}>
+        <p className="cap-nota" style={{ padding: "0 16px 14px" }}>
           <Link href="/capital">Ver los {lista.length} hallazgos</Link>
         </p>
       ) : null}

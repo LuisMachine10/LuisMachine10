@@ -47,6 +47,15 @@ export function pp(v: Valor, d = 1): string {
   return `${cifra(new Big(aTexto(v)).times(100).abs().toFixed(), d)} pp`;
 }
 
+/** Cifra compacta para espacios chicos (centro de un donut): 1234567 → "1.23M", 45678 → "45.7k". */
+export function compacto(v: Valor): string {
+  const x = new Big(aTexto(v));
+  const a = x.abs();
+  if (a.gte(1e6)) return `${cifra(x.div(1e6).toFixed(), a.gte(1e8) ? 0 : 2)}M`;
+  if (a.gte(1e3)) return `${cifra(x.div(1e3).toFixed(), a.gte(1e5) ? 0 : 1)}k`;
+  return cifra(x.toFixed(), 0);
+}
+
 export type Tono = "ok" | "alerta" | "error" | "neutra";
 
 /** Mayor es mejor. */

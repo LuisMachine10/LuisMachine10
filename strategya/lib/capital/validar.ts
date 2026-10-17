@@ -20,6 +20,8 @@ import {
   IDS_CLASE,
   type Clase,
   ipsVacia,
+  nombreClase,
+  normalizarClase,
   LISTAS_PRESUPUESTO,
   MONEDAS,
   type Moneda,
@@ -248,10 +250,23 @@ export function validarParametros(v: unknown, r: Registro, ruta = "parametros", 
   if (v.metaAsignacion !== undefined) {
     if (!esObjeto(v.metaAsignacion)) r.error(`${ruta}.metaAsignacion`, "debe ser un objeto por clase");
     else {
-      for (const c of IDS_CLASE) {
-        p.metaAsignacion[c] = decimal(v.metaAsignacion[c], `${ruta}.metaAsignacion.${c}`, r, { defecto: "0", min: "0", max: "1" })!;
+      // Acepta los nombres de clase anteriores (accionesusa → rentavariable). Si dos nombres caen en
+      // la misma clase nueva, sus metas se suman.
+      const metas: Partial<Record<Clase, Big>> = {};
+      const otras: string[] = [];
+      const traducidas: string[] = [];
+      for (const [k, x] of Object.entries(v.metaAsignacion)) {
+        const c = normalizarClase(k);
+        if (!c) {
+          otras.push(k);
+          continue;
+        }
+        if (c !== k) traducidas.push(`${k} → ${nombreClase(c)}`);
+        const d = decimal(x, `${ruta}.metaAsignacion.${k}`, r, { defecto: "0", min: "0", max: "1" });
+        metas[c] = (metas[c] ?? new Big(0)).plus(d ?? "0");
       }
-      const otras = Object.keys(v.metaAsignacion).filter((k) => !(IDS_CLASE as readonly string[]).includes(k));
+      for (const c of IDS_CLASE) p.metaAsignacion[c] = (metas[c] ?? new Big(0)).toFixed();
+      if (traducidas.length) r.aviso(`${ruta}.metaAsignacion`, `clases anteriores traducidas a las 4 actuales: ${traducidas.join(", ")}`);
       if (otras.length) r.aviso(`${ruta}.metaAsignacion`, `clases desconocidas ignoradas: ${otras.join(", ")}`);
     }
   }
@@ -268,8 +283,14 @@ export function validarActivo(x: unknown, ruta: string, r: Registro): Activo | n
     r.error(ruta, "debe ser un objeto");
     return null;
   }
-  const clase = String(x.clase ?? "");
-  if (!(IDS_CLASE as readonly string[]).includes(clase)) r.error(`${ruta}.clase`, `clase desconocida «${clase}» (${IDS_CLASE.join(", ")})`);
+  const claseCruda = String(x.clase ?? "");
+  const claseNueva = normalizarClase(claseCruda);
+  if (!claseNueva) {
+    r.error(`${ruta}.clase`, `clase desconocida o ambigua «${claseCruda.slice(0, 40)}»: usa una de ${IDS_CLASE.map(nombreClase).join(", ")}`);
+  } else if (claseNueva !== claseCruda) {
+    r.aviso(`${ruta}.clase`, `«${claseCruda.slice(0, 40)}» se guarda como ${nombreClase(claseNueva)}`);
+  }
+  const clase = claseNueva ?? claseCruda;
   const moneda = String(x.moneda ?? "DOP").toUpperCase();
   if (!(MONEDAS as readonly string[]).includes(moneda)) r.error(`${ruta}.moneda`, `moneda desconocida «${moneda}» (DOP, USD, EUR)`);
   const simboloCrudo = x.simbolo === undefined || x.simbolo === null ? "" : String(x.simbolo).trim().toUpperCase();

@@ -33,25 +33,25 @@ export function SelloFx({ fx, moneda, ahora, hoy }: { fx: FxMoneda; moneda: "USD
   if (fx.origen === "manual") {
     const vencido = fx.fecha ? dias(fx.fecha, hoy) > MAX_DIAS_FX_MANUAL : true;
     return (
-      <div className="sello">
+      <div className="sello" title={moneda === "USD" ? "No hay dólar del BCRD guardado: se usa el que escribiste en Cartera → Ajustes." : "No hay serie EUR/DOP en Strategya: se usa el que escribiste en Cartera → Ajustes."}>
         <span>
-          {moneda === "USD" ? "US$" : "€"} {num(fx.valor!, 2)} · manual (tus parámetros)
-          {moneda === "USD" ? ": no hay dólar del BCRD guardado" : ": no hay serie EUR/DOP en Strategya"}
+          {moneda === "USD" ? "US$" : "€"} {num(fx.valor!, 2)} · manual
         </span>
         <span>· {fx.fecha ? `actualizado el ${fechaCorta(fx.fecha)}` : "sin fecha"}</span>
-        {vencido ? <span className="vencido">· DESACTUALIZADO</span> : null}
+        {vencido ? <span className="vencido">DESACTUALIZADO</span> : null}
       </div>
     );
   }
   return (
     <div className="sello">
-      <span className="vencido">Sin tipo de cambio {moneda === "USD" ? "US$" : "€"}: ni dato del BCRD ni manual. Cárgalo en Cartera → Ajustes.</span>
+      <span className="vencido">Sin tipo de cambio {moneda === "USD" ? "US$" : "€"}</span>
+      <span>· cárgalo en Cartera → Ajustes</span>
     </div>
   );
 }
 
 export function SelloPrecio({ p, ahora }: { p: PrecioMercado | null; ahora: Date }) {
-  if (!p) return <span className="sello">precio manual (sin cotización de mercado guardada)</span>;
+  if (!p) return <span className="sello" title="Sin cotización de mercado guardada: se usa el precio que escribiste.">precio manual</span>;
   return (
     <SelloFuente
       ahora={ahora}

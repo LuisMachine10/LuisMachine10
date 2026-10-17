@@ -1,10 +1,11 @@
-// Marco de las páginas de Mena Capital: encabezado con el mes, pestañas y aviso del último guardado.
+// Marco de las páginas de Mena Capital: título, mes, pestañas en segmentos, importar (secundario) y avisos.
 
 import Link from "next/link";
 import "@/estilos/capital.css";
 import { Encabezado } from "@/componentes/Encabezado";
 import { mesCorto, mesPrevio, mesSiguiente } from "@/lib/capital/fechas";
 import { fechaHoraRD } from "@/lib/formato";
+import { Icono } from "./Iconos";
 import { SelectorMes } from "./SelectorMes";
 
 export const PESTANAS = [
@@ -13,10 +14,10 @@ export const PESTANAS = [
   { id: "cartera", ruta: "/capital/cartera", nombre: "Cartera" },
   { id: "analisis", ruta: "/capital/analisis", nombre: "Análisis" },
   { id: "futuro", ruta: "/capital/futuro", nombre: "Futuro" },
-  { id: "ips", ruta: "/capital/ips", nombre: "Política (IPS)" },
-  { id: "importar", ruta: "/capital/importar", nombre: "Importar" },
+  { id: "ips", ruta: "/capital/ips", nombre: "Política" },
 ] as const;
-export type Pestana = (typeof PESTANAS)[number]["id"];
+/** «importar» no es pestaña: es una acción secundaria en la cabecera. */
+export type Pestana = (typeof PESTANAS)[number]["id"] | "importar";
 
 /** Meses del selector: 14 hacia atrás, 12 hacia adelante y todos los que tengan cierre. */
 export function opcionesDeMes(hoyMes: string, conCierre: string[], cerrados: Set<string>) {
@@ -54,34 +55,51 @@ export function Marco({
   return (
     <>
       <Encabezado actual="capital" ultimaActualizacion={null} />
-      <div className="cap-encabezado">
-        <span className="cap-titulo">Mena Capital</span>
-        {actual !== "importar" && actual !== "ips" ? <SelectorMes mes={mes} opciones={opcionesDeMes(hoyMes, conCierre, cerrados)} /> : null}
+      <div className="cap-cabeza">
+        <div className="cap-cabeza-fila">
+          <div>
+            <h1 className="cap-h1">Mena Capital</h1>
+            <p className="cap-bajada">Tu patrimonio, cartera y metas, mes a mes</p>
+          </div>
+          <div className="cap-cabeza-acciones">
+            {actual !== "importar" && actual !== "ips" ? <SelectorMes mes={mes} opciones={opcionesDeMes(hoyMes, conCierre, cerrados)} /> : null}
+            <Link href={`/capital/importar${q}`} className="cap-enlace-chico" aria-current={actual === "importar" ? "page" : undefined}>
+              <Icono nombre="subir" />
+              Importar
+            </Link>
+          </div>
+        </div>
+        <nav className="cap-segmentos" aria-label="Secciones de Mena Capital">
+          {PESTANAS.map((p) => (
+            <Link key={p.id} href={`${p.ruta}${q}`} aria-current={p.id === actual ? "page" : undefined}>
+              {p.nombre}
+            </Link>
+          ))}
+        </nav>
       </div>
-      <nav className="cap-pestanas" aria-label="Secciones de Mena Capital">
-        {PESTANAS.map((p) => (
-          <Link key={p.id} href={`${p.ruta}${q}`} aria-current={p.id === actual ? "page" : undefined}>
-            {p.nombre}
-          </Link>
-        ))}
-      </nav>
-      <main className="cap-principal">
+      <main className="cap-principal" id="contenido">
         {aviso?.ok ? (
           <p className="cap-aviso ok cap-ancho" role="status">
-            ✓ {aviso.ok}
+            <Icono nombre="ok" />
+            <span>{aviso.ok}</span>
           </p>
         ) : null}
         {aviso?.error ? (
           <p className="cap-aviso error cap-ancho" role="alert">
-            ✕ {aviso.error}
+            <Icono nombre="error" />
+            <span>{aviso.error}</span>
           </p>
         ) : null}
         {children}
       </main>
       <footer className="pie">
         <p>
-          Mena Capital usa tus propios registros (importados o escritos aquí), el dólar del BCRD y los precios de Finnhub
-          cuando existen. Las proyecciones son cálculos con tus supuestos, no pronósticos. No es asesoría de inversión.
+          Mena Capital usa tus propios registros (importados o escritos aquí), el dólar del BCRD y los precios de Finnhub cuando existen. Las
+          proyecciones son cálculos con tus supuestos, no pronósticos. No es asesoría de inversión. Gráficos:{" "}
+          <a href="https://www.tradingview.com/lightweight-charts/" target="_blank" rel="noopener noreferrer">
+            TradingView Lightweight Charts
+          </a>
+          .
           {actualizado ? ` Última edición de tus datos: ${fechaHoraRD(actualizado)} (hora RD).` : ""}
         </p>
       </footer>

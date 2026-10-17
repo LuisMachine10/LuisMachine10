@@ -5,12 +5,12 @@
 //   {
 //     "parametros":    { fx: {DOP, USD, EUR}, fxUpdated, inflacion, tasaRetiro, aporteMensual,
 //                        retornoObjetivo, incrAporteAnual, horizonte, metaFondo, metaAhorro, metaUsoTC,
-//                        metaAsignacion: {efectivo, ahorros, rentafija, accionesusa},
+//                        metaAsignacion: {efectivo, ahorros, rentafija, rentavariable},
 //                        bandaRebalanceo, maxEmisor,
 //                        escenarios: [{id, nom, retorno, inflacion, deprecFX, aporte}],
 //                        tarjetas: [{id, nombre, limite}],
 //                        ingresos|fijos|variables|aportes: [{id, nombre, pres}] },
-//     "activos":       [{ id, clase: efectivo|ahorros|rentafija|accionesusa, nombre, inst, simbolo?,
+//     "activos":       [{ id, clase: efectivo|ahorros|rentafija|rentavariable, nombre, inst, simbolo?,
 //                         moneda: DOP|USD|EUR, cantidad, precio, tasa, venc?: AAAA-MM-DD,
 //                         tipoRF?: acumula|cupon }],
 //     "transacciones": [{ id, activoId, simbolo, tipo: compra|venta|dividendo|interes, fecha: AAAA-MM-DD,
@@ -23,6 +23,10 @@
 //     "ips":           { horizonte, objetivo, tolerancia, liquidez, restricciones, rebalanceo, emisores,
 //                        revision, editadoPor: borrador|mena, revisadoEl? }
 //   }
+//
+// Clases: las 4 de Mena Capital (Efectivo, Cuentas de Ahorro, Renta Fija, Renta Variable). Los nombres
+// de versiones anteriores del artefacto se traducen solos (accionesusa → rentavariable, «bonos» →
+// rentafija…; ver ALIAS_CLASE en tipos.ts) y el resumen lo avisa. Un nombre ambiguo se rechaza.
 //
 // Tasas como fracción (0.045 = 4.5 %). Los números pueden venir como número JSON o como texto; se
 // leen SIN pasar por float (jsonExacto) y se guardan como texto decimal. También se aceptan los

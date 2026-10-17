@@ -32,7 +32,7 @@ export function Importador() {
           <input type="file" name="archivo" accept="application/json,.json" required />
         </label>
         <div className="cap-botones">
-          <button className="cap-boton" type="submit" disabled={enviando}>
+          <button className="boton secundario" type="submit" disabled={enviando}>
             {enviando ? "Procesando…" : "Revisar el archivo"}
           </button>
         </div>
@@ -46,14 +46,16 @@ export function Importador() {
 
       {a && !a.ok ? (
         <div className="cap-aviso error" role="alert">
-          <strong>El archivo tiene {a.errores.length} problema(s). No se importará nada hasta corregirlos:</strong>
-          <ul>
-            {a.errores.map((e) => (
-              <li key={e} className="mono chico">
-                {e}
-              </li>
-            ))}
-          </ul>
+          <div style={{ minWidth: 0 }}>
+            <strong>El archivo tiene {a.errores.length} problema(s). No se importará nada hasta corregirlos:</strong>
+            <ul>
+              {a.errores.map((e) => (
+                <li key={e} className="chico" style={{ overflowWrap: "anywhere" }}>
+                  {e}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       ) : null}
 
@@ -131,9 +133,9 @@ export function Importador() {
           </div>
           <p className="cap-nota">Las secciones que no vienen en el archivo no se tocan.</p>
           {a.avisos.length ? (
-            <details className="cap-grupo">
+            <details className="cap-mas">
               <summary>Avisos ({a.avisos.length})</summary>
-              <ul className="cuerpo">
+              <ul className="chico" style={{ paddingLeft: 18, overflowWrap: "anywhere" }}>
                 {a.avisos.map((x) => (
                   <li key={x} className="chico">
                     {x}
@@ -150,7 +152,7 @@ export function Importador() {
           <input type="hidden" name="accion" value="confirmar" />
           <input type="hidden" name="contenido" value={estado.contenido} />
           <input type="hidden" name="nombre" value={estado.nombre ?? ""} />
-          <button className="cap-boton primario" type="submit" disabled={enviando}>
+          <button className="boton" type="submit" disabled={enviando}>
             {enviando ? "Importando…" : "Confirmar e importar"}
           </button>
         </form>
