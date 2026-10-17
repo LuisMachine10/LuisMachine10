@@ -8,6 +8,7 @@ import { tareaCotizacionesFinnhub } from "./fuentes/finnhub.ts";
 import { tareaCotizacionesCboe } from "./fuentes/cboe.ts";
 import { tareaDivisasBce } from "./fuentes/ecb-fx.ts";
 import { tareaCierresFred } from "./fuentes/fred-mercado.ts";
+import { tareaFondosSafis } from "./fuentes/fondos-safis.ts";
 import { tareaTasasPolitica } from "./fuentes/tasas-politica.ts";
 import { tareaBcrdExcel, tareaBcrdPortada } from "./fuentes/bcrd.ts";
 import { tareaCreditoPublico } from "./fuentes/credito-publico.ts";
@@ -32,6 +33,7 @@ const LISTA: Tarea[] = [
   tareaCotizacionesCboe,
   tareaDivisasBce,
   tareaCierresFred,
+  tareaFondosSafis,
   tareaTasasPolitica,
   tareaMovimientosAcciones,
   tareaBcrdPortada,

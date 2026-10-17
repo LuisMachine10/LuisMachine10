@@ -112,7 +112,7 @@ export async function cargarFondo(_previo: EstadoCarga, form: FormData): Promise
   const enlace = validarEnlace(texto(form, "enlace"));
   if (!safi || !fondo) return { ok: false, mensaje: "Escribe la SAFI y el nombre del fondo." };
   if (moneda !== "DOP" && moneda !== "USD") return { ok: false, mensaje: "Elige la moneda del fondo." };
-  if (![30, 360, 365].includes(plazo)) return { ok: false, mensaje: "La base del rendimiento debe ser 30, 360 o 365 días." };
+  if (![30, 60, 90, 180, 360, 365].includes(plazo)) return { ok: false, mensaje: "La base del rendimiento debe ser 30, 60, 90, 180, 360 o 365 días." };
   const error = primerError(rendimiento, corte, enlace);
   if (error || !rendimiento.ok || !corte.ok || !enlace.ok) return { ok: false, mensaje: error };
 

@@ -134,9 +134,9 @@ describe("mercado.fondos_rendimientos (RLS)", () => {
     });
   });
 
-  it("rechaza plazos fuera de 30/360/365, monedas raras, duplicados y enlaces vacíos", async () => {
+  it("rechaza plazos fuera de 30/60/90/180/360/365, monedas raras, duplicados y enlaces vacíos", async () => {
     await como(pool, "authenticated", MENA, async (c) => {
-      await debeFallar(c, insertar, /plazo_dias_check/, [fila[0], fila[1], "DOP", 90, "6", "2026-10-14", fila[6]]);
+      await debeFallar(c, insertar, /plazo_dias_check/, [fila[0], fila[1], "DOP", 45, "6", "2026-10-14", fila[6]]);
       await debeFallar(c, insertar, /moneda_check/, [fila[0], fila[1], "EUR", 30, "6", "2026-10-14", fila[6]]);
       await debeFallar(c, insertar, /url_fuente_check/, [fila[0], fila[1], "DOP", 30, "6", "2026-10-14", "sin enlace"]);
       await c.query(insertar, fila);
