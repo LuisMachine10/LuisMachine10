@@ -128,9 +128,9 @@ describe("Lector (robots.txt antes de cada lectura)", () => {
   });
 
   it("detecta feeds por su ruta", () => {
-    for (const u of ["https://x.do/feed/", "https://x.do/rss", "https://x.do/a/b.rss", "https://x.do/feeds/press_all.xml"])
+    for (const u of ["https://x.do/feed/", "https://x.do/rss", "https://x.do/a/b.rss", "https://x.do/feeds/press_all.xml", "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain", "https://x.do/arc/rss/portada"])
       expect(esFeed(new URL(u))).toBe(true);
-    for (const u of ["https://x.do/normativas/", "https://x.do/a.xml", "https://x.do/feedback"]) expect(esFeed(new URL(u))).toBe(false);
+    for (const u of ["https://x.do/normativas/", "https://x.do/a.xml", "https://x.do/feedback", "https://x.do/rss/a/b"]) expect(esFeed(new URL(u))).toBe(false);
   });
 
   it("robots.txt caído (5xx) → se asume prohibido", async () => {

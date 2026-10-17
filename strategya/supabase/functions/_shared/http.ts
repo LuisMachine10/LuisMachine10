@@ -187,9 +187,12 @@ export function esS3SinArchivo(cuerpo: string | undefined): boolean {
   return !!cuerpo && /<Error>\s*<Code>AccessDenied<\/Code>/.test(cuerpo) && /<RequestId>/.test(cuerpo) && /<HostId>/.test(cuerpo);
 }
 
-/** ¿La URL es un feed de sindicación (RSS/Atom)? */
+/**
+ * ¿La URL es un feed de sindicación (RSS/Atom)? Por la ruta (/feed, /rss, .rss, /rss/Nombre…) o porque el
+ * host está dedicado a feeds (feeds.content.dowjones.io publica los RSS del WSJ).
+ */
 export function esFeed(u: URL): boolean {
-  return /\/feed\/?$|\/rss\/?$|\.(rss|atom)$|\/feeds?\/[^/]+\.xml$/i.test(u.pathname);
+  return /\/feed\/?$|\/rss\/?$|\.(rss|atom)$|\/feeds?\/[^/]+\.xml$|\/rss\/[^/]+$/i.test(u.pathname) || /^feeds?\./i.test(u.hostname);
 }
 
 export type DecisionRobots =
