@@ -1,5 +1,7 @@
 import { PanelError } from "@/componentes/PanelError";
-import { CabeceraPanel, FilaCotizacion, porqueDe } from "./piezas";
+import { delUltimoDia } from "@/componentes/terminal/datos";
+import { historiasSeguras } from "./historias";
+import { CabeceraPanel, porqueDe, TarjetaCotizacion } from "./piezas";
 import { vistaMercado } from "./vista";
 
 /** Serie principal y, si el plan no la entrega, el ETF que la sustituye. */
@@ -17,33 +19,48 @@ export async function PanelEnergia() {
   } catch (e) {
     return <PanelError titulo="Energía" mensaje={(e as Error).message} />;
   }
+  const h = await historiasSeguras();
   return (
     <section className="panel" aria-labelledby="t-energia">
-      <CabeceraPanel id="t-energia" titulo="Energía" nota="Futuros (FMP) · ETF (Finnhub) donde el plan no da el futuro" />
+      <CabeceraPanel id="t-energia" titulo="Energía" nota="Futuros (FMP) · ETF (Finnhub) como sustituto" />
       <div className="panel-cuerpo">
-        <ul className="mv-lista">
+        <ul className="mv-rejilla">
           {ENERGIA.map(({ id, sustituto }) => {
             const i = v.item(id);
             if (!i) return null;
             const s = sustituto ? v.item(sustituto) : null;
             if (i.estado === "no_disponible" && s) {
               return (
-                <FilaCotizacion
+                <TarjetaCotizacion
                   key={id}
                   item={s}
+                  titulo={i.nombre}
+                  rotulo={`${s.nombreCorto} · sustituto`}
                   ahora={v.ahora}
+                  lecturas={delUltimoDia(h, s.id)}
                   porque={porqueDe(v.datos.explicaciones, id, v.ahora) ?? porqueDe(v.datos.explicaciones, s.id, v.ahora)}
                   cuando={`${i.nombre}: el plan actual de FMP no lo entrega; su ETF llega por Finnhub en horario de EE. UU.`}
                 />
               );
             }
-            return <FilaCotizacion key={id} item={i} ahora={v.ahora} porque={porqueDe(v.datos.explicaciones, id, v.ahora)} />;
+            return (
+              <TarjetaCotizacion
+                key={id}
+                item={i}
+                ahora={v.ahora}
+                lecturas={delUltimoDia(h, id)}
+                porque={porqueDe(v.datos.explicaciones, id, v.ahora)}
+              />
+            );
           })}
         </ul>
-        <p className="mv-nota">
-          WTI y gas natural no vienen en el plan actual de FMP: se muestran los ETF USO y UNG, rotulados como sustitutos (en US$
-          por participación).
-        </p>
+        <details className="mv-detalles">
+          <summary>Sobre los sustitutos</summary>
+          <p>
+            WTI y gas natural no vienen en el plan actual de FMP: se muestran los ETF USO y UNG, rotulados como sustitutos (en
+            US$ por participación).
+          </p>
+        </details>
       </div>
     </section>
   );

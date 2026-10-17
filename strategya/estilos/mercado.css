@@ -1,131 +1,496 @@
-/* Strategya · módulo mercado en vivo. Usa los tokens de app/globals.css. Primero celular (390 px). */
+/* Strategya · terminal y mercado en vivo. Usa los tokens de app/globals.css. Primero celular (390 px). */
 
-.mv-lista {
-  list-style: none;
-  margin: 0 0 10px;
-  padding: 0;
+/* ───────────── Secciones de la terminal ───────────── */
+.ter {
+  row-gap: 8px;
 }
-.mv-fila {
-  padding: 7px 0;
-  border-bottom: 1px solid var(--borde);
+.ter-seccion {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 16px;
   min-width: 0;
+  margin-top: 16px;
 }
-.mv-fila:last-child {
-  border-bottom: 0;
+@media (min-width: 900px) {
+  .ter-seccion {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    margin-top: 24px;
+  }
 }
-.mv-fila-linea {
+@media (max-width: 899px) {
+  .ter-seccion {
+    gap: 12px;
+  }
+}
+.ter-seccion-cab {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 2px 10px;
+  gap: 4px 12px;
+  padding: 0 2px;
+}
+.ter-seccion-titulo {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--texto);
+}
+.ter-seccion-titulo::before {
+  content: "";
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--acento);
+}
+.ter-seccion-detalle {
   font-size: 13px;
-}
-.mv-nombre {
-  font-weight: 500;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.mv-valor {
-  font-size: 15px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.mv-sustituto {
-  color: var(--ambar);
-  font-size: 12px;
-  font-weight: 400;
-}
-.mv-nota {
-  margin: 6px 0 0;
-  font-size: 12px;
   color: var(--texto-3);
 }
-.mv-porque {
-  margin-top: 6px;
-  padding: 6px 8px;
-  border-left: 2px solid var(--ambar);
-  background: var(--panel-alto);
-  font-size: 13px;
-  color: var(--texto-2);
-  overflow-wrap: anywhere;
-}
-.mv-porque-titulo {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+.ter-seccion-detalle::first-letter {
   text-transform: uppercase;
-  color: var(--ambar);
 }
 
-/* Destacados (metales) */
-.mv-destacados {
+/* ───────────── Bloque «Hoy»: mosaicos ───────────── */
+.ter-mosaicos {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-@media (min-width: 560px) {
-  .mv-destacados {
+@media (min-width: 700px) {
+  .ter-mosaicos {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .mv-destacados > .mv-nota {
-    grid-column: 1 / -1;
+}
+@media (min-width: 1180px) {
+  .ter-mosaicos {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
   }
 }
-.mv-destacado {
+.ter-mosaico {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   min-width: 0;
-  padding: 8px;
+  padding: 14px 14px 12px;
+  background: var(--panel);
   border: 1px solid var(--borde);
-  background: var(--panel-alto);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
-.mv-destacado-titulo {
-  margin: 8px 0 4px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.ter-mosaico:hover {
+  border-color: var(--borde-fuerte);
+}
+.ter-mosaico-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+.ter-mosaico-nombre {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 550;
   color: var(--texto-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.mv-destacado .mv-destacado-titulo {
-  margin-top: 0;
+.ter-mosaico-cifra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  margin: 2px 0 0;
+  min-width: 0;
 }
-.mv-destacado-valor {
-  margin: 2px 0;
+.ter-mosaico .cifra-grande {
   font-size: 22px;
-  font-weight: 600;
+  white-space: nowrap;
 }
-.mv-spark {
-  margin: 6px 0;
+@media (min-width: 700px) {
+  .ter-mosaico .cifra-grande {
+    font-size: 26px;
+  }
 }
-.mv-spark svg {
-  display: block;
+.ter-mosaico-grafico {
+  margin: 4px -14px 0;
+  min-height: 52px;
 }
-.mv-spark summary {
-  cursor: pointer;
+.ter-mini-vacio {
+  height: 52px;
+  margin: 0 14px;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--borde-fuerte);
+  font-size: 11px;
   color: var(--texto-3);
 }
-.mv-tabla-dia {
-  max-height: 180px;
-  overflow-y: auto;
+.ter-mosaico-pie {
+  display: grid;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.ter-mosaico-vacio {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+}
+.ter-mosaico-sin {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--texto-3);
+}
+.ter-mosaico-motivo {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto-3);
 }
 
-/* Movimientos */
+/* Minigráfico (lightweight-charts) */
+.mini {
+  margin: 0;
+  min-width: 0;
+}
+.mini-lienzo {
+  width: 100%;
+  position: relative;
+}
+
+/* ───────────── Tarjetas compactas de cotización ───────────── */
+.mv-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 900px) {
+  .mv-rejilla {
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+    gap: 10px;
+  }
+}
+.mv-tarjeta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--panel-alto);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.mv-tarjeta:hover {
+  background: var(--panel-hover);
+  border-color: var(--borde-fuerte);
+}
+.mv-tarjeta-vacia {
+  background: transparent;
+  border: 1px dashed var(--borde-fuerte);
+}
+.mv-tarjeta-vacia:hover {
+  background: transparent;
+}
+.mv-tarjeta-cab {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+.mv-tarjeta-nombre {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.3;
+  color: var(--texto-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mv-tarjeta-cifra {
+  margin: 2px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 5px;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--texto);
+}
+.mv-tarjeta-cifra .mono {
+  white-space: nowrap;
+}
+.mv-unidad {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--texto-3);
+}
+.mv-tarjeta .mini {
+  /* Empuja gráfico y sello al fondo: en una fila de tarjetas, las líneas quedan alineadas. */
+  margin: auto -4px 0;
+  padding-top: 6px;
+}
+.mv-tarjeta-pie {
+  display: grid;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.mv-tarjeta .mini + .mv-tarjeta-pie {
+  margin-top: 0;
+}
+
+/* Carrusel en el celular (ETF del día): se desliza de lado dentro del panel, nunca la página. */
+@media (max-width: 699px) {
+  .mv-carrusel {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(152px, 46%);
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    margin: 0 -16px;
+    padding: 0 16px 6px;
+    scroll-padding: 0 16px;
+    scrollbar-width: thin;
+  }
+  .mv-carrusel > li {
+    scroll-snap-align: start;
+  }
+}
+.mv-pista-texto {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--texto-3);
+}
+@media (min-width: 700px) {
+  .mv-pista-texto {
+    display: none;
+  }
+}
+.mv-cambio {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.mv-cambio-abs {
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.mv-hora {
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.mv-sustituto {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ambar);
+}
+.mv-sin-dato {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.mv-estado {
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  font-size: 11px;
+  color: var(--texto-3);
+  white-space: nowrap;
+}
+.mv-estado-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--texto-3);
+}
+.mv-estado-abierto {
+  color: var(--texto-2);
+}
+.mv-estado-abierto .mv-estado-punto {
+  background: var(--sube);
+  box-shadow: 0 0 0 3px var(--sube-suave);
+}
+
+/* El «porqué»: texto pequeño bajo la tarjeta */
+.mv-porque {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--borde);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--texto-2);
+  overflow-wrap: anywhere;
+}
+.mv-porque strong {
+  font-weight: 600;
+  color: var(--texto);
+}
+.mv-porque-nota {
+  color: var(--texto-3);
+}
+
+.mv-subtitulo {
+  margin: 20px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-2);
+}
+.panel-cuerpo > .mv-subtitulo:first-child,
+.mv-movs > .mv-subtitulo:first-child {
+  margin-top: 4px;
+}
+.mv-nota-cab {
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.mv-nota {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.mv-detalles {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.mv-detalles > summary {
+  width: fit-content;
+  color: var(--texto-3);
+  border-radius: 4px;
+}
+.mv-detalles > summary:hover {
+  color: var(--texto-2);
+}
+.mv-detalles p {
+  margin: 6px 0 0;
+  max-width: 70ch;
+}
+.mv-detalles .tabla {
+  margin-top: 8px;
+  color: var(--texto);
+}
+.mv-vacio {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin: 0;
+  padding: 20px 16px;
+  font-size: 14px;
+  color: var(--texto-2);
+}
+.mv-vacio p {
+  margin: 0;
+}
+.panel-cuerpo > .mv-vacio {
+  padding: 4px 0 8px;
+}
+
+/* ───────────── Sello de fuente (discreto) ───────────── */
+.sello-fino {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--texto-3);
+}
+.sello-fuente {
+  /* Contiene el texto solo-lector (posición absoluta) para que no desborde la página. */
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sello-cuando {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
+}
+.sello-cuando > span:not(.sello-pildora) + span:not(.sello-pildora)::before {
+  content: "·";
+  margin: 0 5px;
+}
+.sello-fino a {
+  color: var(--texto-2);
+}
+.sello-fino a:hover,
+.sello-fino a:focus-visible {
+  color: var(--texto);
+}
+.sello-pildora {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.sello-vencido {
+  color: #ff7b85;
+  background: var(--baja-suave);
+}
+.sello-fallo {
+  color: var(--ambar);
+  background: rgba(245, 166, 35, 0.14);
+}
+
+/* ───────────── Movimientos de acciones ───────────── */
 .mv-dos {
   display: grid;
-  gap: 10px;
+  gap: 16px;
+  margin-top: 8px;
 }
 @media (min-width: 700px) {
   .mv-dos {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .mv-lista-columnas {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 16px;
-  }
 }
 .mv-movs {
   min-width: 0;
+}
+.mv-tabla-movs .pastilla {
+  font-size: 12px;
+  padding: 1px 6px;
+}
+.mv-tabla-movs td,
+.mv-tabla-movs tbody th {
+  vertical-align: middle;
 }
 .mv-recorte {
   display: inline-block;
@@ -135,42 +500,133 @@
   vertical-align: bottom;
 }
 
-/* Cinta */
+/* ───────────── Cinta (ticker) ───────────── */
+.mv-cinta {
+  padding: 0;
+}
+.mv-cinta-marco {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+.mv-cinta-ventana {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+}
+.mv-cinta-pista {
+  display: flex;
+  width: max-content;
+  animation-name: mv-desliza;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.mv-cinta-ventana:hover .mv-cinta-pista,
+.mv-cinta-ventana:focus-within .mv-cinta-pista,
+.mv-cinta-marco[data-pausada="si"] .mv-cinta-pista {
+  animation-play-state: paused;
+}
+@keyframes mv-desliza {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
 .mv-cinta-lista {
   display: flex;
-  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  -webkit-overflow-scrolling: touch;
 }
 .mv-cinta-item {
   flex: 0 0 auto;
-  display: grid;
-  gap: 1px;
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
   border-right: 1px solid var(--borde);
-  scroll-snap-align: start;
+  white-space: nowrap;
   font-size: 13px;
 }
 .mv-cinta-nombre {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--texto-2);
+}
+.mv-cinta-valor {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.mv-cinta-item .pastilla {
+  font-size: 12px;
+  padding: 1px 6px;
 }
 .mv-cinta-sello {
   font-size: 11px;
   color: var(--texto-3);
 }
-.mv-cinta-sello .vencido {
-  color: var(--baja);
-  font-weight: 600;
+.mv-cinta-sello a {
+  color: var(--texto-3);
 }
-.mv-cinta .mv-nota {
-  padding: 0 12px 8px;
+.mv-cinta-sello a:hover,
+.mv-cinta-sello a:focus-visible {
+  color: var(--texto-2);
+}
+.mv-cinta-boton {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  border: 0;
+  border-left: 1px solid var(--borde);
+  background: transparent;
+  color: var(--texto-3);
+  cursor: pointer;
+}
+.mv-cinta-boton:hover {
+  color: var(--texto);
+  background: var(--panel-alto);
+}
+.mv-cinta-boton[aria-pressed="true"] {
+  color: var(--acento);
+}
+.mv-cinta-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 6px 14px;
+  border-top: 1px solid var(--borde);
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.mv-cinta-nota {
+  margin-left: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mv-cinta-pista {
+    animation: none;
+  }
+  .mv-cinta-ventana {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .mv-cinta-copia,
+  .mv-cinta-boton {
+    display: none;
+  }
+  .ter-mosaico,
+  .mv-tarjeta {
+    transition: none;
+  }
 }
 
 /* Estado de la conexión en vivo */
@@ -178,18 +634,123 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--texto-3);
 }
 .mv-punto {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--texto-3);
 }
 .mv-vivo-en_vivo .mv-punto {
   background: var(--sube);
+  box-shadow: 0 0 0 3px var(--sube-suave);
 }
 .mv-vivo-respaldo .mv-punto {
   background: var(--ambar);
+}
+
+/* ───────────── Curva del Tesoro ───────────── */
+.curva-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin: 4px 0 16px;
+}
+.curva-kpi {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+.curva-kpi-rotulo {
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.curva-kpi-valor {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.curva .leyenda {
+  margin-bottom: 8px;
+}
+.clave-punteada {
+  background: repeating-linear-gradient(90deg, #7c8296 0 4px, transparent 4px 7px);
+}
+.curva .grafico {
+  margin-bottom: 8px;
+  cursor: crosshair;
+}
+.curva .grafico .eje text.activo {
+  fill: var(--texto);
+  font-weight: 600;
+}
+
+/* ───────────── Panel de error ───────────── */
+.panel-error-cuerpo {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  color: var(--baja);
+}
+.panel-error-cuerpo svg {
+  flex: none;
+  margin-top: 1px;
+}
+.panel-error-mensaje {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+.panel-error-cuerpo .chico {
+  margin: 0;
+}
+
+/* ───────────── Pie ───────────── */
+.ter-pie {
+  display: grid;
+  gap: 16px;
+  padding-top: 24px;
+  margin-top: 8px;
+}
+.ter-pie h2 {
+  margin: 0 0 8px;
+}
+.ter-pie > p {
+  margin: 0;
+  max-width: 90ch;
+}
+.ter-pie-fuentes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0 !important;
+  list-style: none;
+}
+.ter-pie-noconf > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  list-style: none;
+}
+.ter-pie-noconf > summary::-webkit-details-marker {
+  display: none;
+}
+.ter-pie-noconf > summary::after {
+  content: "▾";
+  color: var(--texto-3);
+}
+.ter-pie-noconf[open] > summary::after {
+  content: "▴";
+}
+.ter-pie-noconf > summary h2 {
+  margin: 0;
+}
+.ter-pie-noconf ul {
+  margin-top: 8px;
 }
