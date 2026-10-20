@@ -24,8 +24,9 @@ export function Hora({ iso, ahora, soloFecha = false }: { iso: string; ahora: Da
   );
 }
 
+/** Categoría en píldora de color suave, siempre con su nombre (nunca solo color). */
 export function EtiquetaCategoria({ c }: { c: CategoriaNoticia }) {
-  return <span className={`nt-cat nt-cat-${c}`}>{ETIQUETA_CATEGORIA[c]}</span>;
+  return <span className={`etiqueta nt-cat nt-cat-${c}`}>{ETIQUETA_CATEGORIA[c]}</span>;
 }
 
 /** La corrida más reciente que terminó bien, de un grupo de tareas. */
@@ -44,6 +45,46 @@ export function Cabecera({ id, titulo, children }: { id: string; titulo: string;
         {titulo}
       </h2>
       {children}
+    </div>
+  );
+}
+
+/** Ícono de trazo 24×24 (stroke currentColor 1.8). */
+export function Icono({ d, tam = 14, className }: { d: string; tam?: number; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={tam}
+      height={tam}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d={d} />
+    </svg>
+  );
+}
+
+export const ICONO = {
+  lugar: "M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+  externo: "M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
+  reloj: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
+  calendario: "M4 6h16v14H4zM4 10h16M9 3v4M15 3v4",
+  candado: "M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3",
+  chevron: "M9 6l6 6-6 6",
+  libro: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M19 19v2H6",
+} as const;
+
+/** Estado vacío amable: qué pasa y cuándo llegan los datos. */
+export function Vacio({ titulo, children }: { titulo: string; children?: React.ReactNode }) {
+  return (
+    <div className="nt-vacio">
+      <p className="nt-vacio-titulo">{titulo}</p>
+      {children ? <div className="nt-vacio-texto">{children}</div> : null}
     </div>
   );
 }

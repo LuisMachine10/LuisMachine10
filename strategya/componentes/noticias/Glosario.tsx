@@ -1,9 +1,22 @@
-// Glosario: 3–5 «conceptos del día» según lo que se movió y lo que hay en pantalla, más el glosario completo.
+// Glosario en acordeón: 3–5 «conceptos del día» según lo que se movió y lo que hay en pantalla, más el
+// glosario completo (cada concepto se abre por separado).
 
 import { conceptosDelDia, GLOSARIO } from "@/lib/glosario";
 import { leerMovimientos, leerNoticias } from "@/lib/datos-noticias";
 import { type CategoriaNoticia, conteoCategorias, hoyRD, masMovidas } from "@/lib/noticias";
-import { Cabecera } from "./comun";
+import { Cabecera, ICONO, Icono } from "./comun";
+
+function Concepto({ termino, definicion, abierto = false }: { termino: string; definicion: string; abierto?: boolean }) {
+  return (
+    <details className="nt-concepto" open={abierto}>
+      <summary>
+        <span>{termino}</span>
+        <Icono d={ICONO.chevron} tam={16} className="nt-chevron" />
+      </summary>
+      <p>{definicion}</p>
+    </details>
+  );
+}
 
 export async function Glosario({ ahora = new Date() }: { ahora?: Date }) {
   // Si la base no responde, el glosario igual se muestra (rotación del día), sin inventar contexto.
@@ -21,29 +34,28 @@ export async function Glosario({ ahora = new Date() }: { ahora?: Date }) {
   const ordenado = [...GLOSARIO].sort((a, b) => a.termino.localeCompare(b.termino, "es"));
 
   return (
-    <section className="panel" aria-labelledby="titulo-glosario">
+    <section className="panel nt-panel" aria-labelledby="titulo-glosario">
       <Cabecera id="titulo-glosario" titulo="Glosario">
-        <span className="sello">Conceptos del día según lo que se movió y lo que hay en pantalla</span>
+        <span className="sello" title="Conceptos elegidos según lo que se movió y lo que hay en pantalla">
+          Conceptos del día
+        </span>
       </Cabecera>
       <div className="panel-cuerpo">
-        <dl className="nt-glosario">
-          {delDia.map((c) => (
-            <div key={c.id} className="nt-concepto">
-              <dt>{c.termino}</dt>
-              <dd>{c.definicion}</dd>
-            </div>
+        <div className="nt-acordeon">
+          {delDia.map((c, i) => (
+            <Concepto key={c.id} termino={c.termino} definicion={c.definicion} abierto={i === 0} />
           ))}
-        </dl>
-        <details className="nt-detalles">
-          <summary>Ver los {GLOSARIO.length} conceptos</summary>
-          <dl className="nt-glosario nt-glosario-todo">
+        </div>
+        <details className="nt-detalles nt-glosario-todo">
+          <summary>
+            <Icono d={ICONO.libro} tam={15} />
+            Ver los {GLOSARIO.length} conceptos
+          </summary>
+          <div className="nt-acordeon nt-acordeon-todo">
             {ordenado.map((c) => (
-              <div key={c.id} className="nt-concepto">
-                <dt>{c.termino}</dt>
-                <dd>{c.definicion}</dd>
-              </div>
+              <Concepto key={c.id} termino={c.termino} definicion={c.definicion} />
             ))}
-          </dl>
+          </div>
         </details>
       </div>
     </section>

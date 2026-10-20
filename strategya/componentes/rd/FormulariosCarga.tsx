@@ -18,17 +18,21 @@ function Resultado({ estado, id }: { estado: EstadoCarga; id: string }) {
   if (!estado.mensaje) return null;
   return (
     <p id={id} className={`rd-mensaje ${estado.ok ? "ok" : "error"}`} role={estado.ok ? "status" : "alert"}>
-      {estado.ok ? "✓ " : "✕ "}
-      {estado.mensaje}
+      <span className="rd-mensaje-icono" aria-hidden="true">
+        {estado.ok ? "✓" : "✕"}
+      </span>
+      <span>{estado.mensaje}</span>
     </p>
   );
 }
 
 function Enviar({ enviando, texto }: { enviando: boolean; texto: string }) {
   return (
-    <button type="submit" disabled={enviando}>
-      {enviando ? "Guardando…" : texto}
-    </button>
+    <div className="rd-form-acciones">
+      <button type="submit" className="boton" disabled={enviando} aria-busy={enviando}>
+        {enviando ? "Guardando…" : texto}
+      </button>
+    </div>
   );
 }
 
@@ -36,7 +40,7 @@ function CampoEnlace() {
   return (
     <label>
       Enlace de la fuente
-      <input name="enlace" type="url" inputMode="url" placeholder="https://" required />
+      <input name="enlace" type="url" inputMode="url" placeholder="https://" autoComplete="url" required />
     </label>
   );
 }
@@ -70,7 +74,9 @@ export function FormularioDato({ series, hoy }: { series: SerieCarga[]; hoy: str
       </div>
       <CampoEnlace />
       <label>
-        Nota (opcional)
+        <span>
+          Nota <span className="rd-opcional">opcional</span>
+        </span>
         <input name="nota" maxLength={300} />
       </label>
       <p className="rd-ayuda">Punto decimal, sin comas de miles. Si ya hay un dato oficial de esa fecha, no se reemplaza.</p>
@@ -98,7 +104,9 @@ export function FormularioCombustibles({ hoy }: { hoy: string }) {
       <div className="rd-fila">
         {productos.map(([id, nombre]) => (
           <label key={id}>
-            {nombre} (RD$/galón)
+            <span>
+              {nombre} <span className="rd-unidad-campo">RD$/galón</span>
+            </span>
             <input name={id} className="mono" inputMode="decimal" placeholder="0.00" autoComplete="off" />
           </label>
         ))}
@@ -152,7 +160,9 @@ export function FormularioFondo({ hoy }: { hoy: string }) {
       </div>
       <CampoEnlace />
       <label>
-        Nota (opcional)
+        <span>
+          Nota <span className="rd-opcional">opcional</span>
+        </span>
         <input name="nota" maxLength={300} />
       </label>
       <Enviar enviando={enviando} texto="Guardar rendimiento" />
@@ -184,17 +194,23 @@ export function FormularioEmision({ hoy }: { hoy: string }) {
       </div>
       <div className="rd-fila">
         <label>
-          Emisor (opcional)
+          <span>
+            Emisor <span className="rd-opcional">opcional</span>
+          </span>
           <input name="emisor" maxLength={160} />
         </label>
         <label>
-          Instrumento (opcional)
+          <span>
+            Instrumento <span className="rd-opcional">opcional</span>
+          </span>
           <input name="instrumento" maxLength={160} placeholder="Bonos corporativos" />
         </label>
       </div>
       <div className="rd-fila">
         <label>
-          Monto (opcional)
+          <span>
+            Monto <span className="rd-opcional">opcional</span>
+          </span>
           <input name="monto" className="mono" inputMode="decimal" placeholder="500000000.00" autoComplete="off" />
         </label>
         <label>
@@ -206,13 +222,17 @@ export function FormularioEmision({ hoy }: { hoy: string }) {
           </select>
         </label>
         <label>
-          Tasa % (opcional)
+          <span>
+            Tasa % <span className="rd-opcional">opcional</span>
+          </span>
           <input name="tasa" className="mono" inputMode="decimal" placeholder="9.75" autoComplete="off" />
         </label>
       </div>
       <CampoEnlace />
       <label>
-        Descripción (opcional)
+        <span>
+          Descripción <span className="rd-opcional">opcional</span>
+        </span>
         <textarea name="descripcion" rows={2} maxLength={600} />
       </label>
       <Enviar enviando={enviando} texto="Guardar emisión" />

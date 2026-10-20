@@ -1,7 +1,6 @@
-// Precios oficiales de combustibles de la semana (aviso del MICM) con su cambio.
+// Precios oficiales de combustibles de la semana (aviso del MICM) con su cambio semanal.
 
 import "@/estilos/rd.css";
-import Link from "next/link";
 import { PanelError } from "@/componentes/PanelError";
 import { type DatosRD, datosRD } from "@/lib/datos-rd";
 import { cifra, fechaCorta } from "@/lib/formato";
@@ -27,18 +26,18 @@ export function VistaPanelCombustibles({ d, ahora }: { d: DatosRD; ahora: Date }
   const aviso = d.avisos.find((a) => a.institucion === "MICM");
 
   return (
-    <section className="panel" aria-labelledby="t-combustibles">
+    <section className="panel rd-panel" aria-labelledby="t-combustibles">
       <div className="panel-cabecera">
         <h2 className="panel-titulo" id="t-combustibles">
-          Combustibles RD
+          Combustibles
         </h2>
         <span className="sello">{semana ? `Semana del ${semanaVigencia(semana)}` : "Precios oficiales del MICM"}</span>
       </div>
       <div className="panel-cuerpo">
         {filas.length === 0 ? (
-          <SinDatos tarea={tarea}>
+          <SinDatos tarea={tarea} accion={{ href: "/carga", texto: "Cargar precios a mano" }}>
             Sin precios todavía. El aviso del MICM sale los viernes y se lee el viernes a las 7:30 PM y el sábado a las 9:30 AM. Si el
-            aviso no trae cifras legibles, los precios se cargan en <Link href="/carga">Carga manual</Link>.
+            aviso no trae cifras legibles, los precios se cargan a mano.
             {aviso ? (
               <>
                 {" "}
@@ -51,39 +50,33 @@ export function VistaPanelCombustibles({ d, ahora }: { d: DatosRD; ahora: Date }
           </SinDatos>
         ) : (
           <>
-            <div className="desplazable">
-              <table className="tabla">
-                <caption className="sr-solo">Precios de combustibles de la semana, en RD$</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Producto</th>
-                    <th scope="col" className="num">
-                      Precio RD$
+            <table className="rd-lista-precios">
+              <caption className="sr-solo">Precios oficiales de combustibles de la semana, en RD$, con el cambio contra la semana anterior</caption>
+              <thead className="sr-solo">
+                <tr>
+                  <th scope="col">Producto</th>
+                  <th scope="col">Precio RD$</th>
+                  <th scope="col">Cambio semanal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((f) => (
+                  <tr key={f.serie.id}>
+                    <th scope="row">
+                      <span className="rd-producto">{f.serie.nombre}</span>
+                      <span className="rd-unidad">
+                        {f.serie.unidad.replace("RD$/", "RD$ por ")}
+                        {f.obs.fecha_dato !== semana ? ` · semana del ${fechaCorta(f.obs.fecha_dato)}` : ""}
+                      </span>
                     </th>
-                    <th scope="col" className="num">
-                      Semana
-                    </th>
+                    <td className="rd-precio mono">{cifra(f.obs.valor, 2)}</td>
+                    <td className="rd-precio-cambio">
+                      <Cambio cambio={f.obs.cambio} decimales={2} pastilla />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filas.map((f) => (
-                    <tr key={f.serie.id}>
-                      <th scope="row">
-                        {f.serie.nombre}
-                        <span className="rd-mes">
-                          {f.serie.unidad.replace("RD$/", "por ")}
-                          {f.obs.fecha_dato !== semana ? ` · semana del ${fechaCorta(f.obs.fecha_dato)}` : ""}
-                        </span>
-                      </th>
-                      <td className="num">{cifra(f.obs.valor, 2)}</td>
-                      <td className="num">
-                        <Cambio cambio={f.obs.cambio} decimales={2} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
             <SellosAgrupados datos={filas} tareas={d.tareas} ahora={ahora} />
           </>
         )}

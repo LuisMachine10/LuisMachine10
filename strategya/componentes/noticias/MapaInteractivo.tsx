@@ -1,54 +1,74 @@
 "use client";
 
-// Capa interactiva del mapa: pines con forma y color por tipo, y una ficha con titulares y enlaces.
-// Ratón: pasar por encima muestra la ficha; clic (o toque, o Enter/Espacio) la deja fija.
-// En pantallas angostas la ficha aparece debajo del mapa en lugar de flotar.
-// Los contornos de los países llegan ya dibujados desde el servidor (children).
+// Capa interactiva del mapa: pines (círculo con halo, glifo por tipo y conteo) sobre el mapa base, que
+// llega como un SVG estático (vector, nítido en retina). Ratón: pasar por encima muestra la ficha; clic
+// (o toque, o Enter/Espacio) la deja fija. En pantallas angostas la ficha aparece debajo del mapa.
 
 import { useEffect, useRef, useState } from "react";
 import { ETIQUETA_PIN, type TipoPin } from "@/lib/noticias";
 import type { PinProyectado } from "@/lib/mapa";
 
-export function FormaPin({ tipo }: { tipo: TipoPin }) {
+/** Glifo dentro del pin: la forma también dice el tipo (nunca solo el color). */
+function Glifo({ tipo }: { tipo: TipoPin }) {
   switch (tipo) {
-    case "guerra":
-      return <path d="M0,-8 L8,0 L0,8 L-8,0Z" className="nt-forma nt-forma-guerra" />;
-    case "rd":
-      return <rect x={-6} y={-6} width={12} height={12} className="nt-forma nt-forma-rd" />;
     case "sube":
-      return <path d="M0,-8 L7.5,5.5 L-7.5,5.5Z" className="nt-forma nt-forma-sube" />;
+      return <path d="M0,-3.2 L3,2 L-3,2Z" className="nt-glifo" />;
     case "baja":
-      return <path d="M0,8 L7.5,-5.5 L-7.5,-5.5Z" className="nt-forma nt-forma-baja" />;
+      return <path d="M0,3.2 L3,-2 L-3,-2Z" className="nt-glifo" />;
+    case "guerra":
+      return <path d="M-2.4,-2.4 L2.4,2.4 M2.4,-2.4 L-2.4,2.4" className="nt-glifo-trazo" />;
+    case "rd":
+      return <path d="M0,-3 L3,0 L0,3 L-3,0Z" className="nt-glifo" />;
     case "igual":
-      return <circle r={5} className="nt-forma nt-forma-igual" />;
+      return <path d="M-2.6,0 L2.6,0" className="nt-glifo-trazo" />;
     default:
-      return <circle r={6.5} className="nt-forma nt-forma-noticia" />;
+      return <circle r={1.6} className="nt-glifo" />;
   }
+}
+
+/** Marcador de un tipo de pin (para la leyenda, la ficha y la lista). */
+export function FormaPin({ tipo }: { tipo: TipoPin }) {
+  return (
+    <g className={`nt-marca nt-marca-${tipo}`}>
+      <circle r={6.5} className="nt-nucleo" />
+      <Glifo tipo={tipo} />
+    </g>
+  );
+}
+
+/** Ícono del marcador en un svg pequeño (leyenda, ficha, lista). */
+export function IconoPin({ tipo, tam = 14 }: { tipo: TipoPin; tam?: number }) {
+  return (
+    <svg width={tam} height={tam} viewBox="-8 -8 16 16" aria-hidden="true" className="nt-icono-pin">
+      <FormaPin tipo={tipo} />
+    </svg>
+  );
 }
 
 export function MapaInteractivo({
   pines,
   ancho,
   alto,
-  children,
+  fondo,
 }: {
   pines: PinProyectado[];
   ancho: number;
   alto: number;
-  children: React.ReactNode;
+  /** URL del mapa base (SVG estático). */
+  fondo: string;
 }) {
   const caja = useRef<HTMLDivElement>(null);
-  const [escala, setEscala] = useState(1.4);
+  const [escala, setEscala] = useState(1);
   const [fijo, setFijo] = useState<string | null>(null);
   const [encima, setEncima] = useState<string | null>(null);
 
-  // Los pines se agrandan al achicarse el mapa para que se vean y se puedan tocar en un celular.
+  // Los pines mantienen su tamaño en pantalla al achicarse el mapa: se ven y se pueden tocar en un celular.
   useEffect(() => {
     const el = caja.current;
     if (!el) return;
     const ro = new ResizeObserver(([e]) => {
       const px = e.contentRect.width || ancho;
-      setEscala(Math.min(2.6, Math.max(1, (ancho / px) * 0.55)));
+      setEscala(Math.min(2.8, Math.max(0.85, (ancho / px) * 0.95)));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -67,11 +87,14 @@ export function MapaInteractivo({
   const activo = pines.find((p) => p.id === activoId) ?? null;
   const derecha = activo ? activo.x > ancho * 0.55 : false;
   const abajo = activo ? activo.y > alto * 0.55 : false;
-  // Los pines activos se dibujan al final para quedar encima.
+  // El pin activo se dibuja al final para quedar encima.
   const orden = activo ? [...pines.filter((p) => p.id !== activo.id), activo] : pines;
 
   return (
-    <div ref={caja} className="nt-mapa">
+    <div className="nt-mapa-envoltura">
+      <div ref={caja} className="nt-mapa" style={{ aspectRatio: `${ancho} / ${alto}` }}>
+      {/* El mapa base es decorativo: la información está en los pines y en la lista equivalente. */}
+      <img src={fondo} alt="" className="nt-mapa-fondo" width={ancho} height={alto} decoding="async" draggable={false} />
       <svg
         viewBox={`0 0 ${ancho} ${alto}`}
         className="nt-mapa-svg"
@@ -81,14 +104,14 @@ export function MapaInteractivo({
           if (ev.target === ev.currentTarget) setFijo(null);
         }}
       >
-        {children}
         {orden.map((p) => {
           const n = p.elementos.length;
           const etiqueta = `${ETIQUETA_PIN[p.tipo]} · ${p.lugar}: ${n} ${n === 1 ? "elemento" : "elementos"}`;
+          const esActivo = p.id === activoId;
           return (
             <g
               key={p.id}
-              className={`nt-pin${p.id === activoId ? " nt-pin-activo" : ""}`}
+              className={`nt-pin nt-pin-${p.tipo}${esActivo ? " nt-pin-activo" : ""}`}
               transform={`translate(${p.x},${p.y}) scale(${escala})`}
               tabIndex={0}
               role="button"
@@ -114,17 +137,23 @@ export function MapaInteractivo({
               }}
             >
               <title>{etiqueta}</title>
-              <circle r={13} className="nt-pin-zona" />
+              <circle r={14} className="nt-pin-zona" />
+              <circle r={11} className="nt-halo" />
               <FormaPin tipo={p.tipo} />
+              {esActivo ? <circle r={9} className="nt-anillo" /> : null}
               {n > 1 ? (
-                <text x={9} y={-7} className="nt-pin-cuenta">
-                  {n}
-                </text>
+                <g transform="translate(7,-7)" className="nt-cuenta">
+                  <rect x={-5.5} y={-5} width={11} height={10} rx={5} />
+                  <text textAnchor="middle" dy="0.35em">
+                    {n}
+                  </text>
+                </g>
               ) : null}
             </g>
           );
         })}
       </svg>
+      </div>
       {activo ? (
         <div
           className={`nt-ficha${fijo ? " nt-ficha-fija" : ""}${derecha ? " nt-ficha-derecha" : ""}${abajo ? " nt-ficha-arriba" : ""}`}
@@ -134,14 +163,14 @@ export function MapaInteractivo({
           onPointerEnter={() => setEncima(activo.id)}
         >
           <div className="nt-ficha-cabeza">
-            <svg width={16} height={16} viewBox="-9 -9 18 18" aria-hidden="true">
-              <FormaPin tipo={activo.tipo} />
-            </svg>
+            <IconoPin tipo={activo.tipo} tam={16} />
             <strong>{activo.lugar}</strong>
-            <span className="tenue">· {ETIQUETA_PIN[activo.tipo]}</span>
+            <span className={`etiqueta nt-tipo-${activo.tipo}`}>{ETIQUETA_PIN[activo.tipo]}</span>
             {fijo ? (
-              <button type="button" className="boton-texto nt-ficha-cerrar" onClick={() => setFijo(null)} aria-label="Cerrar">
-                ✕
+              <button type="button" className="nt-ficha-cerrar" onClick={() => setFijo(null)} aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
               </button>
             ) : null}
           </div>
@@ -153,13 +182,13 @@ export function MapaInteractivo({
                     {el.texto}
                   </a>
                 ) : (
-                  el.texto
+                  <span>{el.texto}</span>
                 )}
-                <span className="tenue"> · {el.detalle}</span>
+                <span className="nt-ficha-detalle">{el.detalle}</span>
               </li>
             ))}
           </ul>
-          {!fijo ? <p className="tenue nt-ficha-pista">Clic en el pin para fijar y abrir los enlaces.</p> : null}
+          {!fijo ? <p className="nt-ficha-pista">Clic en el pin para fijar y abrir los enlaces.</p> : null}
         </div>
       ) : null}
     </div>
