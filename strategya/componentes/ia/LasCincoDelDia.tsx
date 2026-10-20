@@ -2,6 +2,7 @@
 // redactado solo con titulares guardados. Sin IA o sin resumen de las últimas 24 h: los titulares más recientes.
 
 import "@/estilos/alertas-ia.css";
+import { Ayuda } from "@/componentes/alertas/Ayuda";
 import { PanelError } from "@/componentes/PanelError";
 import { agruparPorCategoria, NOMBRE_CATEGORIA } from "@/lib/alertas-ia";
 import { cincoDelDia, gastoIA, titularesRecientes } from "@/lib/datos-alertas-ia";
@@ -32,47 +33,63 @@ export async function LasCincoDelDia({ conBoton = true }: { conBoton?: boolean }
 
   return (
     <section className="panel ia-panel" aria-labelledby="t-cinco">
-      <div className="panel-cabecera">
+      <div className="panel-cabecera aj-cabecera">
         <h2 className="panel-titulo" id="t-cinco">
           Las 5 del día
         </h2>
-        {resumen ? (
-          <span className="sello">
-            <span title={fechaHoraRD(resumen.fecha)}>
-              Redactado con IA a las {horaRD(resumen.fecha)} ({hace(resumen.fecha, ahora)})
-            </span>
-            <span>· solo con titulares guardados, sin cifras propias</span>
-          </span>
-        ) : (
-          <span className="sello">Titulares más recientes (sin resumen de IA)</span>
-        )}
+        {resumen ? <span className="etiqueta ia-sello">Redactado con IA</span> : null}
+        <Ayuda titulo="¿Cómo se arma esto?">
+          Dos veces al día (7:35 AM y 5:05 PM, hora RD) la IA lee los titulares ya guardados y escoge las 5 noticias que más pesan. Solo
+          redacta: ninguna cifra sale de la IA y cada punto lleva el enlace a su fuente.
+        </Ayuda>
+        <p className="aj-subtitulo">
+          {resumen ? (
+            <>
+              Las 5 noticias que más pesan hoy, explicadas en simple.{" "}
+              <span className="tenue" title={fechaHoraRD(resumen.fecha)}>
+                {horaRD(resumen.fecha)} · {hace(resumen.fecha, ahora)}
+              </span>
+            </>
+          ) : (
+            "Los titulares más recientes de mercados y RD, tal como llegaron."
+          )}
+        </p>
       </div>
       <div className="panel-cuerpo">
         <AvisoIA estado={gasto.estado} gasto={gasto.gasto} />
         {resumen ? (
           <ol className="lista-cinco">
-            {resumen.lista.map((it) => (
-              <li key={it.url}>
-                <h3 className="cinco-titulo">{it.titulo}</h3>
-                <p>{it.resumen}</p>
-                <p>
-                  <strong className="ambar">¿Por qué?</strong> {it.porque}
-                </p>
-                <p>
-                  <strong className="rd">¿Y qué?</strong> {it.y_que}
-                </p>
-                <a href={it.url} target="_blank" rel="noopener noreferrer" className="chico">
-                  Fuente ↗
-                </a>
+            {resumen.lista.map((it, i) => (
+              <li key={it.url} className="cinco-item">
+                <span className="cinco-numero mono" aria-hidden="true">
+                  {i + 1}
+                </span>
+                <div className="cinco-cuerpo">
+                  <h3 className="cinco-titulo">{it.titulo}</h3>
+                  <p>{it.resumen}</p>
+                  <dl className="cinco-claves">
+                    <div>
+                      <dt>¿Por qué importa?</dt>
+                      <dd>{it.porque}</dd>
+                    </div>
+                    <div className="cinco-rd">
+                      <dt>¿Y para RD?</dt>
+                      <dd>{it.y_que}</dd>
+                    </div>
+                  </dl>
+                  <a href={it.url} target="_blank" rel="noopener noreferrer" className="chico">
+                    Leer la fuente <span aria-hidden="true">↗</span>
+                  </a>
+                </div>
               </li>
             ))}
           </ol>
         ) : (
           <>
             {gasto.estado.activa && !gasto.estado.topeAlcanzado ? (
-              <p className="chico tenue">No hay un resumen confirmado de las últimas 24 h. Se arma a las 7:35 AM y 5:05 PM (hora RD).</p>
+              <p className="chico tenue">Todavía no hay un resumen confirmado de las últimas 24 h. Se arma a las 7:35 AM y 5:05 PM (hora RD).</p>
             ) : null}
-            <TitularesRespaldo grupos={respaldo} ahora={ahora} vacio="Sin titulares guardados en las últimas 48 h: llegan con la tarea de noticias." />
+            <TitularesRespaldo grupos={respaldo} ahora={ahora} vacio="No hay titulares guardados de las últimas 48 h. Llegan solos con la lectura de noticias." />
           </>
         )}
         {conBoton && gasto.estado.activa && !gasto.estado.topeAlcanzado ? <BotonResumenIA /> : null}
