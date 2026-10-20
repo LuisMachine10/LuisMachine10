@@ -14,7 +14,7 @@ const PESTANAS: { id: PestanaCaja; ruta: string; texto: string; icono: NombreIco
 export function PestanasCaja({ actual, mes }: { actual: PestanaCaja; mes?: string }) {
   const marcada = actual === "importar" ? "ajustes" : actual;
   return (
-    <nav className="caja-pestanas" aria-label="Calendario de caja">
+    <nav className="caja-pestanas" aria-label="Mi presupuesto">
       {PESTANAS.map((p) => (
         <Link key={p.id} href={mes && p.id !== "ajustes" ? `${p.ruta}?mes=${mes}` : p.ruta} aria-current={marcada === p.id ? "page" : undefined}>
           <Icono n={p.icono} tam={16} />

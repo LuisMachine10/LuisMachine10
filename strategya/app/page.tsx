@@ -95,7 +95,7 @@ async function Pie({ ahora, estado }: { ahora: Date; estado: Awaited<ReturnType<
           <>
             <h2>No confirmado</h2>
             <p>
-              Todas las lecturas automáticas terminaron bien. Cada cifra se marca «desactualizado» si pasa de su antigüedad
+              Todas las lecturas automáticas terminaron bien. Cada cifra se marca «dato viejo» si pasa de su antigüedad
               máxima.
             </p>
           </>

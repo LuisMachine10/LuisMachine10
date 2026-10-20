@@ -15,7 +15,7 @@ import { armarVistaMes, catalogos, ultimoCuadre } from "@/lib/caja/vista";
 export const metadata: Metadata = { title: "Caja · Strategya" };
 export const dynamic = "force-dynamic";
 
-const TITULO = "Calendario de caja";
+const TITULO = "Mi presupuesto";
 const SUB = "Aquí ves cuánto dinero tendrás cada día y cuánto puedes gastar sin bajar de tu mínimo.";
 
 export default async function PaginaCaja({ searchParams }: { searchParams: Promise<{ mes?: string; dia?: string }> }) {
@@ -31,7 +31,7 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
   } catch (e) {
     return (
       <MarcoCaja actual="calendario" editadoEn={null} titulo={TITULO} sub={SUB}>
-        <PanelError titulo="Calendario de caja" mensaje={(e as Error).message} />
+        <PanelError titulo="Mi presupuesto" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
   }

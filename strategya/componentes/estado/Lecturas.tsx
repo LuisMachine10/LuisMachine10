@@ -53,7 +53,7 @@ export function ResumenLecturas({ lecturas }: { lecturas: Lectura[] }) {
     c.error === 0 && c.parcial === 0
       ? "Todo llegó bien. Las cifras de la terminal están al día."
       : c.error > 0
-        ? "Algunas lecturas fallaron: sus cifras pueden estar viejas y la pantalla lo marca como «desactualizado»."
+        ? "Algunas lecturas fallaron: sus cifras pueden estar viejas y la pantalla las marca como «dato viejo»."
         : "Algunas lecturas llegaron a medias: faltan datos de una parte de la fuente.";
   return (
     <section className="panel panel-ancho es-resumen" aria-labelledby="t-resumen-estado">
