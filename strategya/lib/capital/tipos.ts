@@ -7,15 +7,74 @@
 /** Número decimal como texto, sin exponente: "1234.5", "-0.05". */
 export type Dec = string;
 
+// Las 4 clases de instrumentos de Mena Capital. Los ids son el contrato con la base (CHECK de
+// personal.activos, migración 20261017000100_capital_clases) y con metaAsignacion.
 export const CLASES = [
-  { id: "efectivo", nom: "Efectivo", desc: "Disponible inmediato" },
-  { id: "ahorros", nom: "Ahorros bancarios", desc: "Cuentas a la vista" },
-  { id: "rentafija", nom: "Renta fija RD", desc: "Bonos, certificados, fideicomisos" },
-  { id: "accionesusa", nom: "Acciones EE. UU.", desc: "Acciones y ETF en dólares" },
+  { id: "efectivo", nom: "Efectivo", desc: "Billetera y caja: disponible al instante" },
+  { id: "ahorros", nom: "Cuentas de Ahorro", desc: "Cuentas bancarias a la vista" },
+  { id: "rentafija", nom: "Renta Fija", desc: "Bonos, certificados, mutuos y fondos de renta fija" },
+  { id: "rentavariable", nom: "Renta Variable", desc: "Acciones, ETF y fondos de renta variable" },
 ] as const;
 
 export type Clase = (typeof CLASES)[number]["id"];
 export const IDS_CLASE: readonly Clase[] = CLASES.map((c) => c.id);
+
+/**
+ * Nombres de clase que llegan de versiones anteriores del artefacto o escritos a mano, ya
+ * normalizados (minúsculas, sin acentos ni espacios, guiones ni puntos). Lo que no esté aquí ni sea
+ * un id de CLASES se rechaza: «fondo» a secas o «mixto» son ambiguos y Mena debe elegir la clase.
+ */
+export const ALIAS_CLASE: Record<string, Clase> = {
+  efectivo: "efectivo",
+  cash: "efectivo",
+  caja: "efectivo",
+  billetera: "efectivo",
+  ahorros: "ahorros",
+  ahorro: "ahorros",
+  cuentasdeahorro: "ahorros",
+  cuentadeahorro: "ahorros",
+  cuentasdeahorros: "ahorros",
+  cuentadeahorros: "ahorros",
+  ahorrosbancarios: "ahorros",
+  cuentaahorro: "ahorros",
+  rentafija: "rentafija",
+  rentafijard: "rentafija",
+  bono: "rentafija",
+  bonos: "rentafija",
+  certificado: "rentafija",
+  certificados: "rentafija",
+  certificadofinanciero: "rentafija",
+  fondorentafija: "rentafija",
+  fondoderentafija: "rentafija",
+  fondosderentafija: "rentafija",
+  rentavariable: "rentavariable",
+  accionesusa: "rentavariable",
+  acciones: "rentavariable",
+  accion: "rentavariable",
+  etf: "rentavariable",
+  etfs: "rentavariable",
+  fondorentavariable: "rentavariable",
+  fondoderentavariable: "rentavariable",
+  fondosderentavariable: "rentavariable",
+};
+
+/** Clave de búsqueda: «Renta Fija RD» → "rentafijard", «Acciones EE. UU.» → "accioneseeuu". */
+export function claveClase(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/** Traduce cualquier nombre conocido de clase a una de las 4. null = desconocida o ambigua. */
+export function normalizarClase(v: unknown): Clase | null {
+  if (typeof v !== "string") return null;
+  const k = claveClase(v);
+  if ((IDS_CLASE as readonly string[]).includes(k)) return k as Clase;
+  if (k === "accioneseeuu" || k === "accionesusa") return "rentavariable";
+  return ALIAS_CLASE[k] ?? null;
+}
 
 export const MONEDAS = ["DOP", "USD", "EUR"] as const;
 export type Moneda = (typeof MONEDAS)[number];
@@ -198,7 +257,7 @@ export function parametrosVacios(): Parametros {
     metaFondo: "0",
     metaAhorro: "0",
     metaUsoTC: "0",
-    metaAsignacion: { efectivo: "0", ahorros: "0", rentafija: "0", accionesusa: "0" },
+    metaAsignacion: { efectivo: "0", ahorros: "0", rentafija: "0", rentavariable: "0" },
     bandaRebalanceo: "0",
     maxEmisor: "0",
     escenarios: [],

@@ -102,10 +102,10 @@ describe("esquema personal de Mena Capital", () => {
     });
   });
 
-  it("simbolos_cartera: solo service_role, solo acciones y sin repetir", async () => {
+  it("simbolos_cartera: solo service_role, solo renta variable y sin repetir", async () => {
     await como(pool, "authenticated", MENA, async (c) => {
       await c.query("select personal.importar_capital($1::jsonb)", [carga()]);
-      await c.query("insert into personal.activos (id, clase, nombre, moneda, cantidad, simbolo) values ('a4', 'accionesusa', 'Dup', 'USD', 1, 'ABC'), ('a5', 'efectivo', 'Con símbolo', 'USD', 1, 'USD')");
+      await c.query("insert into personal.activos (id, clase, nombre, moneda, cantidad, simbolo) values ('a4', 'rentavariable', 'Dup', 'USD', 1, 'ABC'), ('a5', 'efectivo', 'Con símbolo', 'USD', 1, 'USD')");
       await debeFallar(c, "select mercado.simbolos_cartera()", /permission denied/);
       await c.query("set local role service_role");
       expect((await c.query("select mercado.simbolos_cartera() as s")).rows[0].s).toEqual(["ABC", "XYZ"]);

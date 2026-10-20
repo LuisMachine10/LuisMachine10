@@ -11,6 +11,7 @@ import {
   camposDe,
   cierreDeFormulario,
   desagregar,
+  instrumentoDeFormulario,
   mezclarParametros,
   modoCierre,
   numeroForm,
@@ -64,7 +65,7 @@ export async function guardarParametros(form: FormData): Promise<void> {
     const p = validarParametros(mezclarParametros(actual, seccion, c), r, "parámetros", false);
     if (!r.ok) throw new Error(errores(r));
     const db = await personal();
-    const { error } = await db.from("parametros").upsert({ id: 1, datos: p, actualizado_en: new Date().toISOString() });
+    const { error } = await db.from("parametros").upsert({ id: 1, datos: p, actualizado_en: new Date().toISOString() }, { onConflict: "id" });
     sinError(error, "los parámetros");
     return "Parámetros guardados";
   });
@@ -92,6 +93,38 @@ export async function guardarActivo(form: FormData): Promise<void> {
       sinError(error, "el instrumento");
     }
     return `${a.nombre} guardado`;
+  });
+  volver("/capital/cartera", c.mes, resultado);
+}
+
+/** Formulario simple de Cartera: un instrumento nuevo y, si trae fecha, su compra en el libro. */
+export async function agregarInstrumento(form: FormData): Promise<void> {
+  const c = camposDe(form);
+  const resultado = await intentar(async () => {
+    const { activo: crudo, compra } = instrumentoDeFormulario(c);
+    const r = new Registro();
+    const a = validarActivo(crudo, "instrumento", r);
+    if (!r.ok || !a) throw new Error(errores(r));
+    if (!a.cantidad || a.cantidad === "0") throw new Error("Escribe el monto (o la cantidad y el precio)");
+    const tx = compra
+      ? validarTransaccion(
+          { id: nuevoId("tx"), activoId: a.id, simbolo: a.simbolo ?? "", tipo: "compra", fecha: compra.fecha, cantidad: a.cantidad, precio: a.precio, comision: "0", moneda: a.moneda },
+          "compra",
+          r,
+        )
+      : null;
+    if (!r.ok) throw new Error(errores(r));
+    const db = await personal();
+    const { data, error: e1 } = await db.from("activos").select("orden").order("orden", { ascending: false }).limit(1);
+    sinError(e1, "el instrumento");
+    const orden = ((data?.[0]?.orden as number | undefined) ?? -1) + 1;
+    const { error } = await db.from("activos").insert(activoAFila(a, orden));
+    sinError(error, "el instrumento");
+    if (tx) {
+      const { error: e2 } = await db.from("transacciones").insert(transaccionAFila(tx));
+      sinError(e2, "la compra en el libro (el instrumento sí quedó guardado)");
+    }
+    return tx ? `${a.nombre} agregado y su compra anotada en el libro` : `${a.nombre} agregado`;
   });
   volver("/capital/cartera", c.mes, resultado);
 }
@@ -165,7 +198,7 @@ export async function guardarCierre(form: FormData): Promise<void> {
       cierre.cerrado = true;
     }
     const db = await personal();
-    const { error } = await db.from("cierres").upsert({ mes, datos: cierre, actualizado_en: new Date().toISOString() });
+    const { error } = await db.from("cierres").upsert({ mes, datos: cierre, actualizado_en: new Date().toISOString() }, { onConflict: "mes" });
     sinError(error, "el cierre");
     return modo === "cerrar" ? "Mes cerrado: patrimonio congelado" : "Cierre guardado";
   });
@@ -181,7 +214,7 @@ export async function desagregarCierre(form: FormData): Promise<void> {
     const guardado = datos.ctx.cierres[mes];
     if (!guardado?.agregado) throw new Error("Ese mes no es un agregado histórico");
     const db = await personal();
-    const { error } = await db.from("cierres").upsert({ mes, datos: desagregar(datos.ctx.p, guardado), actualizado_en: new Date().toISOString() });
+    const { error } = await db.from("cierres").upsert({ mes, datos: desagregar(datos.ctx.p, guardado), actualizado_en: new Date().toISOString() }, { onConflict: "mes" });
     sinError(error, "el cierre");
     return "Convertido a desglose";
   });
@@ -201,7 +234,7 @@ export async function guardarIps(form: FormData): Promise<void> {
     const ips = validarIps(crudo, r);
     if (!r.ok) throw new Error(errores(r));
     const db = await personal();
-    const { error } = await db.from("ips").upsert({ id: 1, datos: ips, actualizado_en: new Date().toISOString() });
+    const { error } = await db.from("ips").upsert({ id: 1, datos: ips, actualizado_en: new Date().toISOString() }, { onConflict: "id" });
     sinError(error, "la política");
     return revisada ? "Política marcada como revisada" : "Política guardada";
   });

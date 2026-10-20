@@ -30,7 +30,7 @@ export async function PaginaCapital({
       <Marco actual={actual} mes={mes} hoyMes={hoy.slice(0, 7)} aviso={aviso}>
         <PanelError titulo="Mena Capital" mensaje={mensaje} />
         {/schema must be one of|Invalid schema/i.test(mensaje) ? (
-          <p className="cap-aviso info cap-ancho">
+          <p className="cap-aviso cap-ancho">
             Mena Capital vive en el esquema <span className="mono">personal</span>: agrégalo también en Exposed schemas.
           </p>
         ) : null}

@@ -68,6 +68,21 @@ export function mesLargo(k: string): string {
   return `${MESES[Number(m) - 1]} ${y}`;
 }
 
+/** Último día del mes: "2026-02" → "2026-02-28". */
+export function finDeMes(k: string): string {
+  const [y, m] = k.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+}
+
+/** Fecha a n meses de otra, el mismo día (o el último del mes si no existe): ("2026-01-31", 1) → "2026-02-28". */
+export function sumarMeses(fecha: string, n: number): string {
+  const [y, m, d] = fecha.split("-").map(Number);
+  const base = new Date(Date.UTC(y, m - 1 + n, 1));
+  const ultimo = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate();
+  base.setUTCDate(Math.min(d, ultimo));
+  return base.toISOString().slice(0, 10);
+}
+
 export function mesCorto(k: string): string {
   const [y, m] = k.split("-");
   return `${MESES[Number(m) - 1].slice(0, 3).toLowerCase()} ${y.slice(2)}`;

@@ -7,6 +7,7 @@ import {
   type Cierre,
   cierreVacio,
   type Dec,
+  IDS_CLASE,
   LISTAS_PRESUPUESTO,
   type ListaPresupuesto,
   type Parametros,
@@ -74,9 +75,11 @@ export function mezclarParametros(actual: Parametros, seccion: SeccionParametros
     p.fx = { USD: numeroForm(c["fx.USD"]) || null, EUR: numeroForm(c["fx.EUR"]) || null };
     p.fxUpdated = c.fxUpdated || null;
   } else if (seccion === "asignacion") {
-    p.metaAsignacion = Object.fromEntries(["efectivo", "ahorros", "rentafija", "accionesusa"].map((k) => [k, pctForm(c[`meta.${k}`]) || "0"]));
+    p.metaAsignacion = Object.fromEntries(IDS_CLASE.map((k) => [k, pctForm(c[`meta.${k}`]) || "0"]));
     p.bandaRebalanceo = pctForm(c.bandaRebalanceo) || "0";
     p.maxEmisor = pctForm(c.maxEmisor) || "0";
+    // La pestaña Política también escribe los meses de gasto que deben estar en efectivo.
+    if (c.metaFondo !== undefined) p.metaFondo = numeroForm(c.metaFondo) || "0";
   } else if (seccion === "tarjetas") {
     p.tarjetas = filas(c, "tarjetas")
       .filter((f) => (f.nombre ?? "").trim())
@@ -127,6 +130,30 @@ export function activoDeFormulario(c: Campos): Record<string, unknown> {
     venc: c.venc ?? "",
     tipoRF: c.tipoRF || null,
   };
+}
+
+/**
+ * Instrumento nuevo desde el formulario simple de Cartera. Dos formas de escribir el valor:
+ *   · modo «monto»: un saldo (cantidad = monto, precio = 1)
+ *   · modo «unidades»: cantidad × precio unitario
+ * La fecha (opcional) registra la compra en el libro de transacciones con esa cantidad y precio.
+ */
+export function instrumentoDeFormulario(c: Campos): { activo: Record<string, unknown>; compra: { fecha: string; cantidad: string; precio: string } | null } {
+  const unidades = c.modo === "unidades";
+  const cantidad = unidades ? numeroForm(c.cantidad) : numeroForm(c.monto);
+  const precio = unidades ? numeroForm(c.precio) || "1" : "1";
+  // Lo que no aplica a la clase elegida no se guarda (el formulario lo oculta, pero el navegador lo envía).
+  const activo = activoDeFormulario({
+    ...c,
+    id: "",
+    cantidad,
+    precio,
+    simbolo: c.clase === "rentavariable" ? (c.simbolo ?? "") : "",
+    venc: c.clase === "rentafija" ? (c.venc ?? "") : "",
+    tipoRF: c.clase === "rentafija" ? (c.tipoRF ?? "") : "",
+  });
+  const fecha = (c.fecha ?? "").trim();
+  return { activo, compra: fecha ? { fecha, cantidad, precio } : null };
 }
 
 export type ModoCierre = "guardar" | "cerrar" | `presupuesto:${ListaPresupuesto}` | `limpiar:${ListaPresupuesto}`;

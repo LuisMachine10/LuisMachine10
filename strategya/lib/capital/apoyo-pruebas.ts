@@ -16,7 +16,7 @@ export function parametrosEjemplo(): Parametros {
     metaFondo: "4",
     metaAhorro: "0.15",
     metaUsoTC: "0.35",
-    metaAsignacion: { efectivo: "0.1", ahorros: "0.1", rentafija: "0.5", accionesusa: "0.3" },
+    metaAsignacion: { efectivo: "0.1", ahorros: "0.1", rentafija: "0.5", rentavariable: "0.3" },
     bandaRebalanceo: "0.03",
     maxEmisor: "0.3",
     escenarios: [
@@ -38,7 +38,7 @@ export function activosEjemplo(): Activo[] {
     { ...base, id: "a2", clase: "ahorros", nombre: "Ahorros", inst: "Banco A", moneda: "DOP", cantidad: "50000", tasa: "0.05" },
     { ...base, id: "a3", clase: "ahorros", nombre: "Ahorros US$", inst: "Banco A", moneda: "USD", cantidad: "500" },
     { ...base, id: "a4", clase: "rentafija", nombre: "Certificado", inst: "Banco B", moneda: "DOP", cantidad: "100000", tasa: "0.1", venc: "2027-10-15", tipoRF: "acumula" },
-    { ...base, id: "a5", clase: "accionesusa", nombre: "Acción X", inst: "Corredor", moneda: "USD", cantidad: "10", precio: "100", simbolo: "XXX" },
+    { ...base, id: "a5", clase: "rentavariable", nombre: "Acción X", inst: "Corredor", moneda: "USD", cantidad: "10", precio: "100", simbolo: "XXX" },
   ];
 }
 

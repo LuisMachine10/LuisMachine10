@@ -56,7 +56,7 @@ describe("analizarArchivo", () => {
   });
 
   it("arma el resumen de lo que se va a importar", () => {
-    expect(r.resumen.activos).toEqual({ total: 4, porClase: { ahorros: 1, rentafija: 2, accionesusa: 1 }, conSimbolo: ["ABC"] });
+    expect(r.resumen.activos).toEqual({ total: 4, porClase: { ahorros: 1, rentafija: 2, rentavariable: 1 }, conSimbolo: ["ABC"] });
     expect(r.resumen.cierres).toEqual({ total: 2, desde: "2026-01", hasta: "2026-02", conFoto: 1, cerrados: 2 });
     expect(r.resumen.transacciones).toMatchObject({ total: 1, desde: "2026-03-02", sinActivo: 0 });
     expect(r.resumen.parametros).toMatchObject({ tarjetas: 1, partidas: 2, escenarios: 1, fxManual: ["USD", "EUR"] });
@@ -104,7 +104,7 @@ describe("analizarArchivo · errores", () => {
     }`);
     expect(r.ok).toBe(false);
     const todo = r.errores.join("\n");
-    expect(todo).toMatch(/activos\[0\]\.clase: clase desconocida «cripto»/);
+    expect(todo).toMatch(/activos\[0\]\.clase: clase desconocida o ambigua «cripto»/);
     expect(todo).toMatch(/activos\[0\]\.moneda: moneda desconocida «BTC»/);
     expect(todo).toMatch(/activos\[0\]\.cantidad: «uno» no es un número/);
     expect(todo).toMatch(/activos\[1\]\.venc: fecha inválida/);
@@ -129,6 +129,62 @@ describe("analizarArchivo · errores", () => {
     expect(r.datos.parametros!.inflacion).toBe("0.05");
     expect(r.datos.parametros!.fx).toEqual({ USD: null, EUR: null });
     expect(r.avisos[0]).toMatch(/no trae fx/);
+  });
+});
+
+describe("las 4 clases de instrumentos", () => {
+  it("traduce las clases del artefacto (y nombres comunes) a Efectivo, Cuentas de Ahorro, Renta Fija y Renta Variable", () => {
+    const fila = (id: string, clase: string) => ({ id, clase, nombre: id, moneda: "DOP", cantidad: 1 });
+    const r = analizarArchivo(
+      JSON.stringify({
+        parametros: { metaAsignacion: { efectivo: 0.1, ahorros: 0.1, rentafija: 0.45, accionesusa: 0.35 } },
+        activos: [
+          fila("e", "efectivo"),
+          fila("h", "Cuentas de Ahorro"),
+          fila("b", "bonos"),
+          fila("c", "Certificados"),
+          fila("f", "fondo de renta fija"),
+          fila("rf", "Renta Fija RD"),
+          fila("a", "accionesusa"),
+          fila("x", "Acciones EE. UU."),
+          fila("t", "ETF"),
+          fila("v", "fondo de renta variable"),
+        ],
+      }),
+    );
+    expect(r.errores).toEqual([]);
+    expect(r.datos.activos!.map((a) => a.clase)).toEqual([
+      "efectivo",
+      "ahorros",
+      "rentafija",
+      "rentafija",
+      "rentafija",
+      "rentafija",
+      "rentavariable",
+      "rentavariable",
+      "rentavariable",
+      "rentavariable",
+    ]);
+    expect(r.datos.parametros!.metaAsignacion).toEqual({ efectivo: "0.1", ahorros: "0.1", rentafija: "0.45", rentavariable: "0.35" });
+    expect(r.avisos.join("\n")).toMatch(/accionesusa → Renta Variable/);
+    expect(r.avisos.join("\n")).toMatch(/«bonos» se guarda como Renta Fija/);
+    expect(r.resumen.activos!.porClase).toEqual({ efectivo: 1, ahorros: 1, rentafija: 4, rentavariable: 4 });
+  });
+
+  it("un nombre ambiguo (fondo a secas, mixto) se rechaza con la lista de las 4 clases", () => {
+    const r = analizarArchivo(
+      '{"activos": [{"id": "a", "clase": "fondo", "nombre": "F", "moneda": "DOP", "cantidad": 1}, {"id": "b", "clase": "mixto", "nombre": "M", "moneda": "DOP", "cantidad": 1}]}',
+    );
+    expect(r.ok).toBe(false);
+    expect(r.errores[0]).toMatch(/clase desconocida o ambigua «fondo»: usa una de Efectivo, Cuentas de Ahorro, Renta Fija, Renta Variable/);
+    expect(r.errores[1]).toMatch(/«mixto»/);
+  });
+
+  it("solo la renta fija lleva estructura (acumula o cupón)", () => {
+    const r = analizarArchivo(
+      '{"activos": [{"id": "a", "clase": "bonos", "nombre": "B", "moneda": "DOP", "cantidad": 1}, {"id": "b", "clase": "etf", "nombre": "E", "moneda": "USD", "cantidad": 1, "tipoRF": "cupon"}]}',
+    );
+    expect(r.datos.activos!.map((a) => a.tipoRF)).toEqual(["acumula", null]);
   });
 });
 

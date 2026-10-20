@@ -17,7 +17,7 @@ let pool: pg.Pool;
 beforeAll(async () => {
   pool = await baseNueva("strategya_pruebas_capital_precios");
   await pool.query(
-    "insert into personal.activos (id, clase, nombre, moneda, cantidad, simbolo) values ('a1', 'accionesusa', 'Ejemplo', 'USD', 1, 'EJEMPLO')",
+    "insert into personal.activos (id, clase, nombre, moneda, cantidad, simbolo) values ('a1', 'rentavariable', 'Ejemplo', 'USD', 1, 'EJEMPLO')",
   );
 });
 
