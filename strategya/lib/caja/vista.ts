@@ -28,6 +28,8 @@ export interface Celda {
   disponible: string | null;
   abreviado: string | null;
   ingreso: boolean;
+  /** Hubo un gasto o pago registrado ese día. */
+  gasto: boolean;
   planificados: number;
   porConfirmar: number;
   registrados: number;
@@ -104,6 +106,7 @@ export function armarVistaMes(datos: DatosCaja, sim: Simulacion, mes: Mes): Vist
       disponible: d?.disponible ?? null,
       abreviado: d ? abreviado(d.disponible) : null,
       ingreso: !!d?.tieneIngreso,
+      gasto: !!d?.registrados.some((m) => m.tipo === "gasto" || m.tipo === "pago_tarjeta"),
       planificados: d?.planificados.length ?? 0,
       porConfirmar: d?.porConfirmar.length ?? 0,
       registrados: d?.registrados.length ?? 0,

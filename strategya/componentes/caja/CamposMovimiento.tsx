@@ -28,11 +28,11 @@ export interface ValoresMovimiento {
   nota?: string | null;
 }
 
-export function SelectCuenta({ nombre, valor, cuentas, soloTarjetas = false, etiqueta }: { nombre: string; valor?: string | null; cuentas: OpcionCuenta[]; soloTarjetas?: boolean; etiqueta: string }) {
+export function SelectCuenta({ nombre, valor, cuentas, soloTarjetas = false, etiqueta, className }: { nombre: string; valor?: string | null; cuentas: OpcionCuenta[]; soloTarjetas?: boolean; etiqueta: string; className?: string }) {
   const lista = soloTarjetas ? cuentas.filter((c) => c.tipo === "tarjeta") : cuentas;
   const desconocida = valor && !cuentas.some((c) => c.id === valor);
   return (
-    <label>
+    <label className={className}>
       {etiqueta}
       <select name={nombre} defaultValue={valor ?? ""} required>
         <option value="" disabled>
@@ -90,6 +90,13 @@ export function CamposMovimiento({
   const conDestino = tipo === "transferencia" || tipo === "pago_tarjeta";
   return (
     <div className="caja-campos">
+      <div className="caja-campo ancho caja-campo-monto">
+        <label htmlFor={`${id}-monto`}>Monto</label>
+        <div className="caja-monto">
+          <span aria-hidden="true">{moneda === "USD" ? "US$" : "RD$"}</span>
+          <input id={`${id}-monto`} name="monto" inputMode="decimal" autoComplete="off" required defaultValue={v.monto ?? ""} placeholder="Ej.: 1,250" />
+        </div>
+      </div>
       <label>
         Tipo
         <select name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoMovimiento)}>
@@ -100,41 +107,33 @@ export function CamposMovimiento({
           ))}
         </select>
       </label>
-      <label htmlFor={`${id}-monto`}>
-        Monto
-        <input id={`${id}-monto`} name="monto" inputMode="decimal" autoComplete="off" required defaultValue={v.monto ?? ""} placeholder="0.00" />
-      </label>
       <label>
         Moneda
         <select name="moneda" value={moneda} onChange={(e) => setMoneda(e.target.value as Moneda)}>
           {MONEDAS.map((m) => (
             <option key={m} value={m}>
-              {m === "DOP" ? "RD$" : "US$"}
+              {m === "DOP" ? "Pesos (RD$)" : "Dólares (US$)"}
             </option>
           ))}
         </select>
       </label>
       {moneda === "USD" ? (
-        <label>
-          Tasa RD$/US$
-          <input name="tasa" inputMode="decimal" autoComplete="off" defaultValue={v.tasa ?? ""} placeholder="la general" />
+        <label className="ancho">
+          Tasa: cuántos RD$ por US$ (opcional)
+          <input name="tasa" inputMode="decimal" autoComplete="off" defaultValue={v.tasa ?? ""} placeholder="Vacío = la tasa general de Ajustes" />
         </label>
-      ) : (
-        <span aria-hidden="true" />
-      )}
-      <SelectCuenta nombre="cuenta" valor={v.cuenta} cuentas={cuentas} etiqueta={conDestino ? "Desde la cuenta" : "Cuenta"} />
+      ) : null}
+      <SelectCuenta nombre="cuenta" valor={v.cuenta} cuentas={cuentas} className={conDestino ? undefined : "ancho"} etiqueta={conDestino ? "Sale de" : tipo === "ingreso" ? "¿A qué cuenta entra?" : "¿Con qué pagaste?"} />
       {conDestino ? (
-        <SelectCuenta key={tipo} nombre="destino" valor={v.destino} cuentas={cuentas} soloTarjetas={tipo === "pago_tarjeta"} etiqueta={tipo === "pago_tarjeta" ? "Tarjeta" : "Hacia la cuenta"} />
-      ) : (
-        <span aria-hidden="true" />
-      )}
+        <SelectCuenta key={tipo} nombre="destino" valor={v.destino} cuentas={cuentas} soloTarjetas={tipo === "pago_tarjeta"} etiqueta={tipo === "pago_tarjeta" ? "Tarjeta que pagas" : "Entra a"} />
+      ) : null}
       <div className="ancho">
         <SelectCategoria valor={v.categoria} categorias={categorias} />
       </div>
       {conNota ? (
         <label className="ancho">
-          Nota
-          <input name="nota" maxLength={500} defaultValue={v.nota ?? ""} autoComplete="off" />
+          ¿En qué fue? (opcional)
+          <input name="nota" maxLength={500} defaultValue={v.nota ?? ""} autoComplete="off" placeholder="Ej.: Supermercado" />
         </label>
       ) : null}
     </div>

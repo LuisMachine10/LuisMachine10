@@ -4,8 +4,11 @@
 // (puro, con pruebas) y escribe con la sesión de Mena: RLS en la base es la barrera real.
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
+import { armarDesdeAsistente, leerAsistente } from "@/lib/caja/asistente";
+import { leerCaja } from "@/lib/caja/datos";
 import { aJsonSQL, parsearImportacion, type ResumenImportacion } from "@/lib/caja/importar";
-import { esFecha } from "@/lib/caja/fechas";
+import { esFecha, hoyRD } from "@/lib/caja/fechas";
 import {
   type Campos,
   validarCategoria,
@@ -301,6 +304,31 @@ export async function eliminarRecurrente(_p: EstadoAccion, form: FormData): Prom
   await db.from("caja_omitidos").delete().eq("recurrente_id", id);
   refrescar();
   return bien("Eliminado. Los movimientos que ya confirmaste se quedan.");
+}
+
+// ───────────────────────── Asistente de bienvenida ─────────────────────────
+
+/**
+ * Guarda todo el asistente (cuentas, ingresos y gastos fijos, colchón) en una sola transacción con la
+ * misma función de la base que la importación (caja_importar: verifica que sea la dueña o el dueño y,
+ * si algo falla, no cambia nada). Lo que ya existiera sin configuración se conserva.
+ */
+export async function crearCajaDesdeAsistente(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const a = leerAsistente(String(form.get("datos") ?? ""));
+  if (!a.ok) return mal(a.error);
+  let actual: Awaited<ReturnType<typeof leerCaja>>;
+  try {
+    actual = await leerCaja();
+  } catch (e) {
+    return mal(`No se pudo leer tu caja para guardar: ${(e as Error).message}. Revisa tu conexión e inténtalo de nuevo.`);
+  }
+  if (actual.datos.config) return mal("Tu calendario ya estaba creado. Para cambiar algo, ve a Ajustes de la caja.");
+  const r = armarDesdeAsistente(a.valor, hoyRD(), actual.datos, randomUUID);
+  if (!r.ok) return mal(r.error);
+  const { error } = await (await personal()).rpc("caja_importar", { p_datos: aJsonSQL(r.valor) });
+  if (error) return mal(`No se guardó nada (la base respondió: ${error.message}). Inténtalo de nuevo en un momento.`);
+  refrescar();
+  return bien("¡Listo! Tu calendario ya está funcionando.");
 }
 
 // ───────────────────────── Importar ─────────────────────────
