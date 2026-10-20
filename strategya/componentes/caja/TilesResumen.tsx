@@ -1,54 +1,81 @@
-// Tiles de arriba del Calendario de Caja (y de la sección Caja de la terminal).
+// Mosaicos de arriba del Calendario de Caja (y de la sección Caja de la terminal): la cifra que
+// importa grande, lo demás pequeño. Cada término tiene su «?» con una explicación corta.
 
 import Big from "big.js";
 import { fechaBreve } from "@/lib/caja/fechas";
 import { rd } from "@/lib/caja/formato";
 import { NOMBRE_ESTADO, type ResumenCalculado } from "@/lib/caja/motor";
+import { Ayuda } from "./Iconos";
+
+const ESTADO_CORTO = { holgado: "Holgado", cerca: "Cerca del mínimo", bajo: "Bajo tu mínimo" } as const;
 
 export function TilesResumen({ r, colchon }: { r: ResumenCalculado; colchon: string }) {
   const pc = r.porConfirmar;
+  const tieneAhorro = r.ahorroTotal && new Big(r.ahorroTotal).gt(0);
   return (
-    <div className="caja-tiles">
-      <div className="caja-tile principal">
-        <p className="caja-tile-titulo">
+    <div className="caja-mosaicos-marco">
+    <div className="caja-mosaicos">
+      <div className="caja-mosaico principal">
+        <div className="caja-mosaico-titulo">
           {r.puedesGastar?.hasta ? `Puedes gastar hasta el ${fechaBreve(r.puedesGastar.hasta)}` : "Puedes gastar"}
-        </p>
+          <Ayuda que="«puedes gastar»">
+            Lo que te sobra por encima de tu colchón ({rd(colchon)}) en el día más apretado
+            {r.puedesGastar?.hasta ? " antes de tu próximo ingreso" : " de los próximos 62 días"}. Si gastas más, algún día bajarías de tu
+            mínimo.
+          </Ayuda>
+        </div>
         {r.puedesGastar ? (
           <>
-            <p className="caja-tile-cifra">{rd(r.puedesGastar.monto)}</p>
-            <p className="caja-tile-nota">
-              {r.puedesGastar.hasta
-                ? `Lo que sobra sobre tu colchón (${rd(colchon)}) en el día más justo antes del próximo ingreso (${fechaBreve(r.puedesGastar.diaMinimo)}).`
-                : `Sin ingreso a la vista en los próximos 62 días: lo que sobra sobre tu colchón (${rd(colchon)}) en el día más justo (${fechaBreve(r.puedesGastar.diaMinimo)}).`}
+            <p className={`caja-mosaico-cifra ${new Big(r.puedesGastar.monto).gt(0) ? "" : "baja"}`}>{rd(r.puedesGastar.monto)}</p>
+            <p className="caja-mosaico-nota">
+              {new Big(r.puedesGastar.monto).gt(0)
+                ? `Sin bajar de tu colchón. Tu día más justo: ${fechaBreve(r.puedesGastar.diaMinimo)}.`
+                : `Nada: el ${fechaBreve(r.puedesGastar.diaMinimo)} quedas en tu colchón o por debajo.`}
             </p>
           </>
         ) : (
-          <p className="caja-tile-nota">Sin días simulados desde hoy.</p>
+          <p className="caja-mosaico-nota">Todavía no hay días calculados desde hoy.</p>
         )}
+        {tieneAhorro ? (
+          <p className="caja-mosaico-extra">
+            Además tienes <strong className="mono">{rd(r.ahorroTotal!)}</strong> en ahorro e inversión (no se cuenta para gastar).
+          </p>
+        ) : null}
       </div>
-      <div className="caja-tile">
-        <p className="caja-tile-titulo">Disponible hoy</p>
-        <p className="caja-tile-cifra">{r.disponibleHoy ? rd(r.disponibleHoy) : "—"}</p>
+
+      <div className="caja-mosaico">
+        <div className="caja-mosaico-titulo">
+          Disponible hoy
+          <Ayuda que="«disponible hoy»">Lo que tienes hoy en tus cuentas de banco y en efectivo, después de lo de hoy. No incluye ahorro ni tarjetas.</Ayuda>
+        </div>
+        <p className="caja-mosaico-cifra chica">{r.disponibleHoy ? rd(r.disponibleHoy) : "—"}</p>
         {r.estadoHoy ? (
-          <p className="caja-tile-nota">
-            <span className={`caja-estado ${r.estadoHoy}`}>{NOMBRE_ESTADO[r.estadoHoy]}</span> · banco + efectivo
+          <p className="caja-mosaico-nota">
+            <span className={`caja-estado ${r.estadoHoy}`} title={NOMBRE_ESTADO[r.estadoHoy]}>
+              {ESTADO_CORTO[r.estadoHoy]}
+            </span>
           </p>
         ) : (
-          <p className="caja-tile-nota">Hoy es antes del inicio de la simulación.</p>
+          <p className="caja-mosaico-nota">Tu calendario empieza más adelante.</p>
         )}
       </div>
-      <div className="caja-tile">
-        <p className="caja-tile-titulo">Deuda en tarjetas</p>
-        <p className="caja-tile-cifra">{r.deudaTarjetas ? rd(r.deudaTarjetas) : "—"}</p>
+
+      <div className="caja-mosaico">
+        <div className="caja-mosaico-titulo">Deuda en tarjetas</div>
+        <p className="caja-mosaico-cifra chica">{r.deudaTarjetas ? rd(r.deudaTarjetas) : "—"}</p>
+        <p className="caja-mosaico-nota">{r.deudaTarjetas && new Big(r.deudaTarjetas).gt(0) ? "Lo que debes hoy" : "No debes nada"}</p>
       </div>
-      <div className="caja-tile">
-        <p className="caja-tile-titulo">Ahorro e inversión</p>
-        <p className="caja-tile-cifra">{r.ahorroTotal ? rd(r.ahorroTotal) : "—"}</p>
-      </div>
-      <div className="caja-tile">
-        <p className="caja-tile-titulo">Por confirmar</p>
-        <p className={`caja-tile-cifra ${pc.cantidad ? "" : "tenue"}`}>{pc.cantidad}</p>
-        <p className="caja-tile-nota">
+
+      <div className="caja-mosaico">
+        <div className="caja-mosaico-titulo">
+          Por confirmar
+          <Ayuda que="«por confirmar»">
+            Pagos o cobros fijos de días que ya pasaron y que no has marcado como hechos. No se cuentan hasta que los confirmes: toca el día
+            con punto ámbar.
+          </Ayuda>
+        </div>
+        <p className={`caja-mosaico-cifra chica ${pc.cantidad ? "alerta" : "tenue"}`}>{pc.cantidad}</p>
+        <p className="caja-mosaico-nota">
           {pc.cantidad
             ? [
                 new Big(pc.salidas).gt(0) ? `${rd(pc.salidas)} en gastos` : null,
@@ -57,10 +84,11 @@ export function TilesResumen({ r, colchon }: { r: ResumenCalculado; colchon: str
                 pc.sinTasa ? `${pc.sinTasa} en US$ sin tasa` : null,
               ]
                 .filter(Boolean)
-                .join(" · ") || "recurrentes pasados sin confirmar"
-            : "Nada pendiente de días pasados."}
+                .join(" · ") || "fijos pasados sin confirmar"
+            : "Todo al día"}
         </p>
       </div>
+    </div>
     </div>
   );
 }

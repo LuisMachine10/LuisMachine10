@@ -18,6 +18,7 @@ export function FormAccion({
   etiqueta,
   children,
   className = "caja-form",
+  alTerminar,
 }: {
   accion: Accion;
   boton: string;
@@ -26,11 +27,18 @@ export function FormAccion({
   etiqueta?: string;
   children?: React.ReactNode;
   className?: string;
+  /** Se llama cuando la acción salió bien (p. ej., para cerrar la ventana). */
+  alTerminar?: () => void;
 }) {
   const [estado, enviar, pendiente] = useActionState(accion, INICIAL);
   const ref = useRef<HTMLFormElement>(null);
+  const terminar = useRef(alTerminar);
+  useEffect(() => {
+    terminar.current = alTerminar;
+  });
   useEffect(() => {
     if (estado.ok && reiniciar) ref.current?.reset();
+    if (estado.ok && estado.vez) terminar.current?.();
   }, [estado.vez, estado.ok, reiniciar]);
   return (
     <form

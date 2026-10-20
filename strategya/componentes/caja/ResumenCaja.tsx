@@ -31,10 +31,12 @@ export async function ResumenCaja({ ahora = new Date() }: { ahora?: Date } = {})
             Caja
           </h2>
         </div>
-        <p className="vacio">
-          Sin datos todavía: <Link href="/caja/importar">importa tu Calendario de Caja</Link> o ponle una fecha de inicio en{" "}
-          <Link href="/caja/ajustes">Ajustes</Link>.
-        </p>
+        <div className="panel-cuerpo caja-resumen-vacio">
+          <p className="tenue">Anota tus cuentas y tus pagos fijos una vez y aquí verás cuánto puedes gastar sin quedarte corto.</p>
+          <Link href="/caja" className="boton caja-boton-grande">
+            Crear mi calendario
+          </Link>
+        </div>
       </section>
     );
   }
@@ -47,20 +49,18 @@ export async function ResumenCaja({ ahora = new Date() }: { ahora?: Date } = {})
     <section className="panel caja" aria-labelledby="t-resumen-caja">
       <div className="panel-cabecera">
         <h2 className="panel-titulo" id="t-resumen-caja">
-          <Link href="/caja">Caja</Link>
+          <Link href="/caja">Tu caja</Link>
         </h2>
         <SelloCaja ultimoCuadre={ultimoCuadre(datos, hoy)} inicio={datos.config.inicio} editadoEn={editadoEn} ahora={ahora} />
       </div>
       <div className="panel-cuerpo">
         <TilesResumen r={r} colchon={datos.config.colchon} />
         {sim.advertencias.map((a) => (
-          <p key={a} className="caja-mensaje error">
+          <p key={a} className="caja-aviso">
             {a}
           </p>
         ))}
-        <h3 className="caja-tile-titulo" style={{ marginTop: 12 }}>
-          Próximos 7 días
-        </h3>
+        <h3 className="caja-subtitulo">Lo que viene en 7 días</h3>
         {siguientes.length ? (
           <ul className="caja-resumen-proximos">
             {siguientes.slice(0, 8).map(({ fecha, o }) => (
@@ -82,7 +82,7 @@ export async function ResumenCaja({ ahora = new Date() }: { ahora?: Date } = {})
             ) : null}
           </ul>
         ) : (
-          <p className="tenue chico">Nada planificado en los próximos 7 días.</p>
+          <p className="tenue chico">Nada programado en los próximos 7 días.</p>
         )}
       </div>
     </section>

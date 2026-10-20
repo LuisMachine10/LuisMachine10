@@ -1,8 +1,9 @@
 // Sello de las cifras de la caja: la fuente son los registros de Mena; la fecha del dato es el último
-// cuadre con el banco (lo último verificado contra una fuente real). Sin cuadre en 35 días → DESACTUALIZADO.
+// cuadre con el banco (o, si nunca se cuadró, los saldos de inicio que Mena escribió). Si esa
+// referencia tiene más de 35 días → DESACTUALIZADO.
 
 import { SelloFuente } from "@/componentes/SelloFuente";
-import type { Fecha } from "@/lib/caja/fechas";
+import { diasEntre, type Fecha, hoyRD } from "@/lib/caja/fechas";
 
 export const DIAS_CUADRE_VIGENTE = 35;
 
@@ -17,9 +18,11 @@ export function SelloCaja({
   editadoEn: string | null;
   ahora: Date;
 }) {
-  const vencido = ultimoCuadre.dias == null || ultimoCuadre.dias > DIAS_CUADRE_VIGENTE;
+  // Sin cuadre, la referencia son los saldos iniciales que Mena escribió en la fecha de inicio.
+  const dias = ultimoCuadre.dias ?? Math.max(0, diasEntre(inicio, hoyRD(ahora)));
+  const vencido = dias > DIAS_CUADRE_VIGENTE;
   return (
-    <div>
+    <div className="caja-sello">
       <SelloFuente
         ahora={ahora}
         d={{
@@ -32,10 +35,10 @@ export function SelloCaja({
         }}
       />
       {vencido ? (
-        <p className="sello">
+        <p className="sello caja-sello-nota">
           {ultimoCuadre.fecha
-            ? `Último cuadre con tu banco hace ${ultimoCuadre.dias} días: cuadra un saldo real para corregir la posición.`
-            : "Nunca has cuadrado con tu banco: los saldos salen de los saldos iniciales y lo registrado."}
+            ? `Último cuadre con tu banco hace ${ultimoCuadre.dias} días. Toca un día y usa «Cuadrar con tu banco» para corregirlo.`
+            : `Tus saldos de inicio tienen ${dias} días y nunca los has comparado con tu banco. Toca un día y usa «Cuadrar con tu banco».`}
         </p>
       ) : null}
     </div>
