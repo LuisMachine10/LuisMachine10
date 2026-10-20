@@ -112,8 +112,6 @@ a:focus-visible {
   gap: 2px;
   font-size: 14px;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
   white-space: nowrap;
 }
 .nav::-webkit-scrollbar {
@@ -174,6 +172,104 @@ a:focus-visible {
   color: var(--texto);
   border-color: var(--borde-fuerte);
 }
+/* Menú: nombre largo en escritorio, corto en pantallas medianas y en el celular; «Más» abre un menú. */
+.nav-corto,
+.solo-movil {
+  display: none !important;
+}
+.nav-mas {
+  position: relative;
+}
+.nav-mas > summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: var(--radio-chico);
+  color: var(--texto-2);
+  font-weight: 500;
+  cursor: pointer;
+}
+.nav-mas > summary::-webkit-details-marker {
+  display: none;
+}
+.nav-mas > summary svg {
+  width: 16px;
+  height: 16px;
+}
+.nav-mas > summary:hover,
+.nav-mas[open] > summary {
+  background: var(--panel-alto);
+  color: var(--texto);
+}
+.nav-mas > summary[aria-current="page"] {
+  background: var(--acento-suave);
+  color: #fff;
+}
+.nav-mas-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  white-space: normal;
+}
+.nav-mas-menu a {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radio-chico);
+  color: var(--texto);
+}
+.nav-mas-menu a:hover {
+  background: var(--panel-hover);
+  text-decoration: none;
+}
+.nav-mas-menu a[aria-current="page"] {
+  background: var(--acento-suave);
+}
+.nav-mas-menu a svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 2px;
+  color: #7aa2ff;
+}
+.nav-mas-menu strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.nav-mas-menu small {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--texto-2);
+}
+@media (min-width: 900px) and (max-width: 1399px) {
+  .nav-largo {
+    display: none;
+  }
+  .nav-corto {
+    display: inline !important;
+  }
+}
+@media (min-width: 900px) and (max-width: 1099px) {
+  .nav > a svg {
+    display: none;
+  }
+}
+
 /* Celular: el menú pasa a una barra fija abajo, con íconos */
 @media (max-width: 899px) {
   .encabezado {
@@ -205,9 +301,74 @@ a:focus-visible {
     width: 20px;
     height: 20px;
   }
+  .encabezado .nav > a.nav-escritorio,
+  .nav-largo,
+  .solo-escritorio {
+    display: none !important;
+  }
+  .nav-corto,
+  .solo-movil {
+    display: revert !important;
+  }
+  .nav-mas-menu .solo-movil {
+    display: flex !important;
+  }
+  .nav-mas-menu form.solo-movil {
+    padding: 8px 12px;
+  }
+  .nav-mas {
+    flex: 1 0 56px;
+    display: flex;
+  }
+  .nav-mas > summary {
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 4px;
+    font-size: 10.5px;
+  }
+  .nav-mas > summary svg {
+    width: 20px;
+    height: 20px;
+  }
+  .nav-mas-menu {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    width: auto;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .encabezado .nav-mas-menu a {
+    flex: none;
+    flex-direction: row;
+    font-size: 14px;
+    padding: 10px 12px;
+  }
   body {
     padding-bottom: calc(70px + env(safe-area-inset-bottom));
   }
+}
+
+/* Título de pantalla con su «para qué sirve» */
+.intro-pantalla {
+  grid-column: 1 / -1;
+  padding: 4px 2px 2px;
+}
+.intro-pantalla h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.intro-pantalla p {
+  margin: 0;
+  max-width: 760px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--texto-2);
 }
 
 /* Rejilla de paneles */

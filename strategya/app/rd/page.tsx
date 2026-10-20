@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Actualizador } from "@/componentes/Actualizador";
+import { IntroPantalla } from "@/componentes/IntroPantalla";
 import { Encabezado } from "@/componentes/Encabezado";
 import { PanelNoticias } from "@/componentes/noticias";
 import { BoletinTasas, PanelCombustibles, PanelEmisiones, PanelRD } from "@/componentes/rd";
@@ -24,6 +25,7 @@ export default async function PaginaRD() {
       <Encabezado actual="rd" ultimaActualizacion={ultima} />
       <NavRD actual="rd" />
       <main className="terminal">
+        <IntroPantalla clave="rd" />
         <PanelRD ancho />
         <PanelCombustibles />
         <PanelNoticias categoria="rd" limite={8} />

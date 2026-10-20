@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Actualizador } from "@/componentes/Actualizador";
+import { IntroPantalla } from "@/componentes/IntroPantalla";
 import { Encabezado } from "@/componentes/Encabezado";
 import {
   Glosario,
@@ -20,6 +21,7 @@ export default function PaginaNoticias() {
     <>
       <Encabezado actual="noticias" ultimaActualizacion={null} />
       <main className="terminal">
+        <IntroPantalla clave="noticias" />
         <Mapa ahora={ahora} />
         <PanelQueVigilar ahora={ahora} />
         <PanelAgenda ahora={ahora} />

@@ -19,15 +19,23 @@ interface Mosaico {
   decimales?: number;
   /** Cuándo llega el dato, para el mosaico vacío. */
   cuando: string;
+  /** Qué es, en palabras simples (una línea bajo el nombre). */
+  que: string;
 }
 
 export const MOSAICOS_HOY: Mosaico[] = [
-  { id: "IDX_SPX", titulo: "S&P 500", historia: "intradia", cuando: "FMP lo consulta en horario de Nueva York." },
-  { id: "ORO", titulo: "Oro", historia: "intradia", cuando: "FMP lo consulta cada ciclo de 5 min según el presupuesto." },
-  { id: "BRENT", titulo: "Brent", historia: "intradia", cuando: "FMP lo consulta cada ciclo de 5 min según el presupuesto." },
-  { id: "USDDOP_VENTA", titulo: "Dólar · venta BCRD", historia: "diaria", decimales: 4, cuando: "El BCRD publica la tasa cada día hábil." },
-  { id: "UST_10A", titulo: "Tesoro 10 años", historia: "diaria", cuando: "El Tesoro publica la curva al cierre de cada día hábil." },
-  { id: "BTC", titulo: "Bitcoin", historia: "intradia", cuando: "FMP lo consulta cada ciclo de 5 min según el presupuesto." },
+  { id: "IDX_SPX", titulo: "Bolsa de EE. UU. (S&P 500)", que: "Cómo les va a las 500 empresas más grandes de EE. UU.", historia: "intradia",
+    cuando: "Se lee cada 5 minutos con la bolsa de Nueva York abierta." },
+  { id: "ORO", titulo: "Oro", que: "Refugio cuando hay miedo en los mercados.", historia: "intradia",
+    cuando: "Llega de FMP. Si sigue vacío, mira «Estado de las fuentes» (puede faltar su clave)." },
+  { id: "BRENT", titulo: "Petróleo Brent", que: "Influye en el precio de los combustibles en RD.", historia: "intradia",
+    cuando: "Se lee de FMP o, si falta, del cierre diario de FRED." },
+  { id: "USDDOP_VENTA", titulo: "Dólar en RD (venta)", que: "Lo que cuesta comprar un dólar según el Banco Central.", historia: "diaria", decimales: 4,
+    cuando: "El Banco Central lo publica cada día hábil." },
+  { id: "UST_10A", titulo: "Bono de EE. UU. a 10 años", que: "La tasa que guía préstamos e hipotecas en el mundo.", historia: "diaria",
+    cuando: "El Tesoro de EE. UU. lo publica al cierre de cada día hábil." },
+  { id: "BTC", titulo: "Bitcoin", que: "La criptomoneda más grande.", historia: "intradia",
+    cuando: "Llega de FMP. Si sigue vacío, mira «Estado de las fuentes» (puede faltar su clave)." },
 ];
 
 const UNIDAD_CORTA: Record<string, string> = { puntos: "pts", "RD$ por US$": "RD$" };
@@ -40,12 +48,13 @@ export function fechaLargaRD(ahora: Date): string {
   return new Intl.DateTimeFormat("es-DO", { timeZone: ZONA_RD, weekday: "long", day: "numeric", month: "long" }).format(ahora);
 }
 
-function MosaicoVacio({ titulo, motivo }: { titulo: string; motivo: string }) {
+function MosaicoVacio({ titulo, que, motivo }: { titulo: string; que?: string; motivo: string }) {
   return (
     <li className="ter-mosaico ter-mosaico-vacio">
       <div className="ter-mosaico-cab">
         <h3 className="ter-mosaico-nombre">{titulo}</h3>
       </div>
+      {que ? <p className="ter-mosaico-que">{que}</p> : null}
       <p className="ter-mosaico-sin">Sin dato</p>
       <p className="ter-mosaico-motivo">{motivo}</p>
     </li>
@@ -73,7 +82,8 @@ export async function BloqueHoy() {
             <MosaicoVacio
               key={m.id}
               titulo={m.titulo}
-              motivo={base.estado === "no_disponible" ? "No disponible con el plan actual del proveedor." : `Sin lecturas todavía. ${m.cuando}`}
+              que={m.que}
+              motivo={base.estado === "no_disponible" ? "La fuente no entrega este dato con el plan actual." : `Todavía no hay lectura. ${m.cuando}`}
             />
           );
         }
@@ -110,6 +120,7 @@ export async function BloqueHoy() {
               </h3>
               <EstadoItem item={item} />
             </div>
+            <p className="ter-mosaico-que">{m.que}</p>
             <p className="ter-mosaico-cifra">
               <span className="cifra-grande mono">
                 {item.valor}

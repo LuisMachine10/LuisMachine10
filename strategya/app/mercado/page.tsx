@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Actualizador } from "@/componentes/Actualizador";
+import { IntroPantalla } from "@/componentes/IntroPantalla";
 import { Encabezado } from "@/componentes/Encabezado";
 import {
   CintaPrecios,
@@ -29,6 +30,7 @@ export default async function Mercado() {
     <>
       <Encabezado actual="mercado" ultimaActualizacion={ultima} />
       <main className="terminal ter">
+        <IntroPantalla clave="mercado" />
         <CintaPrecios />
         <Seccion id="hoy" titulo="Hoy" detalle={fechaLargaRD(ahora)}>
           <BloqueHoy />

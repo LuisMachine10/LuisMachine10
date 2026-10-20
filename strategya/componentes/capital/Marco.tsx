@@ -58,8 +58,8 @@ export function Marco({
       <div className="cap-cabeza">
         <div className="cap-cabeza-fila">
           <div>
-            <h1 className="cap-h1">Mena Capital</h1>
-            <p className="cap-bajada">Tu patrimonio, cartera y metas, mes a mes</p>
+            <h1 className="cap-h1">Mis inversiones</h1>
+            <p className="cap-bajada">Cuánto tienes invertido, cuánto ganaste en el mes y cómo está repartido tu dinero. Solo tú lo ves.</p>
           </div>
           <div className="cap-cabeza-acciones">
             {actual !== "importar" && actual !== "ips" ? <SelectorMes mes={mes} opciones={opcionesDeMes(hoyMes, conCierre, cerrados)} /> : null}

@@ -78,7 +78,7 @@ export async function CintaPrecios() {
                     : i.sello
                       ? ` · ${fechaCorta(i.sello.fechaDato, false)}`
                       : null}
-                {i.estado === "desactualizado" ? <span className="sello-pildora sello-vencido">DESACTUALIZADO</span> : null}
+                {i.estado === "desactualizado" ? <span className="sello-pildora sello-vencido">Dato viejo</span> : null}
               </span>
             </li>
           ))}

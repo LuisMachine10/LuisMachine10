@@ -1,0 +1,272 @@
+/* Bienvenida (primera visita) y página de Ayuda: lenguaje simple, botones grandes. */
+
+.bienvenida {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 28px;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 16px;
+  background: var(--panel);
+  color: var(--texto);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+.bienvenida::backdrop {
+  background: rgba(5, 7, 12, 0.72);
+}
+.bienvenida-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bienvenida-paso {
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.bienvenida-intro {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--texto-2);
+}
+.bienvenida-cuerpo {
+  margin-top: 18px;
+  min-height: 190px;
+}
+.bienvenida-cuerpo svg {
+  width: 34px;
+  height: 34px;
+  color: #7aa2ff;
+}
+.bienvenida-cuerpo h2 {
+  margin: 10px 0 8px;
+  font-size: 22px;
+  line-height: 1.3;
+}
+.bienvenida-cuerpo p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #d3d7e0;
+}
+.bienvenida-puntos {
+  display: flex;
+  gap: 6px;
+  margin: 16px 0;
+}
+.bienvenida-puntos span {
+  width: 24px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--borde-fuerte);
+}
+.bienvenida-puntos span.activo {
+  background: var(--acento);
+}
+.bienvenida-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bienvenida-acciones > div {
+  display: flex;
+  gap: 8px;
+}
+.bienvenida .boton {
+  background: var(--acento);
+  color: #fff;
+  border-color: transparent;
+}
+.bienvenida .boton.secundario {
+  background: var(--panel-alto);
+  color: var(--texto);
+  border-color: var(--borde);
+}
+.bienvenida-acciones .boton {
+  min-height: 44px;
+  padding: 10px 20px;
+  font-size: 15px;
+}
+.boton-enlace {
+  background: none;
+  border: none;
+  color: var(--texto-2);
+  font: inherit;
+  font-size: 15px;
+  min-height: 44px;
+  padding: 0 4px;
+  cursor: pointer;
+}
+.boton-enlace:hover {
+  color: var(--texto);
+  text-decoration: underline;
+}
+.bienvenida-pie {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--texto-3);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bienvenida[open] {
+    animation: bienvenida-entra 0.18s ease-out;
+  }
+  @keyframes bienvenida-entra {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
+
+/* Página /ayuda */
+.ayuda {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.ayuda-cab h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+.ayuda-cab p {
+  margin: 0 0 16px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--texto-2);
+  max-width: 720px;
+}
+.ayuda-bloque h2 {
+  margin: 0 0 12px;
+  font-size: 19px;
+}
+.ayuda-pantallas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.ayuda-pantallas a {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  color: var(--texto);
+}
+.ayuda-pantallas a:hover {
+  border-color: var(--borde-fuerte);
+  background: var(--panel-hover);
+  text-decoration: none;
+}
+.ayuda-pantallas span {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--texto-2);
+}
+.ayuda-pasos {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ayuda-pasos li {
+  counter-increment: paso;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  column-gap: 12px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.ayuda-pasos li::before {
+  content: counter(paso);
+  grid-row: span 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: #fff;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.ayuda-pasos span {
+  color: var(--texto-2);
+}
+.ayuda-estados {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--texto-2);
+}
+.ayuda-estados li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.ayuda-estado {
+  display: inline-block;
+  min-width: 150px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.ayuda-estado-sube {
+  background: var(--sube-suave);
+  color: #3fd1b6;
+}
+.ayuda-estado-baja {
+  background: var(--baja-suave);
+  color: #ff6b77;
+}
+.ayuda-estado-viejo {
+  background: rgba(245, 166, 35, 0.16);
+  color: #f5b84a;
+}
+.ayuda-estado-cerrado {
+  background: var(--panel-alto);
+  color: var(--texto-2);
+}
+.ayuda-estado-sin {
+  border: 1px dashed var(--borde-fuerte);
+  color: var(--texto-2);
+}
+.ayuda-preguntas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ayuda-preguntas details {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 0 16px;
+}
+.ayuda-preguntas summary {
+  cursor: pointer;
+  padding: 14px 0;
+  font-size: 15px;
+  font-weight: 600;
+  min-height: 44px;
+}
+.ayuda-preguntas p {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--texto-2);
+}

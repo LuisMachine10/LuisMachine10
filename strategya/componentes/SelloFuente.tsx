@@ -46,8 +46,8 @@ export function SelloFuente({ d, ahora }: { d: DatosSello; ahora: Date }) {
           </span>
         ) : null}
         {d.desactualizado ? (
-          <span className="sello-pildora sello-vencido" title="El dato pasó de su antigüedad máxima">
-            DESACTUALIZADO
+          <span className="sello-pildora sello-vencido" title="La fuente no ha publicado en su horario normal: es la última cifra buena, con su fecha">
+            Dato viejo
           </span>
         ) : null}
         {d.ultimaCorridaFallo ? (

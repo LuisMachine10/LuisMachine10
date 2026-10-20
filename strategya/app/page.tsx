@@ -19,7 +19,9 @@ import {
 } from "@/componentes/noticias";
 import { PanelError } from "@/componentes/PanelError";
 import { BloqueHoy, fechaLargaRD } from "@/componentes/terminal/BloqueHoy";
+import { ResumenDia } from "@/componentes/terminal/ResumenDia";
 import { Seccion } from "@/componentes/terminal/Seccion";
+import { Bienvenida } from "@/componentes/ayuda/Bienvenida";
 import { BoletinTasas, PanelCombustibles, PanelEmisiones, PanelRD } from "@/componentes/rd";
 import { armarCurva } from "@/lib/curva";
 import { datosTesoro, estadoTareas } from "@/lib/datos";
@@ -130,14 +132,15 @@ export default async function Terminal() {
         <CintaPrecios />
         <BannerAlertas />
 
-        <Seccion id="hoy" titulo="Hoy" detalle={fechaLargaRD(ahora)}>
+        <Seccion id="hoy" titulo="Hoy" detalle={fechaLargaRD(ahora)} para="Las cifras que más mueven tu dinero. Debajo de cada una dice de dónde sale y de qué día es; verde sube, rojo baja.">
+          <ResumenDia />
           <BloqueHoy />
           <LasCincoDelDia />
           <PanelQueVigilar ahora={ahora} />
         </Seccion>
 
         {/* 5–10 */}
-        <Seccion id="mercados" titulo="Mercados">
+        <Seccion id="mercados" titulo="Mercados" para="Bolsas del mundo, tasas y monedas, metales y energía. Cuando algo se mueve fuerte, verás el porqué.">
           <PanelIndices />
           <PanelTasasDivisas />
           <PanelMetales />
@@ -148,7 +151,7 @@ export default async function Terminal() {
         </Seccion>
 
         {/* 11–13 */}
-        <Seccion id="rd" titulo="República Dominicana">
+        <Seccion id="rd" titulo="República Dominicana" para="Dólar del Banco Central, combustibles, tasas de los bancos y bonos del Gobierno.">
           <PanelRD />
           <PanelCombustibles />
           <BoletinTasas />
@@ -156,7 +159,7 @@ export default async function Terminal() {
         </Seccion>
 
         {/* 3–4, 14–16 */}
-        <Seccion id="mundo" titulo="Mundo y noticias">
+        <Seccion id="mundo" titulo="Mundo y noticias" para="Qué está pasando en el mundo y dónde, con titulares de medios reconocidos.">
           <Mapa ahora={ahora} />
           <PanelGlobo />
           <GuerrasEnElMundo />
@@ -167,7 +170,7 @@ export default async function Terminal() {
         </Seccion>
 
         {/* Personal: Mena Capital y Caja */}
-        <Seccion id="dinero" titulo="Tu dinero">
+        <Seccion id="dinero" titulo="Tu dinero" para="Tus inversiones y tu presupuesto. Solo tú los ves; los escribes tú.">
           <ResumenCapital />
           <HallazgosCapital />
           <ResumenCaja ahora={ahora} />
@@ -176,6 +179,7 @@ export default async function Terminal() {
       {/* 17 */}
       <Pie ahora={ahora} estado={estado} />
       <Actualizador />
+      <Bienvenida />
     </>
   );
 }

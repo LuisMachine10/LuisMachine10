@@ -463,9 +463,9 @@
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     overscroll-behavior-x: contain;
-    margin: 0 -16px;
-    padding: 0 16px 8px;
-    scroll-padding: 0 16px;
+    margin: 0 -8px;
+    padding: 0 8px 8px;
+    scroll-padding: 0 8px;
     scrollbar-width: thin;
   }
   .rd-subastas > .rd-subasta {
@@ -508,6 +508,7 @@
   white-space: nowrap;
 }
 .rd-subasta-doc {
+  position: relative;
   display: inline-grid;
   place-items: center;
   width: 30px;

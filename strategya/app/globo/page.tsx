@@ -67,8 +67,8 @@ export default async function Globo() {
       <main className="globo-pagina">
         <header className="globo-titular">
           <div className="globo-titular-textos">
-            <h1 className="globo-titulo">Globo</h1>
-            <p className="globo-subtitulo">Mercados, noticias, RD, pasos marítimos, sismos y ciclones en un mapa vivo</p>
+            <h1 className="globo-titulo">Mapa del mundo</h1>
+            <p className="globo-subtitulo">Gíralo con el dedo o el mouse y toca un punto para ver qué pasa ahí: bolsas, conflictos, rutas de barcos, sismos y huracanes que pueden mover precios.</p>
           </div>
           <div className="globo-titular-datos">
             {alertas > 0 ? (

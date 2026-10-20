@@ -5,10 +5,13 @@ export function Seccion({
   id,
   titulo,
   detalle,
+  para,
   children,
 }: {
   id: string;
   titulo: string;
+  /** Para qué sirve la sección, en palabras simples. */
+  para?: string;
   /** Texto corto a la derecha del título (fecha, aclaración). */
   detalle?: React.ReactNode;
   children: React.ReactNode;
@@ -20,6 +23,7 @@ export function Seccion({
           {titulo}
         </h2>
         {detalle ? <span className="ter-seccion-detalle">{detalle}</span> : null}
+        {para ? <p className="ter-seccion-para">{para}</p> : null}
       </div>
       {children}
     </section>

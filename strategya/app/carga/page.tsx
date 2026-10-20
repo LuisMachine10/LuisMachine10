@@ -83,11 +83,11 @@ export default async function PaginaCarga() {
       <NavRD actual="carga" />
       <main className="terminal">
         <header className="panel-ancho rd-carga-intro">
-          <h1 className="rd-carga-titulo">Carga manual</h1>
+          <h1 className="rd-carga-titulo">Agregar un dato</h1>
           <p>
-            Datos que ninguna fuente entrega de forma automática y permitida (BVRD, SAFI, resoluciones de la SIMV, tasas de otros
-            bancos centrales). Cada dato lleva el enlace de donde salió y aparece en la terminal con su sello «Carga manual». Solo tu
-            cuenta puede guardar.
+            Para escribir a mano una cifra oficial que Strategya no trae sola (por ejemplo, el rendimiento de un fondo de BHD o
+            una resolución de la SIMV). Pega siempre el enlace de donde la sacaste: así aparece con su fuente, marcada «Carga
+            manual». Solo tu cuenta puede guardar.
           </p>
         </header>
         <div className="rd-formularios panel-ancho">

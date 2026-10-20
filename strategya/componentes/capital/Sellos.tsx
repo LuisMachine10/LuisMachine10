@@ -38,7 +38,7 @@ export function SelloFx({ fx, moneda, ahora, hoy }: { fx: FxMoneda; moneda: "USD
           {moneda === "USD" ? "US$" : "€"} {num(fx.valor!, 2)} · manual
         </span>
         <span>· {fx.fecha ? `actualizado el ${fechaCorta(fx.fecha)}` : "sin fecha"}</span>
-        {vencido ? <span className="vencido">DESACTUALIZADO</span> : null}
+        {vencido ? <span className="vencido">Dato viejo</span> : null}
       </div>
     );
   }
