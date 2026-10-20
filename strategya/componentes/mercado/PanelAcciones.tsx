@@ -3,7 +3,7 @@ import { SelloFuente } from "@/componentes/SelloFuente";
 import type { Movimiento } from "@/lib/datos-mercado";
 import { cifra, cifraConSigno, direccion } from "@/lib/formato";
 import { estadoMercado } from "@/lib/mercados";
-import { CabeceraPanel, FilaCotizacion, FLECHA, porqueDe } from "./piezas";
+import { CabeceraPanel, FLECHA, porqueDe, Subtitulo, TarjetaCotizacion } from "./piezas";
 import { vistaMercado } from "./vista";
 
 export const SERIES_ETF = ["ETF_SPY", "ETF_QQQ", "ETF_DIA", "ETF_IWM", "ETF_GLD", "ETF_SLV", "ETF_USO", "ETF_BNO", "ETF_UNG", "ETF_UUP", "ETF_IBIT"];
@@ -14,12 +14,12 @@ const MAX_MIN_MOVIMIENTOS = 90;
 function ListaMovimientos({ titulo, filas }: { titulo: string; filas: Movimiento[] }) {
   return (
     <div className="mv-movs">
-      <h3 className="mv-destacado-titulo">{titulo}</h3>
+      <Subtitulo>{titulo}</Subtitulo>
       {filas.length === 0 ? (
-        <p className="tenue chico">Sin datos.</p>
+        <p className="mv-sin-dato">Sin datos.</p>
       ) : (
         <div className="desplazable">
-          <table className="tabla">
+          <table className="tabla mv-tabla-movs">
             <caption className="sr-solo">{titulo}</caption>
             <thead>
               <tr>
@@ -37,8 +37,16 @@ function ListaMovimientos({ titulo, filas }: { titulo: string; filas: Movimiento
                       <span className="mono">{m.simbolo}</span> <span className="tenue chico mv-recorte">{m.nombre ?? ""}</span>
                     </th>
                     <td className="num">{cifra(m.precio, 2)}</td>
-                    <td className={`num ${dir}`}>
-                      {m.cambio_pct === null ? "—" : `${FLECHA[dir]} ${cifraConSigno(m.cambio_pct, 2)}%`}
+                    <td className="num">
+                      {m.cambio_pct === null ? (
+                        <span className="tenue">—</span>
+                      ) : (
+                        <span className={`pastilla ${dir}`}>
+                          <span aria-hidden="true">{FLECHA[dir]}</span>
+                          <span className="sr-solo">{dir === "sube" ? "sube" : dir === "baja" ? "baja" : "sin cambio"} </span>
+                          {cifraConSigno(m.cambio_pct, 2)}%
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -91,22 +99,31 @@ export async function PanelAcciones() {
               <ListaMovimientos titulo="Más suben" filas={sube} />
               <ListaMovimientos titulo="Más bajan" filas={baja} />
             </div>
-            <p className="mv-nota">
-              Las listas de FMP incluyen acciones de muy baja capitalización, derechos y ETF apalancados. Es un dato del
-              mercado, no una recomendación.
-            </p>
+            <details className="mv-detalles">
+              <summary>Qué incluyen estas listas</summary>
+              <p>
+                Las listas de FMP incluyen acciones de muy baja capitalización, derechos y ETF apalancados. Es un dato del
+                mercado, no una recomendación.
+              </p>
+            </details>
           </>
         ) : (
-          <p className="vacio">
-            Sin mayores alzas y bajas todavía. Se leen de FMP cada hora con el mercado de EE. UU. abierto y una vez al cierre
-            (2 llamadas del presupuesto diario por lectura).
-            {tarea?.estado === "error" && tarea.error ? <span className="baja chico"> Última lectura con error: {tarea.error}</span> : null}
-          </p>
+          <div className="mv-vacio">
+            <p>Sin mayores alzas y bajas todavía.</p>
+            <p className="chico tenue">
+              Se leen de FMP cada hora con el mercado de EE. UU. abierto y una vez al cierre (2 llamadas del presupuesto diario
+              por lectura).
+            </p>
+            {tarea?.estado === "error" && tarea.error ? <p className="baja chico">Última lectura con error: {tarea.error}</p> : null}
+            <a className="boton secundario" href="/estado">
+              Ver el estado de las lecturas
+            </a>
+          </div>
         )}
-        <h3 className="mv-destacado-titulo">ETF del día</h3>
-        <ul className="mv-lista mv-lista-columnas">
+        <Subtitulo>ETF del día</Subtitulo>
+        <ul className="mv-rejilla mv-carrusel" aria-label="ETF del día">
           {etfs.map((i) => (
-            <FilaCotizacion
+            <TarjetaCotizacion
               key={i.id}
               item={i}
               ahora={v.ahora}
@@ -115,6 +132,11 @@ export async function PanelAcciones() {
             />
           ))}
         </ul>
+        {etfs.length > 2 ? (
+          <p className="mv-pista-texto" aria-hidden="true">
+            Desliza de lado para ver los {etfs.length} ETF →
+          </p>
+        ) : null}
       </div>
     </section>
   );

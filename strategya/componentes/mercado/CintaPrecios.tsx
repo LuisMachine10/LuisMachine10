@@ -2,6 +2,7 @@ import "@/estilos/mercado.css";
 import { PanelError } from "@/componentes/PanelError";
 import { configRealtime } from "@/lib/datos-mercado";
 import { fechaCorta, fechaHoraRD, horaRD } from "@/lib/formato";
+import { CintaDeslizante } from "./CintaDeslizante";
 import { EscuchaRealtime } from "./EscuchaRealtime";
 import { FLECHA } from "./piezas";
 import { vistaMercado } from "./vista";
@@ -13,6 +14,9 @@ export const SERIES_CINTA = [
 ];
 
 const ABREVIATURA: Record<string, string> = { fmp: "FMP", finnhub: "Finnhub", tesoro_eeuu: "Tesoro" };
+const PALABRA = { sube: "sube", baja: "baja", igual: "sin cambio" } as const;
+/** Segundos que tarda cada ítem en cruzar: un ritmo de lectura cómodo. */
+const SEGUNDOS_POR_ITEM = 4;
 
 /** Cinta de precios con suscripción en vivo. Sección: parte superior de la terminal. */
 export async function CintaPrecios() {
@@ -26,31 +30,47 @@ export async function CintaPrecios() {
   const rt = configRealtime();
   return (
     <section className="panel panel-ancho mv-cinta" aria-labelledby="t-cinta">
-      <div className="panel-cabecera">
-        <h2 className="panel-titulo" id="t-cinta">
-          Cinta de precios
-        </h2>
-        {rt ? <EscuchaRealtime url={rt.url} clave={rt.clave} /> : null}
-      </div>
+      <h2 className="sr-solo" id="t-cinta">
+        Cinta de precios
+      </h2>
       {items.length === 0 ? (
-        <p className="vacio">
+        <p className="mv-vacio">
           Sin cotizaciones todavía. FMP se consulta cada 5 minutos según el presupuesto diario y Finnhub en horario de EE. UU.
         </p>
       ) : (
-        <ul className="mv-cinta-lista" aria-label="Precios">
+        <CintaDeslizante segundos={Math.max(30, items.length * SEGUNDOS_POR_ITEM)}>
           {items.map((i) => (
             <li key={i.id} className="mv-cinta-item">
               <span className="mv-cinta-nombre">{i.nombreCorto}</span>
-              <span className="mono">{i.valor}</span>
-              <span className={`mono chico ${i.direccion}`}>
-                {i.cambio === null ? "—" : `${FLECHA[i.direccion]} ${i.cambioPct ?? i.cambio}`}
+              <span className="mv-cinta-valor mono">{i.valor}</span>
+              <span className={`pastilla ${i.direccion}`}>
+                {i.cambio === null ? (
+                  "—"
+                ) : (
+                  <>
+                    <span aria-hidden="true">{FLECHA[i.direccion]}</span>
+                    <span className="sr-solo">{PALABRA[i.direccion]} </span>
+                    {i.cambioPct ?? i.cambio}
+                  </>
+                )}
               </span>
-              <span className="mv-cinta-sello" title={i.horaDato ? fechaHoraRD(i.horaDato) : undefined}>
+              <span
+                className="mv-cinta-sello"
+                title={
+                  i.horaDato
+                    ? `${i.horaEsConsulta ? "Hora de la consulta" : "Hora del dato"}: ${fechaHoraRD(i.horaDato)} (RD)`
+                    : i.sello
+                      ? `Dato del ${fechaCorta(i.sello.fechaDato)}`
+                      : undefined
+                }
+              >
                 {i.sello?.url ? (
                   <a href={i.sello.url} target="_blank" rel="noopener noreferrer">
                     {ABREVIATURA[i.fuenteId] ?? i.sello.fuente}
                   </a>
-                ) : null}
+                ) : (
+                  (ABREVIATURA[i.fuenteId] ?? i.sello?.fuente ?? null)
+                )}
                 {i.estado === "cerrado"
                   ? ` · ${i.etiquetaCierre}`
                   : i.horaDato
@@ -58,15 +78,18 @@ export async function CintaPrecios() {
                     : i.sello
                       ? ` · ${fechaCorta(i.sello.fechaDato, false)}`
                       : null}
-                {i.estado === "desactualizado" ? <span className="vencido"> · DESACTUALIZADO</span> : null}
+                {i.estado === "desactualizado" ? <span className="sello-pildora sello-vencido">DESACTUALIZADO</span> : null}
               </span>
             </li>
           ))}
-        </ul>
+        </CintaDeslizante>
       )}
-      <p className="mv-nota">
-        Hora RD. FMP no da la hora de su precio: se muestra la hora de la consulta. Detalle de cada fuente en los paneles.
-      </p>
+      <div className="mv-cinta-pie">
+        {rt ? <EscuchaRealtime url={rt.url} clave={rt.clave} /> : null}
+        <span className="mv-cinta-nota" title="FMP no da la hora de su precio: se muestra la hora de la consulta. El detalle de cada fuente está en los paneles.">
+          Hora RD · FMP: hora de consulta
+        </span>
+      </div>
     </section>
   );
 }

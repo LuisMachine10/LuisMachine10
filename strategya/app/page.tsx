@@ -18,6 +18,8 @@ import {
   PanelQueVigilar,
 } from "@/componentes/noticias";
 import { PanelError } from "@/componentes/PanelError";
+import { BloqueHoy, fechaLargaRD } from "@/componentes/terminal/BloqueHoy";
+import { Seccion } from "@/componentes/terminal/Seccion";
 import { BoletinTasas, PanelCombustibles, PanelEmisiones, PanelRD } from "@/componentes/rd";
 import { armarCurva } from "@/lib/curva";
 import { datosTesoro, estadoTareas } from "@/lib/datos";
@@ -58,34 +60,52 @@ async function Pie({ ahora, estado }: { ahora: Date; estado: Awaited<ReturnType<
   }
   const fuentes = (estado?.fuentes ?? []).filter((f) => f.lectura_automatica && f.url);
   return (
-    <footer className="pie">
-      <h2>Fuentes</h2>
-      {fuentes.length ? (
-        <ul>
-          {fuentes.map((f) => (
-            <li key={f.id}>
-              <a href={f.url} target="_blank" rel="noopener noreferrer">
-                {f.nombre}
-              </a>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>Sin fuentes registradas todavía.</p>
-      )}
-      <h2>No confirmado</h2>
-      {noConfirmado.length ? (
-        <ul>
-          {noConfirmado.map((n) => (
-            <li key={n}>{n}</li>
-          ))}
-        </ul>
-      ) : (
-        <p>Todas las lecturas automáticas terminaron bien. Cada cifra marca DESACTUALIZADO si pasa de su antigüedad máxima.</p>
-      )}
+    <footer className="pie ter-pie">
+      <div className="ter-pie-bloque">
+        <h2>Fuentes</h2>
+        {fuentes.length ? (
+          <ul className="ter-pie-fuentes">
+            {fuentes.map((f) => (
+              <li key={f.id}>
+                <a href={f.url} target="_blank" rel="noopener noreferrer">
+                  {f.nombre}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>Sin fuentes registradas todavía.</p>
+        )}
+      </div>
+      <div className="ter-pie-bloque">
+        {noConfirmado.length ? (
+          <details className="ter-pie-noconf">
+            <summary>
+              <h2>No confirmado</h2> <span className="etiqueta alerta">{noConfirmado.length}</span>
+            </summary>
+            <ul>
+              {noConfirmado.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </details>
+        ) : (
+          <>
+            <h2>No confirmado</h2>
+            <p>
+              Todas las lecturas automáticas terminaron bien. Cada cifra se marca «desactualizado» si pasa de su antigüedad
+              máxima.
+            </p>
+          </>
+        )}
+      </div>
       <p>
         Strategya no es asesoría de inversión. Cifras de fuentes oficiales; ninguna sale de un modelo de lenguaje.
-        Página generada {fechaHoraRD(ahora.toISOString())} (hora RD).
+        Página generada {fechaHoraRD(ahora.toISOString())} (hora RD). Gráficos con{" "}
+        <a href="https://www.tradingview.com/lightweight-charts/" target="_blank" rel="noopener noreferrer">
+          TradingView Lightweight Charts
+        </a>
+        .
       </p>
     </footer>
   );
@@ -105,41 +125,53 @@ export default async function Terminal() {
     <>
       {/* 1 */}
       <Encabezado actual="terminal" ultimaActualizacion={ultima} />
-      <main className="terminal">
-        <BannerAlertas />
+      <main className="terminal ter">
         {/* 2 */}
         <CintaPrecios />
-        {/* 3 */}
-        <Mapa ahora={ahora} />
-        <LasCincoDelDia />
-        <PanelGlobo />
-        {/* 4 */}
-        <GuerrasEnElMundo />
-        {/* 5–7 */}
-        <PanelIndices />
-        <PanelAcciones />
-        <PanelFusionesIPO ahora={ahora} />
-        {/* 8–10 */}
-        <PanelMetales />
-        <PanelEnergia />
-        <PanelTasasDivisas />
-        <SeccionTesoro ahora={ahora} />
+        <BannerAlertas />
+
+        <Seccion id="hoy" titulo="Hoy" detalle={fechaLargaRD(ahora)}>
+          <BloqueHoy />
+          <LasCincoDelDia />
+          <PanelQueVigilar ahora={ahora} />
+        </Seccion>
+
+        {/* 5–10 */}
+        <Seccion id="mercados" titulo="Mercados">
+          <PanelIndices />
+          <PanelTasasDivisas />
+          <PanelMetales />
+          <PanelEnergia />
+          <SeccionTesoro ahora={ahora} />
+          <PanelAcciones />
+          <PanelFusionesIPO ahora={ahora} />
+        </Seccion>
+
         {/* 11–13 */}
-        <PanelRD />
-        <PanelCombustibles />
-        <BoletinTasas />
-        <PanelEmisiones />
-        {/* 14–15 */}
-        <PanelInstituciones ahora={ahora} />
-        <PanelAgenda ahora={ahora} />
-        <PanelQueVigilar ahora={ahora} />
-        <PanelNoticias ahora={ahora} />
-        {/* 16 */}
-        <Glosario ahora={ahora} />
+        <Seccion id="rd" titulo="República Dominicana">
+          <PanelRD />
+          <PanelCombustibles />
+          <BoletinTasas />
+          <PanelEmisiones />
+        </Seccion>
+
+        {/* 3–4, 14–16 */}
+        <Seccion id="mundo" titulo="Mundo y noticias">
+          <Mapa ahora={ahora} />
+          <PanelGlobo />
+          <GuerrasEnElMundo />
+          <PanelNoticias ahora={ahora} />
+          <PanelInstituciones ahora={ahora} />
+          <PanelAgenda ahora={ahora} />
+          <Glosario ahora={ahora} />
+        </Seccion>
+
         {/* Personal: Mena Capital y Caja */}
-        <ResumenCapital />
-        <HallazgosCapital />
-        <ResumenCaja ahora={ahora} />
+        <Seccion id="dinero" titulo="Tu dinero">
+          <ResumenCapital />
+          <HallazgosCapital />
+          <ResumenCaja ahora={ahora} />
+        </Seccion>
       </main>
       {/* 17 */}
       <Pie ahora={ahora} estado={estado} />

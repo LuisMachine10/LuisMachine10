@@ -43,9 +43,15 @@ export function EscuchaRealtime({ url, clave }: { url: string; clave: string }) 
   }, [url, clave, router]);
 
   const texto =
-    estado === "en_vivo" ? "En vivo" : estado === "respaldo" ? "Sin conexión en vivo · se actualiza cada 60 s" : "Conectando…";
+    estado === "en_vivo" ? "En vivo" : estado === "respaldo" ? "Sin conexión en vivo · cada 60 s" : "Conectando…";
+  const detalle =
+    estado === "respaldo"
+      ? "No hay conexión en vivo con la base: la página se vuelve a pedir cada 60 segundos."
+      : estado === "en_vivo"
+        ? "Los precios se actualizan solos cuando llega una lectura nueva."
+        : undefined;
   return (
-    <span className={`mv-vivo mv-vivo-${estado}`} role="status" aria-live="polite">
+    <span className={`mv-vivo mv-vivo-${estado}`} role="status" aria-live="polite" title={detalle}>
       <span className="mv-punto" aria-hidden="true" />
       {texto}
     </span>

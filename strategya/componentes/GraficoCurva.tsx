@@ -1,10 +1,11 @@
 "use client";
 
 // Curva de rendimientos: plazos equiespaciados en X, rendimiento en Y.
-// Línea ámbar = última fecha publicada; línea gris = comparación (~1 mes antes).
+// Línea azul suave = última fecha publicada; línea gris punteada = comparación (~1 mes antes).
+// La curva suave es monótona por tramos (Fritsch–Carlson): pasa por cada dato y no inventa picos entre plazos.
 // Las cifras que se muestran llegan ya formateadas desde el servidor; aquí solo se ubican en pantalla.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 export interface PuntoGrafico {
   plazo: string;
@@ -16,12 +17,48 @@ export interface PuntoGrafico {
   diferencia: string | null;
 }
 
-const ALTO = 220;
-const M = { arriba: 12, derecha: 44, abajo: 26, izquierda: 40 };
+const ALTO = 240;
+const M = { arriba: 16, derecha: 16, abajo: 28, izquierda: 40 };
+const AZUL = "#2962ff";
+const GRIS = "#7c8296";
 
 function pasoLimpio(rango: number): number {
-  for (const p of [0.05, 0.1, 0.25, 0.5, 1, 2]) if (rango / p <= 6) return p;
+  for (const p of [0.05, 0.1, 0.25, 0.5, 1, 2]) if (rango / p <= 5) return p;
   return 5;
+}
+
+/** Trazo suave y monótono por tramos que pasa exactamente por cada punto. */
+function trazoSuave(pts: { x: number; y: number }[]): string {
+  const n = pts.length;
+  if (n === 0) return "";
+  if (n === 1) return `M${pts[0].x},${pts[0].y}`;
+  const d: number[] = [];
+  const m: number[] = [];
+  for (let i = 0; i < n - 1; i++) d.push((pts[i + 1].y - pts[i].y) / (pts[i + 1].x - pts[i].x));
+  m.push(d[0]);
+  for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
+  m.push(d[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i] / d[i];
+    const b = m[i + 1] / d[i];
+    const s = a * a + b * b;
+    if (s > 9) {
+      const t = 3 / Math.sqrt(s);
+      m[i] = t * a * d[i];
+      m[i + 1] = t * b * d[i];
+    }
+  }
+  let r = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = (pts[i + 1].x - pts[i].x) / 3;
+    r += ` C${(pts[i].x + h).toFixed(1)},${(pts[i].y + m[i] * h).toFixed(1)} ${(pts[i + 1].x - h).toFixed(1)},${(pts[i + 1].y - m[i + 1] * h).toFixed(1)} ${pts[i + 1].x.toFixed(1)},${pts[i + 1].y.toFixed(1)}`;
+  }
+  return r;
 }
 
 export function GraficoCurva({
@@ -34,6 +71,7 @@ export function GraficoCurva({
   etiquetaComparacion: string | null;
 }) {
   const caja = useRef<HTMLDivElement>(null);
+  const idGradiente = `curva-relleno-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const [ancho, setAncho] = useState(640);
   const [activo, setActivo] = useState<number | null>(null);
 
@@ -58,18 +96,23 @@ export function GraficoCurva({
     const altoUtil = ALTO - M.arriba - M.abajo;
     const x = (i: number) => M.izquierda + (puntos.length === 1 ? anchoUtil / 2 : (i * anchoUtil) / (puntos.length - 1));
     const y = (v: number) => M.arriba + altoUtil - ((v - y0) / (y1 - y0 || 1)) * altoUtil;
-    const decimales = paso < 0.1 ? 2 : paso < 1 ? 2 : 0;
+    const decimales = paso < 1 ? 2 : 0;
     return { x, y, ticks, decimales };
   }, [puntos, ancho]);
 
   if (puntos.length === 0) return null;
 
-  const trazo = (sel: (p: PuntoGrafico) => string | null) =>
+  const coords = (sel: (p: PuntoGrafico) => string | null) =>
     puntos
       .map((p, i) => ({ v: sel(p), i }))
       .filter((d): d is { v: string; i: number } => d.v !== null)
-      .map((d, k) => `${k === 0 ? "M" : "L"}${g.x(d.i).toFixed(1)},${g.y(Number(d.v)).toFixed(1)}`)
-      .join(" ");
+      .map((d) => ({ x: g.x(d.i), y: g.y(Number(d.v)) }));
+
+  const actual = coords((pt) => pt.valor);
+  const comparacion = etiquetaComparacion ? coords((pt) => pt.valorComparacion) : [];
+  const lineaActual = trazoSuave(actual);
+  const base = ALTO - M.abajo;
+  const relleno = actual.length > 1 ? `${lineaActual} L${actual.at(-1)!.x.toFixed(1)},${base} L${actual[0].x.toFixed(1)},${base} Z` : "";
 
   const indiceDesde = (clienteX: number) => {
     const rect = caja.current!.getBoundingClientRect();
@@ -80,25 +123,22 @@ export function GraficoCurva({
   };
 
   const ultimo = puntos.length - 1;
-  // Etiquetas del eje X ancladas al último plazo, con al menos ~34 px entre ellas.
+  // Etiquetas del eje X ancladas al último plazo, con al menos ~36 px entre ellas.
   const separacion = ultimo > 0 ? g.x(1) - g.x(0) : Infinity;
-  const pasoEtiquetas = Math.max(1, Math.ceil(34 / separacion));
-  const yFinActual = g.y(Number(puntos[ultimo].valor));
-  const yFinComp = puntos[ultimo].valorComparacion ? g.y(Number(puntos[ultimo].valorComparacion)) : null;
-  const etiquetasSeparadas = yFinComp === null || Math.abs(yFinActual - yFinComp) >= 14;
+  const pasoEtiquetas = Math.max(1, Math.ceil(36 / separacion));
   const p = activo === null ? null : puntos[activo];
-  const izquierdaTooltip = activo === null ? 0 : Math.min(Math.max(g.x(activo) + 10, 0), ancho - 170);
+  const izquierdaTooltip = activo === null ? 0 : Math.min(Math.max(g.x(activo) - 80, 0), ancho - 176);
 
   return (
-    <div>
+    <div className="curva">
       <ul className="leyenda" aria-label="Leyenda">
         <li>
-          <span className="clave-linea" style={{ background: "var(--ambar)" }} aria-hidden="true" />
+          <span className="clave-linea" style={{ background: AZUL }} aria-hidden="true" />
           {etiquetaActual}
         </li>
         {etiquetaComparacion ? (
           <li>
-            <span className="clave-linea" style={{ background: "var(--contexto)" }} aria-hidden="true" />
+            <span className="clave-linea clave-punteada" aria-hidden="true" />
             {etiquetaComparacion}
           </li>
         ) : null}
@@ -108,8 +148,9 @@ export function GraficoCurva({
         className="grafico"
         tabIndex={0}
         role="img"
-        aria-label={`Curva de rendimientos del Tesoro, ${etiquetaActual}. Los valores están en la tabla de abajo.`}
+        aria-label={`Curva de rendimientos del Tesoro, ${etiquetaActual}. Usa las flechas para recorrer los plazos; los valores están en la tabla.`}
         onPointerMove={(e) => setActivo(indiceDesde(e.clientX))}
+        onPointerDown={(e) => setActivo(indiceDesde(e.clientX))}
         onPointerLeave={() => setActivo(null)}
         onBlur={() => setActivo(null)}
         onKeyDown={(e) => {
@@ -119,68 +160,64 @@ export function GraficoCurva({
         }}
       >
         <svg width={ancho} height={ALTO} aria-hidden="true">
+          <defs>
+            <linearGradient id={idGradiente} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={AZUL} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={AZUL} stopOpacity={0} />
+            </linearGradient>
+          </defs>
           <g className="eje">
             {g.ticks.map((t) => (
               <g key={t}>
-                <line x1={M.izquierda} x2={ancho - M.derecha} y1={g.y(t)} y2={g.y(t)} stroke="var(--rejilla)" strokeWidth={1} />
-                <text x={M.izquierda - 6} y={g.y(t) + 4} textAnchor="end">
+                <line x1={M.izquierda} x2={ancho - M.derecha} y1={g.y(t)} y2={g.y(t)} stroke="var(--rejilla)" strokeWidth={1} strokeDasharray="2 4" />
+                <text x={M.izquierda - 8} y={g.y(t) + 4} textAnchor="end">
                   {t.toFixed(g.decimales)}
                 </text>
               </g>
             ))}
             {puntos.map((pt, i) =>
               (ultimo - i) % pasoEtiquetas === 0 ? (
-                <text key={pt.plazo} x={g.x(i)} y={ALTO - 8} textAnchor="middle">
+                <text key={pt.plazo} x={g.x(i)} y={ALTO - 8} textAnchor="middle" className={activo === i ? "activo" : undefined}>
                   {pt.plazo}
                 </text>
               ) : null,
             )}
           </g>
+          {relleno ? <path d={relleno} fill={`url(#${idGradiente})`} /> : null}
+          {comparacion.length > 1 ? (
+            <path d={trazoSuave(comparacion)} fill="none" stroke={GRIS} strokeWidth={1.5} strokeDasharray="4 4" strokeLinecap="round" />
+          ) : null}
+          <path d={lineaActual} fill="none" stroke={AZUL} strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" />
           {activo !== null ? (
-            <line x1={g.x(activo)} x2={g.x(activo)} y1={M.arriba} y2={ALTO - M.abajo} stroke="var(--texto-3)" strokeWidth={1} />
-          ) : null}
-          {etiquetaComparacion ? (
-            <path d={trazo((pt) => pt.valorComparacion)} fill="none" stroke="var(--contexto)" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
-          ) : null}
-          <path d={trazo((pt) => pt.valor)} fill="none" stroke="var(--ambar)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-          {puntos.map((pt, i) => (
-            <circle
-              key={pt.plazo}
-              cx={g.x(i)}
-              cy={g.y(Number(pt.valor))}
-              r={activo === i ? 5 : 3.5}
-              fill="var(--ambar)"
-              stroke="var(--panel)"
-              strokeWidth={2}
-            />
-          ))}
-          {etiquetasSeparadas ? (
-            <g fontFamily="var(--mono)" fontSize={11} fill="var(--texto-2)">
-              <text x={g.x(ultimo) + 8} y={yFinActual + 4}>
-                {puntos[ultimo].valor}
-              </text>
-              {yFinComp !== null ? (
-                <text x={g.x(ultimo) + 8} y={yFinComp + 4} fill="var(--texto-3)">
-                  {puntos[ultimo].valorComparacion}
-                </text>
+            <g>
+              <line x1={g.x(activo)} x2={g.x(activo)} y1={M.arriba} y2={base} stroke="var(--borde-fuerte)" strokeWidth={1} />
+              {puntos[activo].valorComparacion && etiquetaComparacion ? (
+                <circle cx={g.x(activo)} cy={g.y(Number(puntos[activo].valorComparacion))} r={3.5} fill={GRIS} stroke="var(--panel)" strokeWidth={2} />
               ) : null}
+              <circle cx={g.x(activo)} cy={g.y(Number(puntos[activo].valor))} r={5} fill={AZUL} stroke="var(--panel)" strokeWidth={2.5} />
             </g>
-          ) : null}
+          ) : (
+            <circle cx={actual.at(-1)!.x} cy={actual.at(-1)!.y} r={3.5} fill={AZUL} stroke="var(--panel)" strokeWidth={2} />
+          )}
         </svg>
         {p ? (
-          <div className="tooltip" style={{ left: izquierdaTooltip, top: 4 }} role="status">
+          <div className="tooltip" style={{ left: izquierdaTooltip, top: 0 }} role="status">
             <div className="tenue">{p.nombre}</div>
             <div className="fila">
-              <span className="clave-linea" style={{ background: "var(--ambar)" }} />
+              <span className="clave-linea" style={{ background: AZUL }} />
               <strong>{p.valor}%</strong> <span>{etiquetaActual}</span>
             </div>
             {p.valorComparacion && etiquetaComparacion ? (
               <div className="fila">
-                <span className="clave-linea" style={{ background: "var(--contexto)" }} />
+                <span className="clave-linea clave-punteada" />
                 <strong>{p.valorComparacion}%</strong> <span>{etiquetaComparacion}</span>
               </div>
             ) : null}
-            {p.diferencia ? <div>Diferencia: <strong>{p.diferencia}</strong></div> : null}
+            {p.diferencia ? (
+              <div>
+                Diferencia: <strong>{p.diferencia}</strong>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
