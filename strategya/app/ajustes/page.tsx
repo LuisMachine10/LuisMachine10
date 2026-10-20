@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Actualizador } from "@/componentes/Actualizador";
+import { IntroPagina } from "@/componentes/alertas/Ayuda";
 import { BannerAlertas } from "@/componentes/alertas/BannerAlertas";
 import { HistorialAlertas } from "@/componentes/alertas/HistorialAlertas";
 import { ReglasAlerta } from "@/componentes/alertas/ReglasAlerta";
@@ -16,9 +18,19 @@ export const dynamic = "force-dynamic";
 export default async function Ajustes() {
   return (
     <>
-      {/* Encabezado aún no conoce «ajustes» (lo agrega el integrador): ningún enlace queda marcado como actual. */}
       <Encabezado actual="ajustes" ultimaActualizacion={null} />
       <main className="terminal">
+        <IntroPagina
+          titulo="Ajustes"
+          accion={
+            <Link href="#t-umbrales" className="boton aj-boton-alto">
+              Configurar mis alertas
+            </Link>
+          }
+        >
+          Aquí decides cuándo te avisa Strategya: eliges un número para cada activo y, si se cruza, te sale una alerta arriba en la terminal.
+          También ves cuánto va gastando la IA este mes.
+        </IntroPagina>
         <BannerAlertas />
         <ReglasAlerta />
         <HistorialAlertas />

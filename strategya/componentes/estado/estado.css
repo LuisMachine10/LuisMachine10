@@ -1,0 +1,327 @@
+/* Pantalla Estado: resumen, familias de lecturas y detalle técnico. Usa los tokens de app/globals.css. */
+
+/* Resumen de arriba */
+.es-resumen .panel-cuerpo {
+  padding: 20px;
+}
+.es-resumen-cifra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+}
+.es-resumen-cifra .cifra-grande {
+  font-size: 34px;
+}
+.es-resumen-rotulo {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--texto-2);
+}
+.es-resumen-mensaje {
+  margin: 6px 0 16px;
+  font-size: 14px;
+  color: var(--texto-2);
+  max-width: 70ch;
+}
+.es-barra {
+  display: flex;
+  gap: 3px;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--panel-alto);
+}
+.es-barra > span {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+}
+.es-barra .es-ok {
+  background: var(--sube);
+}
+.es-barra .es-parcial {
+  background: var(--ambar);
+}
+.es-barra .es-error {
+  background: var(--baja);
+}
+.es-barra .es-otro {
+  background: var(--acento);
+}
+.es-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.es-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.es-leyenda strong {
+  color: var(--texto);
+  font-weight: 650;
+}
+
+/* Puntos de color (siempre con texto al lado) */
+.es-punto {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--texto-3);
+}
+.es-punto.es-ok {
+  background: var(--sube);
+  box-shadow: 0 0 0 3px var(--sube-suave);
+}
+.es-punto.es-parcial {
+  background: var(--ambar);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ambar) 16%, transparent);
+}
+.es-punto.es-error {
+  background: var(--baja);
+  box-shadow: 0 0 0 3px var(--baja-suave);
+}
+.es-punto.es-corriendo {
+  background: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-suave);
+  animation: es-latido 1.6s ease-in-out infinite;
+}
+@keyframes es-latido {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .es-punto.es-corriendo {
+    animation: none;
+  }
+}
+
+/* Familias */
+.es-familias {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .es-familias {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 899px) {
+  .es-familias {
+    gap: 12px;
+  }
+}
+.es-familia .panel-cabecera {
+  align-items: center;
+}
+.es-familia-desc {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-3);
+}
+.es-lista,
+.es-corridas,
+.es-fuentes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.es-fila,
+.es-corridas > li {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--borde);
+}
+.es-fila:first-child,
+.es-corridas > li:first-child {
+  border-top: 0;
+}
+.es-fila:hover,
+.es-corridas > li:hover {
+  background: var(--panel-hover);
+}
+.es-fila > .es-punto,
+.es-corridas > li > .es-punto {
+  margin-top: 6px;
+}
+.es-fila-principal,
+.es-corrida-cuerpo {
+  min-width: 0;
+}
+.es-fila-arriba {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 10px;
+}
+.es-nombre {
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+a.es-nombre:hover {
+  color: #a9c1ff;
+}
+.es-estado {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.es-estado.es-ok {
+  color: var(--sube);
+}
+.es-estado.es-parcial {
+  color: var(--ambar);
+}
+.es-estado.es-error {
+  color: #ff6b77;
+}
+.es-estado.es-corriendo {
+  color: #8fb0ff;
+}
+.es-estado.es-otro {
+  color: var(--texto-3);
+}
+.es-fila-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.es-fila-meta .mono {
+  color: var(--texto-2);
+}
+.es-fila-meta .baja .mono {
+  color: inherit;
+}
+.es-id {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.es-fila-meta .es-id {
+  color: var(--texto-3);
+}
+.es-motivo {
+  margin: 6px 0 0;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: var(--panel-alto);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--texto-2);
+  overflow-wrap: anywhere;
+}
+.es-motivo-largo > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.es-motivo-largo > summary::-webkit-details-marker {
+  display: none;
+}
+.es-motivo-ver {
+  color: #8fb0ff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.es-motivo-largo[open] > summary .es-motivo-inicio {
+  display: none;
+}
+.es-motivo-largo[open] .es-motivo-ver::after {
+  content: " (ocultar)";
+  font-weight: 500;
+}
+.es-motivo-largo > p {
+  margin: 0;
+}
+.es-motivo-largo[open] > summary {
+  margin-bottom: 4px;
+}
+.es-fila-error .es-motivo {
+  box-shadow: inset 2px 0 0 var(--baja);
+}
+.es-fila-parcial .es-motivo {
+  box-shadow: inset 2px 0 0 var(--ambar);
+}
+
+/* Detalle técnico */
+.es-detalles {
+  display: grid;
+  gap: 10px;
+}
+.es-desplegable {
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.es-desplegable > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  list-style: none;
+}
+.es-desplegable > summary::-webkit-details-marker {
+  display: none;
+}
+.es-desplegable > summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.8px solid var(--texto-3);
+  border-bottom: 1.8px solid var(--texto-3);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.es-desplegable[open] > summary::before {
+  transform: rotate(45deg);
+}
+.es-desplegable[open] > summary {
+  border-bottom: 1px solid var(--borde);
+}
+.es-desplegable > summary:hover {
+  background: var(--panel-hover);
+}
+@media (prefers-reduced-motion: reduce) {
+  .es-desplegable > summary::before {
+    transition: none;
+  }
+}
+.es-fuentes > li {
+  padding: 12px 14px;
+  border-top: 1px solid var(--borde);
+}
+.es-fuentes > li:first-child {
+  border-top: 0;
+}
+.es-vacio {
+  display: grid;
+  gap: 6px;
+  padding: 24px 20px;
+}
+.es-vacio p {
+  margin: 0;
+  max-width: 60ch;
+}

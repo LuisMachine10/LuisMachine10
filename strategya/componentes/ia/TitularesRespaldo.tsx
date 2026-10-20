@@ -12,7 +12,13 @@ export function TitularesRespaldo({
   ahora: Date;
   vacio: string;
 }) {
-  if (!grupos.length) return <p className="vacio">{vacio}</p>;
+  if (!grupos.length)
+    return (
+      <div className="aj-vacio">
+        <p className="aj-vacio-titulo">Sin titulares por ahora</p>
+        <p className="tenue">{vacio}</p>
+      </div>
+    );
   return (
     <div className="respaldo">
       {grupos.map((g) => (
@@ -21,11 +27,13 @@ export function TitularesRespaldo({
           <ul>
             {g.titulares.map((t) => (
               <li key={t.id}>
-                <a href={t.url} target="_blank" rel="noopener noreferrer">
-                  {t.titular} ↗
+                <a href={t.url} target="_blank" rel="noopener noreferrer" className="titular-enlace">
+                  {t.titular}
+                  <span aria-hidden="true"> ↗</span>
                 </a>
                 <span className="sello">
-                  {t.medio} · <span title={fechaHoraRD(t.fecha)}>{hace(t.fecha, ahora)}</span>
+                  <span>{t.medio}</span>
+                  <span title={fechaHoraRD(t.fecha)}>{hace(t.fecha, ahora)}</span>
                 </span>
               </li>
             ))}
