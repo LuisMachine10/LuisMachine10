@@ -70,57 +70,45 @@ Sin estas, Strategya funciona igual: esas secciones dicen «no activo» y explic
 
 ## Parte 2 · Usar Strategya
 
+La primera vez que entras, una bienvenida de 3 pasos explica cómo funciona. Puedes volver a verla en
+**Más → Ayuda**, donde también está «Cómo leer una cifra» y las preguntas comunes.
+
 ### Entrar
 
-Abre la dirección que te paso, escribe tu correo y la contraseña de `STRATEGYA_CLAVE`. Solo tu correo
-puede entrar. **Salir** está arriba a la derecha.
+Abre la dirección que te paso, escribe tu correo y tu contraseña. Solo tu correo puede entrar.
+**Salir** está arriba a la derecha (en el celular, dentro de **Más**).
 
 ### Cómo leer cada cifra
 
-Cada número trae debajo su **sello**: fuente (con enlace), fecha del dato y «verificado hace X».
+- **La cifra grande** es el último valor que publicó la fuente.
+- **La pastilla de color** dice cuánto se movió: verde sube, rojo baja, gris sin cambio.
+- **En pequeño, debajo**: la fuente (con enlace), la fecha del dato y hace cuánto se revisó.
+- **Dato viejo** (píldora roja): la fuente no ha publicado en su horario normal; ves la última cifra buena.
+- **Cierre del vie 16 oct**: el mercado está cerrado; es el último cierre, no un error.
+- **Sin dato**: no llegó la cifra. Strategya nunca la inventa.
 
-- **DESACTUALIZADO** (rojo): la fuente no ha actualizado dentro de su tiempo normal. La cifra que ves es
-  la última buena; no se rellena nada.
-- **cierre del vie 16 oct**: el mercado está cerrado; es el último cierre, no un error.
-- **sustituto**: no hay acceso al dato directo y se muestra su ETF (por ejemplo, cobre → CPER, WTI → USO).
-- **no confirmado / sin datos**: no llegó el dato. Strategya nunca lo inventa.
-- Flecha ↑ verde sube, ↓ roja baja.
+La página se actualiza sola.
 
-La página se actualiza sola (precios en vivo y, de respaldo, cada 60 segundos).
+### Las pantallas
 
-### Las pantallas (menú de arriba)
+| Pantalla | Qué hay |
+| --- | --- |
+| **Hoy** | «Hoy en 30 segundos» (frases simples con las cifras del día), las 6 cifras que más mueven tu dinero, alertas, noticias y el resumen de tus inversiones y tu presupuesto. |
+| **Mercados** | Bolsas del mundo, oro y metales, petróleo, tasas de interés y monedas, con su porqué. |
+| **RD** | Dólar del Banco Central, tasas de los bancos, combustibles, subastas de bonos del Gobierno y rendimientos de fondos de inversión (Excel y AFI Reservas se leen solos). |
+| **Noticias** | Titulares de WSJ, FT, CNBC, Bloomberg Línea, elEconomista, Expansión y prensa dominicana, por tema, más la agenda. |
+| **Mapa** | Globo 3D: bolsas, conflictos, rutas de barcos, sismos y huracanes. Toca un punto para ver su tarjeta. |
+| **Mis inversiones** | Tu patrimonio: cuánto tienes, cuánto ganaste en el mes y cómo está repartido en 4 clases (Efectivo, Cuentas de ahorro, Renta fija, Renta variable), y tu Política de inversión (IPS). |
+| **Mi presupuesto** | Cuánto puedes gastar hoy sin pasarte, los pagos que vienen y el saldo de tus cuentas. La primera vez te guía en 4 pasos. |
+| **Más → Agregar un dato** | Para escribir a mano una cifra oficial que no llega sola (por ejemplo, un fondo de BHD), siempre con su enlace. |
+| **Más → Ajustes y alertas** | Cuándo quieres que te avisemos (por ejemplo, si el oro sube más de 2 %). |
+| **Más → Estado de las fuentes** | Si una cifra se ve vieja, aquí ves qué fuente falló y por qué. |
 
-| Pantalla | Qué hay | Cuándo usarla |
-| --- | --- | --- |
-| **Terminal** | Todo en una página: alertas de hoy, cinta de precios, mapa, Las 5 del día, guerras, índices, acciones, fusiones e IPO, metales, energía, tasas y divisas, curva del Tesoro, RD, boletín de tasas, emisiones, instituciones, agenda, glosario, y el resumen de tu Capital y tu Caja. Al pie: fuentes y todo lo «no confirmado». | Lectura de la mañana y de la tarde. |
-| **Mercado** | Índices, metales (oro, plata, cobre), energía, tasas y divisas, mayores alzas y bajas. | Para ver un mercado en detalle. |
-| **RD** | Dólar del BCRD (compra/venta y cambio), TPM, inflación, tasas activas y pasivas, combustibles del MICM, subastas de Hacienda (monto, tasa de corte, cobertura), avisos de la SIMV. | Para el día a día dominicano. |
-| **Noticias** | Titulares por categoría (mercado, guerra, RD, instituciones), comunicados de Fed, BCE, BoJ, BoE, BIS, Tesoro y CEPAL, fusiones e IPO (SEC), agenda y «qué vigilar». | Para entender el porqué del día. |
-| **Globo** | Globo 3D: bolsas (verde/rojo), noticias y guerras, RD, pasos marítimos (Ormuz, Suez, Panamá…), sismos y huracanes. Toca un punto para ver su tarjeta; el botón **Capas** enciende o apaga cada capa. En el celular hay una lista debajo con todos los puntos. | Para ver el mundo de un vistazo y lo que puede mover materias primas. |
-| **Capital** | Tu patrimonio (Mena Capital): Resumen, Cierre del mes, Cartera, Análisis, Futuro, Política (IPS) e Importar. Arriba eliges el mes. | Al cierre de cada mes y cuando muevas tu cartera. |
-| **Caja** | Tu calendario de caja: «puedes gastar hasta…», disponible, deuda en tarjetas, por confirmar; el calendario del mes, movimientos, presupuesto y ajustes. | A diario o cada vez que cobres o pagues. |
-| **Carga** | Formularios para datos que no se leen solos: cualquier serie (por ejemplo, tasa del BoJ), rendimientos de fondos por SAFI, resoluciones de la SIMV y hechos de la BVRD, combustibles. Siempre con el enlace de la fuente. | Cuando veas un dato oficial que Strategya no trae. |
-| **Ajustes** | Umbrales de alerta (cámbialos y pulsa Guardar), historial de alertas y gasto de IA del mes. | Para afinar las alertas. |
-| **Estado** | Cada lectura automática: cuándo corrió, si salió bien y, si no, por qué. | Si algo se ve desactualizado. |
+### Tus datos personales
 
-### Tus datos personales (cuando quieras)
-
-Strategya arranca vacío en Capital y Caja. Tienes dos caminos:
-
-- **Importar** lo que ya tienes en los artefactos: Capital → **Importar** (archivo de Mena Capital) y
-  Caja → **Importar** (archivo del Calendario de Caja). Primero te muestra un resumen; nada se guarda
-  hasta que confirmas.
-- **Escribirlo a mano**:
-  - **Capital → Cartera** para tus instrumentos.
-  - **Capital → Cierre** para el cierre de cada mes.
-  - **Caja → Ajustes** para cuentas, recurrentes, categorías, colchón y tasa del dólar.
-
-En Caja, al tocar un día puedes:
-- confirmar, ajustar u omitir lo planificado;
-- registrar gastos, ingresos y transferencias;
-- usar **Cuadrar con tu banco** para poner el saldo real.
-
-Tus datos personales solo los ves tú (están protegidos por tu usuario) y no forman parte del código.
+Strategya arranca vacío en **Mis inversiones** y **Mi presupuesto**: cada pantalla te dice qué anotar y tiene un
+botón azul para empezar. Nunca se piden números de cuenta, tarjeta ni cédula: basta un nombre que reconozcas.
+Tus datos solo los ves tú.
 
 ### Alertas
 
@@ -128,13 +116,14 @@ Se revisan después de cada lectura. Llega una por activo y día:
 - en la Terminal (arriba);
 - en tu correo, si activaste Resend.
 
-Para cambiar un umbral: **Ajustes** → cambia el número → **Guardar**.
+Para cambiar un umbral: **Más → Ajustes y alertas** → cambia el número → **Guardar**.
 
 ### Horarios (hora RD)
 
 | Qué | Cuándo |
 | --- | --- |
-| Precios de mercado | cada 5 minutos con el mercado abierto (FMP reparte 240 consultas al día) |
+| Precios de mercado | cada 5 minutos con el mercado abierto (FMP; sin su clave, Cboe con 15 min de retraso) |
+| Fondos de inversión (Excel, AFI Reservas) | 9:10 AM y 6:10 PM |
 | Dólar y tasas del BCRD | 9:00 AM y 4:00 PM |
 | Las 5 del día y Guerras (si activas la IA) | 7:35 AM y 5:05 PM, y con el botón «Actualizar resumen con IA» |
 | Noticias | cada 10 minutos |
@@ -144,7 +133,7 @@ Para cambiar un umbral: **Ajustes** → cambia el número → **Guardar**.
 ### Si algo no se ve bien
 
 1. Mira el sello de la cifra (fecha y fuente).
-2. Abre **Estado**: dice qué lectura falló y por qué (por ejemplo, «falta la clave» o «el sitio respondió 429»).
+2. Abre **Más → Estado de las fuentes**: dice qué lectura falló y por qué (por ejemplo, «falta la clave» o «el sitio respondió 429»).
 3. Escríbeme lo que ves. Si la fuente está caída, Strategya espera y lo vuelve a intentar sola.
 
 **Importante:** el plan gratis de Supabase se pausa si pasan 7 días sin uso. Si un día la terminal no
