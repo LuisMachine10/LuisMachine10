@@ -18,7 +18,10 @@ import { mercado } from "@/lib/supabase/servidor";
 // cache() de React: los paneles de una misma petición comparten una sola ronda de consultas.
 
 const COLUMNAS_OBS = "serie_id, valor::text, cambio::text, fecha_dato, recogido_en, url_dato, fuente_id";
-const FUENTES_RD = ["bcrd", "bcrd_excel", "credito_publico", "simv", "micm", "manual", "bvrd_calculadora"];
+const FUENTES_RD = [
+  "bcrd", "bcrd_excel", "credito_publico", "simv", "micm", "manual", "bvrd_calculadora",
+  "bce_fx", "excel_fondos", "afi_reservas", "bhd_fondos", "fmp", "fred", "cboe",
+];
 
 export interface EmisionRD {
   id: number;
@@ -71,7 +74,7 @@ function haceDias(dias: number): string {
 
 export const datosRD = cache(async () => {
   const db = await mercado();
-  const [series, dolar, macro, tasas, combustibles, fuentes, tareas, emisiones, avisos, fondos, manuales] = await Promise.all([
+  const [series, dolar, macro, tasas, combustibles, fuentes, tareas, emisiones, avisos, fondos, manuales, eurusd, brent, seriesExtra] = await Promise.all([
     db.from("series").select("id, nombre, nombre_corto, unidad, frecuencia, max_antiguedad_min, fuente_id, orden")
       .in("id", [...SERIES_DOLAR, ...SERIES_MACRO_RD, ...SERIES_TASAS, ...SERIES_COMBUSTIBLES]).order("orden"),
     db.from("observaciones").select(COLUMNAS_OBS).in("serie_id", [...SERIES_DOLAR]).gte("fecha_dato", haceDias(45))
@@ -90,10 +93,17 @@ export const datosRD = cache(async () => {
     db.from("instituciones_feed").select("id, institucion, titulo, url, fecha").in("institucion", ["SIMV", "MICM"])
       .order("fecha", { ascending: false }).limit(20),
     db.from("fondos_rendimientos")
-      .select("id, safi, fondo, moneda, plazo_dias, rendimiento::text, fecha_corte, url_fuente, nota")
-      .order("fecha_corte", { ascending: false }).limit(400),
+      .select("id, safi, fondo, moneda, plazo_dias, rendimiento::text, fecha_corte, url_fuente, nota, valor_cuota::text, origen, fuente_id")
+      .order("fecha_corte", { ascending: false }).limit(600),
     db.from("carga_manual").select("id, dato, serie_id, valor::text, fecha, nota, url_fuente, creado_en")
       .order("creado_en", { ascending: false }).limit(15),
+    // Euro: solo la tasa de referencia del BCE (el BCRD no publica EUR/DOP); se cruza con el dólar del BCRD.
+    db.from("observaciones").select(COLUMNAS_OBS).eq("serie_id", "EURUSD").eq("fuente_id", "bce_fx").gte("fecha_dato", haceDias(50))
+      .order("fecha_dato", { ascending: false }).limit(60),
+    // Brent de referencia para los combustibles: la última cotización guardada.
+    db.from("observaciones").select(`${COLUMNAS_OBS}, hora_dato`).eq("serie_id", "BRENT")
+      .order("fecha_dato", { ascending: false }).order("hora_dato", { ascending: false, nullsFirst: false }).limit(1),
+    db.from("series").select("id, nombre, nombre_corto, unidad, frecuencia, max_antiguedad_min, fuente_id, orden").in("id", ["EURUSD", "BRENT"]),
   ]);
   return {
     series: exigir<SerieRD[]>(series, "las series de RD"),
@@ -109,6 +119,10 @@ export const datosRD = cache(async () => {
     avisos: exigir<AvisoInstitucion[]>(avisos, "los avisos de SIMV y MICM"),
     fondos: exigir<FilaFondo[]>(fondos, "los fondos de inversión"),
     manuales: exigir<CargaManual[]>(manuales, "la carga manual"),
+    /** EUR/USD del BCE (fuente bce_fx), del más nuevo al más viejo. */
+    eurusd: exigir<ObsRD[]>(eurusd, "el euro del BCE"),
+    brent: exigir<(ObsRD & { hora_dato: string | null })[]>(brent, "el Brent")[0] ?? null,
+    seriesExtra: exigir<SerieRD[]>(seriesExtra, "las series EURUSD y BRENT"),
   };
 });
 

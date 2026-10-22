@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Encabezado } from "@/componentes/Encabezado";
+import { IntroPantalla } from "@/componentes/IntroPantalla";
 import { PanelError } from "@/componentes/PanelError";
 import {
   FormularioCombustibles,
@@ -9,9 +10,10 @@ import {
   type SerieCarga,
 } from "@/componentes/rd/FormulariosCarga";
 import { NavRD } from "@/componentes/rd/NavRD";
+import { SelectorCarga } from "@/componentes/rd/SelectorCarga";
 import { seriesParaCarga } from "@/lib/datos-rd";
 
-export const metadata: Metadata = { title: "Carga manual · Strategya" };
+export const metadata: Metadata = { title: "Agregar un dato · Strategya" };
 export const dynamic = "force-dynamic";
 
 /** Fecha de hoy en RD (UTC−4, sin horario de verano), para los valores por defecto. */
@@ -27,39 +29,6 @@ const ICONOS = {
   combustible: "M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M5 10h10M15 8l3 2v8a1.5 1.5 0 0 0 3 0V9l-3-3",
 } as const;
 
-function Panel({
-  id,
-  titulo,
-  ayuda,
-  icono,
-  children,
-}: {
-  id: string;
-  titulo: string;
-  ayuda: string;
-  icono: keyof typeof ICONOS;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="panel rd-panel" aria-labelledby={id}>
-      <div className="panel-cabecera rd-carga-cabecera">
-        <span className="rd-kpi-icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d={ICONOS[icono]} />
-          </svg>
-        </span>
-        <div>
-          <h2 className="panel-titulo" id={id}>
-            {titulo}
-          </h2>
-          <p className="rd-carga-ayuda">{ayuda}</p>
-        </div>
-      </div>
-      <div className="panel-cuerpo">{children}</div>
-    </section>
-  );
-}
-
 export default async function PaginaCarga() {
   let series: SerieCarga[];
   try {
@@ -71,7 +40,7 @@ export default async function PaginaCarga() {
         <Encabezado actual="carga" ultimaActualizacion={null} />
         <NavRD actual="carga" />
         <main className="terminal">
-          <PanelError titulo="Carga manual" mensaje={(e as Error).message} />
+          <PanelError titulo="Agregar un dato" mensaje={(e as Error).message} />
         </main>
       </>
     );
@@ -81,28 +50,46 @@ export default async function PaginaCarga() {
     <>
       <Encabezado actual="carga" ultimaActualizacion={null} />
       <NavRD actual="carga" />
-      <main className="terminal">
-        <header className="panel-ancho rd-carga-intro">
-          <h1 className="rd-carga-titulo">Agregar un dato</h1>
-          <p>
-            Para escribir a mano una cifra oficial que Strategya no trae sola (por ejemplo, el rendimiento de un fondo de BHD o
-            una resolución de la SIMV). Pega siempre el enlace de donde la sacaste: así aparece con su fuente, marcada «Carga
-            manual». Solo tu cuenta puede guardar.
+      <main className="terminal rd-pagina-carga">
+        <IntroPantalla clave="carga">
+          <p className="rd-intro-nota">
+            Elige qué vas a agregar, llena las casillas y pega el enlace de donde lo sacaste: así aparece con su fuente, marcado
+            «Carga manual». Solo tu cuenta puede guardar.
           </p>
-        </header>
-        <div className="rd-formularios panel-ancho">
-          <Panel id="t-carga-dato" titulo="Dato de una serie" ayuda="Cualquier serie del catálogo (p. ej. TASA_BOJ)" icono="dato">
-            <FormularioDato series={series.map(({ id, nombre, unidad }) => ({ id, nombre, unidad }))} hoy={hoy} />
-          </Panel>
-          <Panel id="t-carga-fondo" titulo="Rendimiento de un fondo" ayuda="SAFI · fondo · base 30/360/365 días" icono="fondo">
-            <FormularioFondo hoy={hoy} />
-          </Panel>
-          <Panel id="t-carga-emision" titulo="Resolución SIMV o hecho BVRD" ayuda="Aparece en Emisiones, en la sección RD" icono="emision">
-            <FormularioEmision hoy={hoy} />
-          </Panel>
-          <Panel id="t-carga-comb" titulo="Precios de combustibles" ayuda="Solo si el aviso del MICM no se pudo leer" icono="combustible">
-            <FormularioCombustibles hoy={hoy} />
-          </Panel>
+        </IntroPantalla>
+        <div className="panel-ancho">
+          <SelectorCarga
+            opciones={[
+              {
+                id: "fondo",
+                titulo: "Rendimiento de un fondo",
+                ayuda: "Un fondo de una SAFI que no se lee sola (BHD, Popular, Universal, Pioneer…)",
+                icono: ICONOS.fondo,
+                contenido: <FormularioFondo hoy={hoy} />,
+              },
+              {
+                id: "emision",
+                titulo: "Resolución de la SIMV o hecho de la BVRD",
+                ayuda: "Aparece en Avisos de la SIMV, en la sección RD",
+                icono: ICONOS.emision,
+                contenido: <FormularioEmision hoy={hoy} />,
+              },
+              {
+                id: "comb",
+                titulo: "Precios de combustibles",
+                ayuda: "Solo si el aviso del MICM no se pudo leer solo",
+                icono: ICONOS.combustible,
+                contenido: <FormularioCombustibles hoy={hoy} />,
+              },
+              {
+                id: "dato",
+                titulo: "Otra cifra oficial",
+                ayuda: "Cualquier serie de Strategya, por ejemplo la tasa del Banco de Japón",
+                icono: ICONOS.dato,
+                contenido: <FormularioDato series={series.map(({ id, nombre, unidad }) => ({ id, nombre, unidad }))} hoy={hoy} />,
+              },
+            ]}
+          />
         </div>
       </main>
       <footer className="pie">

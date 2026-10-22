@@ -26,7 +26,7 @@ function refrescar() {
 }
 
 function mensajeBase(error: { message: string; code?: string }): string {
-  if (error.code === "23505") return "Ya existe un registro igual (mismo fondo, moneda, base y fecha de corte).";
+  if (error.code === "23505") return "Ya está guardado (mismo fondo, moneda, periodo y fecha de corte). Si la cifra cambió, usa otra fecha de corte.";
   if (error.code === "42501" || /row-level security|permission denied/i.test(error.message)) {
     return "No autorizado: inicia sesión con la cuenta de Mena.";
   }
@@ -110,11 +110,15 @@ export async function cargarFondo(_previo: EstadoCarga, form: FormData): Promise
   const rendimiento = validarDecimal(texto(form, "rendimiento"), "El rendimiento");
   const corte = validarFecha(texto(form, "corte"), "Fecha de corte");
   const enlace = validarEnlace(texto(form, "enlace"));
-  if (!safi || !fondo) return { ok: false, mensaje: "Escribe la SAFI y el nombre del fondo." };
-  if (moneda !== "DOP" && moneda !== "USD") return { ok: false, mensaje: "Elige la moneda del fondo." };
-  if (![30, 60, 90, 180, 360, 365].includes(plazo)) return { ok: false, mensaje: "La base del rendimiento debe ser 30, 60, 90, 180, 360 o 365 días." };
-  const error = primerError(rendimiento, corte, enlace);
-  if (error || !rendimiento.ok || !corte.ok || !enlace.ok) return { ok: false, mensaje: error };
+  const cuotaTexto = texto(form, "valor_cuota");
+  const cuota = cuotaTexto ? validarDecimal(cuotaTexto, "El valor cuota", { positivo: true }) : null;
+  if (!safi || !fondo) return { ok: false, mensaje: "Escribe la administradora (p. ej. AFI Popular) y el nombre del fondo." };
+  if (moneda !== "DOP" && moneda !== "USD") return { ok: false, mensaje: "Elige la moneda del fondo: pesos o dólares." };
+  if (![30, 60, 90, 180, 360, 365].includes(plazo)) {
+    return { ok: false, mensaje: "Elige el periodo del rendimiento: últimos 30 días o último año (base 360 o 365 días)." };
+  }
+  const error = primerError(rendimiento, corte, enlace, ...(cuota ? [cuota] : []));
+  if (error || !rendimiento.ok || !corte.ok || !enlace.ok || (cuota && !cuota.ok)) return { ok: false, mensaje: error };
 
   const db = await mercado();
   const r = await db.from("fondos_rendimientos").insert({
@@ -124,12 +128,14 @@ export async function cargarFondo(_previo: EstadoCarga, form: FormData): Promise
     plazo_dias: plazo,
     rendimiento: rendimiento.valor, // texto: PostgREST lo convierte a numeric sin pasar por float
     fecha_corte: corte.valor,
+    valor_cuota: cuota?.ok ? cuota.valor : null, // texto, igual que el rendimiento
     url_fuente: enlace.valor,
     nota: texto(form, "nota") || null,
   });
   if (r.error) return { ok: false, mensaje: mensajeBase(r.error) };
   refrescar();
-  return { ok: true, mensaje: `Guardado: ${fondo} (${safi}) ${rendimiento.valor}% al ${corte.valor}.` };
+  const periodo = plazo === 30 ? "30 días" : plazo >= 360 ? `1 año (base ${plazo} d)` : `${plazo} días`;
+  return { ok: true, mensaje: `Guardado: ${fondo} (${safi}) ${rendimiento.valor}% a ${periodo}, corte del ${corte.valor}. Ya aparece en la sección RD.` };
 }
 
 export async function cargarEmision(_previo: EstadoCarga, form: FormData): Promise<EstadoCarga> {

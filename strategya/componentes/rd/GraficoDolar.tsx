@@ -12,13 +12,17 @@ export interface PuntoDolar {
   valor: string;
 }
 
-const COLORES = {
-  texto: "#7c8296",
-  rejilla: "rgba(35, 42, 59, 0.55)",
-  venta: "#4c8dff",
-  compra: "#b2b5be",
-  cruz: "#3a445c",
-};
+/** "#4c8dff" → "rgba(76, 141, 255, a)"; otro formato se deja tal cual (sin transparencia). */
+function conAlfa(color: string, a: number): string {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  return m ? `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${a})` : color;
+}
+
+/** Color de una variable de app/globals.css (un solo archivo para cambiar la paleta). */
+function token(nombre: string, respaldo: string): string {
+  if (typeof window === "undefined") return respaldo;
+  return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim() || respaldo;
+}
 
 /** Orden ascendente y un punto por fecha (el gráfico rechaza fechas repetidas); se queda el primero recibido. */
 function aSerie(puntos: PuntoDolar[]) {
@@ -33,6 +37,14 @@ export function GraficoDolar({ venta, compra, etiqueta }: { venta: PuntoDolar[];
   useEffect(() => {
     const el = caja.current;
     if (!el) return;
+    const COLORES = {
+      texto: token("--texto-3", "#7c8296"),
+      rejilla: token("--rejilla", "#1c2130"),
+      venta: token("--rd", "#4c8dff"),
+      compra: token("--texto-2", "#b2b5be"),
+      cruz: token("--borde-fuerte", "#2f3850"),
+      etiqueta: token("--panel-alto", "#1c2130"),
+    };
     const chart = createChart(el, {
       autoSize: true,
       layout: {
@@ -45,8 +57,8 @@ export function GraficoDolar({ venta, compra, etiqueta }: { venta: PuntoDolar[];
       rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.15, bottom: 0.08 } },
       timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true, lockVisibleTimeRangeOnResize: true },
       crosshair: {
-        vertLine: { color: COLORES.cruz, style: LineStyle.Dashed, labelBackgroundColor: "#1c2130" },
-        horzLine: { color: COLORES.cruz, style: LineStyle.Dashed, labelBackgroundColor: "#1c2130" },
+        vertLine: { color: COLORES.cruz, style: LineStyle.Dashed, labelBackgroundColor: COLORES.etiqueta },
+        horzLine: { color: COLORES.cruz, style: LineStyle.Dashed, labelBackgroundColor: COLORES.etiqueta },
       },
       localization: { locale: "es-DO", priceFormatter: (p: number) => p.toFixed(4) },
       // Sin arrastrar ni hacer zoom: en el celular el dedo debe poder desplazar la página.
@@ -57,8 +69,8 @@ export function GraficoDolar({ venta, compra, etiqueta }: { venta: PuntoDolar[];
     const area = chart.addSeries(AreaSeries, {
       lineColor: COLORES.venta,
       lineWidth: 2,
-      topColor: "rgba(76, 141, 255, 0.28)",
-      bottomColor: "rgba(76, 141, 255, 0.02)",
+      topColor: conAlfa(COLORES.venta, 0.28),
+      bottomColor: conAlfa(COLORES.venta, 0.02),
       priceLineVisible: false,
       lastValueVisible: true,
       crosshairMarkerRadius: 4,

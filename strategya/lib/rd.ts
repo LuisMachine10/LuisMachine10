@@ -171,6 +171,10 @@ export interface FilaFondo {
   fecha_corte: string;
   url_fuente: string;
   nota: string | null;
+  /** Valor de la cuota en la fecha de corte (si la SAFI lo publica). */
+  valor_cuota?: string | null;
+  origen?: "manual" | "automatica";
+  fuente_id?: string | null;
 }
 
 export interface GrupoSafi {
@@ -200,6 +204,153 @@ export function fondosPorSafi(filas: FilaFondo[]): GrupoSafi[] {
       fondos: fondos.sort((a, b) => a.fondo.localeCompare(b.fondo, "es") || a.moneda.localeCompare(b.moneda) || a.plazo_dias - b.plazo_dias),
       ultimoCorte: fondos.map((f) => f.fecha_corte).sort().at(-1)!,
     }));
+}
+
+// ---------------------------------------------------------------------------
+// Fondos de Inversión en el Mercado de Valores de RD (vista con filtros)
+// ---------------------------------------------------------------------------
+
+/** Un fondo se marca «Dato viejo» si su corte tiene más de 10 días. */
+export const MAX_FONDO_MIN = 14_400;
+
+/** SAFIs cuyas páginas aún no se leen solas: sus fondos se agregan a mano. */
+export const SAFIS_A_MANO = ["Universal", "Popular", "Pioneer", "BHD"] as const;
+
+export interface CifraFondo {
+  rendimiento: string;
+  plazo_dias: number;
+  fecha_corte: string;
+  url: string;
+  manual: boolean;
+}
+
+/** Un fondo (SAFI + nombre + moneda) con su rendimiento a 30 días y a 1 año (base 360 o 365). */
+export interface FondoVista {
+  clave: string;
+  safi: string;
+  fondo: string;
+  moneda: "DOP" | "USD";
+  r30: CifraFondo | null;
+  r1a: CifraFondo | null;
+  valorCuota: { valor: string; fecha_corte: string } | null;
+  /** Corte más reciente de las cifras mostradas. */
+  corte: string;
+  url: string;
+  manual: boolean;
+  fuenteId: string | null;
+  viejo: boolean;
+}
+
+/**
+ * Último corte de cada fondo, solo con las bases de 30 días y de 1 año (360 o 365 días; si hay ambas,
+ * la de corte más reciente). Las demás bases (60/90/180) no se muestran. Sin cálculos: cifras tal cual.
+ */
+export function fondosVista(filas: FilaFondo[], ahora: Date): FondoVista[] {
+  const porFondo = new Map<string, FilaFondo[]>();
+  for (const f of filas) {
+    if (![30, 360, 365].includes(f.plazo_dias)) continue;
+    const clave = `${f.safi}\u0000${f.fondo}\u0000${f.moneda}`;
+    const g = porFondo.get(clave);
+    if (g) g.push(f);
+    else porFondo.set(clave, [f]);
+  }
+  const ultima = (lista: FilaFondo[]) =>
+    lista.slice().sort((a, b) => b.fecha_corte.localeCompare(a.fecha_corte) || b.plazo_dias - a.plazo_dias || b.id - a.id)[0];
+  const cifraDe = (f: FilaFondo | undefined): CifraFondo | null =>
+    f ? { rendimiento: f.rendimiento, plazo_dias: f.plazo_dias, fecha_corte: f.fecha_corte, url: f.url_fuente, manual: (f.origen ?? "manual") === "manual" } : null;
+  const salida: FondoVista[] = [];
+  for (const [clave, lista] of porFondo) {
+    const a30 = ultima(lista.filter((f) => f.plazo_dias === 30));
+    const a1 = ultima(lista.filter((f) => f.plazo_dias !== 30));
+    const conCuota = ultima(lista.filter((f) => f.valor_cuota));
+    const base = ultima([a30, a1].filter((x): x is FilaFondo => !!x));
+    salida.push({
+      clave,
+      safi: base.safi,
+      fondo: base.fondo,
+      moneda: base.moneda,
+      r30: cifraDe(a30),
+      r1a: cifraDe(a1),
+      valorCuota: conCuota?.valor_cuota ? { valor: conCuota.valor_cuota, fecha_corte: conCuota.fecha_corte } : null,
+      corte: base.fecha_corte,
+      url: base.url_fuente,
+      manual: (base.origen ?? "manual") === "manual",
+      fuenteId: base.fuente_id ?? null,
+      viejo: frescura({ fecha_dato: base.fecha_corte }, MAX_FONDO_MIN, ahora).desactualizado,
+    });
+  }
+  return salida.sort((a, b) => a.safi.localeCompare(b.safi, "es") || a.fondo.localeCompare(b.fondo, "es") || a.moneda.localeCompare(b.moneda));
+}
+
+export interface FiltroFondos {
+  safi: string; // "" = todas
+  moneda: "" | "DOP" | "USD";
+  /** "30" o "1a": solo fondos con ese rendimiento. "ambos": todos (se ordena por 30 días). */
+  periodo: "ambos" | "30" | "1a";
+  orden: "mayor" | "menor" | "nombre";
+}
+
+/**
+ * Filtra y ordena los fondos. El periodo decide qué rendimiento se ordena; con «ambos», el de 30 días,
+ * y los fondos sin él quedan al final (nunca se rellenan). Comparación exacta con big.js.
+ */
+export function filtrarFondos(lista: FondoVista[], f: FiltroFondos): FondoVista[] {
+  const elegido = (x: FondoVista) => (f.periodo === "1a" ? x.r1a : x.r30);
+  const filtrados = lista.filter(
+    (x) =>
+      (!f.safi || x.safi === f.safi) &&
+      (!f.moneda || x.moneda === f.moneda) &&
+      (f.periodo === "ambos" || (f.periodo === "30" ? x.r30 : x.r1a) !== null),
+  );
+  const porNombre = (a: FondoVista, b: FondoVista) => a.fondo.localeCompare(b.fondo, "es") || a.safi.localeCompare(b.safi, "es") || a.moneda.localeCompare(b.moneda);
+  if (f.orden === "nombre") return filtrados.sort(porNombre);
+  return filtrados.sort((a, b) => {
+    const ra = elegido(a);
+    const rb = elegido(b);
+    if (!ra || !rb) return ra ? -1 : rb ? 1 : porNombre(a, b);
+    const c = new Big(ra.rendimiento).cmp(rb.rendimiento);
+    return (f.orden === "mayor" ? -c : c) || porNombre(a, b);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Euro en pesos: el BCRD no publica EUR/DOP. Cruce calculado = dólar del BCRD × EUR/USD del BCE.
+// ---------------------------------------------------------------------------
+
+export interface PuntoEuro {
+  /** Fecha de la tasa del BCE. */
+  fecha: string;
+  /** Fecha del dólar del BCRD usado (el último publicado en o antes de esa fecha). */
+  fechaDolar: string;
+  eurusd: string;
+  venta: string;
+  compra: string | null;
+}
+
+/** Días máximos entre la tasa del BCE y el dólar del BCRD con que se cruza (fin de semana + feriado). */
+export const MAX_DIAS_CRUCE = 3;
+
+/**
+ * Cruce EUR/DOP = USD/DOP × EUR/USD, a 4 decimales (big.js, redondeo a la mitad hacia arriba).
+ * Para cada fecha del BCE se usa el dólar del BCRD de esa fecha o el último anterior (hasta 3 días
+ * antes); si no hay, esa fecha queda sin cruce. Nunca es un dato oficial: la pantalla lo rotula.
+ */
+export function cruceEuro(obs: ObsRD[], eurusd: ObsRD[]): PuntoEuro[] {
+  const venta = historial(obs, "USDDOP_VENTA", 400);
+  const compra = new Map(historial(obs, "USDDOP_COMPRA", 400).map((o) => [o.fecha_dato, o]));
+  const porFecha = new Map<string, ObsRD>();
+  for (const e of eurusd) if (!porFecha.has(e.fecha_dato)) porFecha.set(e.fecha_dato, e);
+  const salida: PuntoEuro[] = [];
+  for (const e of [...porFecha.values()].sort((a, b) => b.fecha_dato.localeCompare(a.fecha_dato))) {
+    const v = venta.find((o) => o.fecha_dato <= e.fecha_dato);
+    if (!v) continue;
+    const dias = (Date.parse(`${e.fecha_dato}T00:00:00Z`) - Date.parse(`${v.fecha_dato}T00:00:00Z`)) / 86_400_000;
+    if (dias > MAX_DIAS_CRUCE) continue;
+    const c = compra.get(v.fecha_dato);
+    const por = (x: string) => new Big(x).times(e.valor).round(4, Big.roundHalfUp).toFixed(4);
+    salida.push({ fecha: e.fecha_dato, fechaDolar: v.fecha_dato, eurusd: e.valor, venta: por(v.valor), compra: c ? por(c.valor) : null });
+  }
+  return salida;
 }
 
 // ---------------------------------------------------------------------------

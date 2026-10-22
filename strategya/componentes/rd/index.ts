@@ -1,5 +1,7 @@
-// Paneles del módulo República Dominicana para la terminal (Server Components async).
+// Paneles del módulo República Dominicana (Server Components async).
 export { BoletinTasas } from "./BoletinTasas";
 export { PanelCombustibles } from "./PanelCombustibles";
-export { PanelEmisiones } from "./PanelEmisiones";
+export { PanelEmisiones, PanelSIMV, PanelSubastas } from "./PanelEmisiones";
+export { PanelFondos } from "./PanelFondos";
+export { PanelManuales } from "./PanelManuales";
 export { PanelRD } from "./PanelRD";

@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Actualizador } from "@/componentes/Actualizador";
-import { IntroPantalla } from "@/componentes/IntroPantalla";
 import { Encabezado } from "@/componentes/Encabezado";
 import { PanelNoticias } from "@/componentes/noticias";
-import { BoletinTasas, PanelCombustibles, PanelEmisiones, PanelRD } from "@/componentes/rd";
+import {
+  BoletinTasas,
+  PanelCombustibles,
+  PanelFondos,
+  PanelManuales,
+  PanelRD,
+  PanelSIMV,
+  PanelSubastas,
+} from "@/componentes/rd";
+import { Icono, ICONOS_RD } from "@/componentes/rd/comun";
 import { NavRD } from "@/componentes/rd/NavRD";
 import { datosRD } from "@/lib/datos-rd";
 
@@ -24,13 +33,31 @@ export default async function PaginaRD() {
     <>
       <Encabezado actual="rd" ultimaActualizacion={ultima} />
       <NavRD actual="rd" />
-      <main className="terminal">
-        <IntroPantalla clave="rd" />
-        <PanelRD ancho />
-        <PanelCombustibles />
-        <PanelNoticias categoria="rd" limite={8} />
+      <main className="terminal rd-pagina">
+        <header className="intro-pantalla panel-ancho rd-intro">
+          <div>
+            <h1>República Dominicana</h1>
+            <p>
+              Aquí ves el mercado de valores y el dinero en RD: avisos de la SIMV, tasas de los bancos, dólar y euro, subastas,
+              fondos y combustibles. Cada cifra dice de dónde sale y de qué fecha es.
+            </p>
+          </div>
+          <Link href="/carga" className="boton rd-accion-principal">
+            <Icono d={ICONOS_RD.mas} tam={18} />
+            Agregar un dato
+          </Link>
+        </header>
+        {/* Fila 1: SIMV + boletín · Fila 2: dólar y euro + subastas · Fila 3: fondos · Fila 4: combustibles + datos a mano */}
+        <PanelSIMV />
         <BoletinTasas />
-        <PanelEmisiones />
+        <PanelRD />
+        <PanelSubastas />
+        <PanelFondos />
+        <PanelCombustibles />
+        <div className="rd-columna">
+          <PanelManuales />
+          <PanelNoticias categoria="rd" limite={8} />
+        </div>
       </main>
       <footer className="pie">
         <h2>Fuentes</h2>
@@ -50,6 +77,26 @@ export default async function PaginaRD() {
             <a href="https://simv.gob.do/feed/" target="_blank" rel="noopener noreferrer">
               SIMV (solo su feed público)
             </a>
+          </li>
+          <li>
+            <a
+              href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Banco Central Europeo
+            </a>{" "}
+            (euro de referencia; el euro en pesos es un cruce calculado: dólar del BCRD × euro del BCE)
+          </li>
+          <li>
+            <a href="https://fondosabiertos.excel.com.do/" target="_blank" rel="noopener noreferrer">
+              Excel Fondos
+            </a>{" "}
+            y{" "}
+            <a href="https://www.afireservas.com/" target="_blank" rel="noopener noreferrer">
+              AFI Reservas
+            </a>{" "}
+            (páginas públicas de sus fondos)
           </li>
           <li>
             <a href="https://micm.gob.do/" target="_blank" rel="noopener noreferrer">

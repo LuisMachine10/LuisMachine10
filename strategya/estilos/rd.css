@@ -1,5 +1,5 @@
-/* Strategya · módulo República Dominicana. Usa los tokens de app/globals.css (no define colores propios
-   salvo mezclas de los del sistema). Rejilla de 8 px; primero el celular. */
+/* Strategya · módulo República Dominicana. Solo usa las variables de app/globals.css (y mezclas de ellas):
+   cambiar la paleta es cambiar un solo archivo. Rejilla de 8 px; primero el celular. */
 
 /* ── Pestañas del módulo ───────────────────────────────────────────── */
 .rd-subnav {
@@ -33,7 +33,7 @@
 }
 .rd-pestanas a[aria-current="page"] {
   background: var(--acento-suave);
-  color: #fff;
+  color: var(--texto);
 }
 @media (max-width: 899px) {
   .rd-subnav {
@@ -41,11 +41,161 @@
   }
 }
 
+/* ── Página: título con su acción principal ────────────────────────── */
+.rd-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+.rd-intro > div {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+.rd-accion-principal,
+.rd-boton-grande {
+  min-height: 44px;
+  padding: 10px 18px;
+  font-size: 15px;
+}
+.rd-accion-principal:hover {
+  color: var(--texto);
+  text-decoration: none;
+}
+@media (max-width: 599px) {
+  .rd-accion-principal {
+    width: 100%;
+  }
+}
+.rd-intro-nota {
+  margin-top: 6px !important;
+  font-size: 13.5px !important;
+  color: var(--texto-3) !important;
+}
+
 /* Contiene los textos .sr-solo (posición absoluta) para que no ensanchen la página. */
 .rd-panel,
-.rd-subastas,
 .rd-subasta {
   position: relative;
+}
+.rd-panel {
+  display: flex;
+  flex-direction: column;
+}
+.rd-panel > .panel-cuerpo {
+  flex: 1;
+}
+
+/* ── Cabecera de cada panel: ícono, título, «?» y para qué sirve ───── */
+.rd-cabecera {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+.rd-cabecera-icono {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--rd) 15%, transparent);
+  color: var(--rd);
+}
+.rd-cabecera-textos {
+  flex: 1;
+  min-width: 0;
+}
+.rd-titulo-fila {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+.rd-para {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--texto-3);
+}
+.rd-cabecera-extra {
+  flex: none;
+  align-self: center;
+}
+@media (max-width: 599px) {
+  .rd-cabecera {
+    flex-wrap: wrap;
+  }
+  .rd-cabecera-extra {
+    flex-basis: 100%;
+  }
+  .rd-cabecera-icono {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* «?» ¿Qué es esto? */
+.rd-que {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+.rd-que > summary {
+  list-style: none;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--borde-fuerte);
+  color: var(--texto-2);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+/* Área táctil de 44 px sin agrandar el círculo. */
+.rd-que > summary::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+.rd-que > summary::-webkit-details-marker {
+  display: none;
+}
+.rd-que > summary:hover,
+.rd-que[open] > summary {
+  background: var(--acento-suave);
+  border-color: var(--acento);
+  color: var(--texto);
+}
+.rd-que-texto {
+  position: absolute;
+  z-index: 15;
+  top: calc(100% + 8px);
+  left: -8px;
+  width: min(300px, calc(100vw - 48px));
+  padding: 10px 12px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-chico);
+  box-shadow: var(--sombra);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--texto-2);
+  white-space: normal;
+  text-align: left;
+}
+.rd-que-texto strong {
+  color: var(--texto);
+  font-weight: 600;
+}
+/* Cerca del borde derecho (mosaicos de la derecha) el globo abre hacia la izquierda. */
+.rd-mosaico:nth-child(even) .rd-que-texto {
+  left: auto;
+  right: -8px;
 }
 
 /* ── Sello de fuente discreto dentro del módulo ────────────────────── */
@@ -58,9 +208,10 @@
   color: var(--texto-2);
 }
 .rd-panel .sello a:hover {
-  color: #a9c1ff;
+  color: var(--texto);
 }
-.rd-panel .sello .vencido {
+.rd-panel .sello .vencido,
+.rd-pildora-vieja {
   display: inline-flex;
   align-items: center;
   padding: 0 7px;
@@ -69,136 +220,134 @@
   color: var(--ambar);
   font-size: 10.5px;
   font-weight: 600;
+  line-height: 1.7;
   letter-spacing: 0.02em;
-}
-.rd-panel .panel-cabecera > .sello {
-  margin-left: auto;
+  white-space: nowrap;
 }
 .rd-sellos {
   display: grid;
   gap: 2px;
   margin-top: 8px;
 }
+/* «sin dato»: punteado gris, siempre con texto. */
+.rd-sin-cifra {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: 6px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--texto-3);
+  white-space: nowrap;
+}
+.rd-nota {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--texto-3);
+}
+.rd-fuerte {
+  font-weight: 650;
+  color: var(--texto);
+}
 
-/* ── Tarjetas grandes: dólar, TPM, inflación ───────────────────────── */
-.rd-kpis {
+/* ── Mosaicos: dólar, euro, TPM, inflación ─────────────────────────── */
+.rd-contenedor {
+  container-type: inline-size;
+}
+.rd-mosaicos {
   display: grid;
-  gap: 12px;
+  gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-@media (min-width: 1100px) {
-  .rd-kpis {
+@container (min-width: 760px) {
+  .rd-mosaicos {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
-.rd-kpi {
+.rd-mosaico {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
-  padding: 16px;
-  background: linear-gradient(180deg, var(--panel-alto), color-mix(in srgb, var(--panel-alto) 55%, var(--panel)));
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: var(--panel-alto);
   border: 1px solid var(--borde);
   border-radius: 10px;
 }
-.rd-kpi-titulo {
+.rd-mosaico-cabeza {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 24px;
+}
+.rd-mosaico-titulo {
   margin: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--texto-2);
 }
-.rd-kpi-icono {
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--rd) 16%, transparent);
-  color: var(--rd);
-}
-.rd-kpi-valor {
+.rd-mosaico-valor {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
-  margin: 4px 0 0;
+  gap: 2px 5px;
+  margin: 0;
   min-width: 0;
 }
-.rd-kpi-valor .cifra-grande {
-  font-size: 28px;
-  overflow-wrap: anywhere;
+.rd-mosaico-valor .cifra-grande {
+  font-size: 22px;
 }
 .rd-moneda {
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--texto-3);
 }
-.rd-kpi-cambio {
+.rd-mosaico-linea {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 4px 8px;
   margin: 0;
 }
-.rd-kpi-ref {
+.rd-mosaico-ref {
   font-size: 12px;
   color: var(--texto-3);
 }
-.rd-kpi-extra {
-  margin: 0;
-  font-size: 13px;
+.rd-mosaico-ref .mono {
   color: var(--texto-2);
 }
-.rd-kpi .sello,
-.rd-kpi .rd-sin-dato {
+.rd-mosaico .sello,
+.rd-mosaico .rd-sin-dato {
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid var(--borde);
 }
-@media (max-width: 599px) {
-  .rd-kpis {
-    gap: 8px;
+.rd-mosaico .sello-fuente {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 399px) {
+  .rd-mosaico {
+    padding: 10px;
   }
-  .rd-kpi {
-    padding: 12px;
-  }
-  .rd-kpi-titulo {
-    font-size: 12px;
-    gap: 6px;
-  }
-  .rd-kpi-icono {
-    width: 24px;
-    height: 24px;
-  }
-  .rd-kpi-valor .cifra-grande {
-    font-size: 22px;
-  }
-  .rd-moneda {
-    font-size: 11px;
+  .rd-mosaico-valor .cifra-grande {
+    font-size: 19px;
   }
 }
 
-/* ── Gráfico del dólar ─────────────────────────────────────────────── */
+/* ── Gráfico del dólar y el euro ───────────────────────────────────── */
 .rd-grafico-bloque {
-  margin-top: 24px;
-}
-.rd-grafico-cabeza {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  margin-bottom: 8px;
-}
-.rd-grafico-cabeza .rd-h3 {
-  margin: 0;
+  margin-top: 16px;
 }
 .rd-leyenda {
   display: flex;
-  gap: 12px;
-  margin: 0;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 8px;
   padding: 0;
   list-style: none;
   font-size: 12px;
@@ -211,21 +360,25 @@
 }
 .rd-clave {
   display: inline-block;
-  width: 14px;
+  width: 16px;
   height: 0;
   border-top: 2px solid var(--rd);
 }
 .rd-clave-compra {
-  border-top: 2px dotted var(--texto-2);
+  border-top: 2px dotted var(--rd);
+}
+.rd-clave-euro {
+  border-top-color: var(--texto-2);
 }
 .rd-brecha {
-  margin-left: auto;
+  display: inline-block;
   padding: 3px 10px;
   border-radius: 999px;
   background: var(--panel-alto);
   border: 1px solid var(--borde);
   font-size: 12px;
   color: var(--texto-3);
+  white-space: nowrap;
 }
 .rd-brecha .mono {
   color: var(--texto);
@@ -234,20 +387,18 @@
 .rd-grafico {
   position: relative;
   width: 100%;
-  height: 260px;
+  height: 240px;
+  touch-action: pan-y;
 }
 @media (max-width: 599px) {
   .rd-grafico {
-    height: 210px;
-  }
-  .rd-brecha {
-    margin-left: 0;
+    height: 200px;
   }
 }
 
 /* ── Desplegables (tablas equivalentes) ────────────────────────────── */
 .rd-detalles {
-  margin-top: 12px;
+  margin-top: 8px;
   border-top: 1px solid var(--borde);
 }
 .rd-detalles > summary {
@@ -259,20 +410,40 @@
 .rd-detalles > summary:hover {
   color: var(--texto);
 }
-.rd-detalles[open] > summary {
-  margin-bottom: 8px;
+.rd-tablas-dolar {
+  display: grid;
+  gap: 16px;
+  margin-top: 8px;
+}
+.rd-caption {
+  caption-side: top;
+  text-align: left;
+  padding: 4px 8px 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--texto-2);
+}
+
+/* Columna con dos paneles apilados (datos a mano + noticias), al lado de combustibles. */
+.rd-columna {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+@media (max-width: 899px) {
+  .rd-columna {
+    gap: 12px;
+  }
 }
 
 /* ── Bloques y subtítulos ──────────────────────────────────────────── */
 .rd-bloque {
   min-width: 0;
 }
-.rd-bloque + .rd-bloque {
+.rd-subbloque {
   margin-top: 16px;
-}
-.rd-separado {
-  margin-top: 24px;
-  padding-top: 24px;
+  padding-top: 16px;
   border-top: 1px solid var(--borde);
 }
 .rd-h3 {
@@ -280,36 +451,15 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 0 12px;
-  font-size: 14px;
+  margin: 0 0 8px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--texto);
 }
-.rd-h3-icono {
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--rd) 16%, transparent);
-  color: var(--rd);
-}
-.rd-rejilla-2,
-.rd-rejilla-3 {
-  display: grid;
-  gap: 24px;
-}
-.rd-rejilla-2 > .rd-bloque + .rd-bloque,
-.rd-rejilla-3 > .rd-bloque + .rd-bloque {
-  margin-top: 0;
-}
-@media (min-width: 900px) {
-  .rd-rejilla-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .rd-rejilla-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+.rd-h3-chico {
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--texto-2);
 }
 
 /* ── Estado vacío amable ───────────────────────────────────────────── */
@@ -323,8 +473,8 @@
 .rd-sin-dato p {
   margin: 0;
 }
-.rd-bloque > .rd-sin-dato,
-.panel-cuerpo > .rd-sin-dato {
+.panel-cuerpo > .rd-sin-dato,
+.rd-sin-dato-caja {
   padding: 16px;
   border: 1px dashed var(--borde-fuerte);
   border-radius: 10px;
@@ -337,13 +487,55 @@
 .rd-boton-chico {
   padding: 6px 12px;
   font-size: 13px;
+  min-height: 36px;
 }
 .rd-boton-chico:hover {
   text-decoration: none;
   color: var(--texto);
 }
 
+/* ── Pestañas internas (segmentado) ────────────────────────────────── */
+.rd-segmentado {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 12px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+.rd-segmentado button {
+  flex: 1;
+  min-height: 36px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-2);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.rd-segmentado button:hover {
+  color: var(--texto);
+}
+.rd-segmentado button[aria-selected="true"] {
+  background: var(--panel-alto);
+  color: var(--texto);
+  box-shadow: inset 0 0 0 1px var(--borde-fuerte);
+}
+
 /* ── Boletín de tasas ──────────────────────────────────────────────── */
+.rd-nota-tabla {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  color: var(--texto-3);
+}
 .rd-tabla-tasas tbody th {
   white-space: normal;
   color: var(--texto-2);
@@ -351,8 +543,8 @@
 }
 .rd-tabla-tasas td,
 .rd-tabla-tasas tbody th {
-  padding-top: 10px;
-  padding-bottom: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
   vertical-align: middle;
 }
 .rd-celda-tasa {
@@ -379,99 +571,227 @@
   font-weight: 400;
   color: var(--texto-3);
 }
-.rd-vencido {
+.rd-celda-tasa .rd-pildora-vieja {
   margin-top: 2px;
-  font-size: 10px;
 }
-.rd-safis {
+
+/* ── Fondos de inversión ───────────────────────────────────────────── */
+.rd-filtros {
   display: grid;
-  gap: 16px;
+  gap: 8px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 @media (min-width: 900px) {
-  .rd-safis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .rd-filtros {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
-.rd-safi {
-  border: 1px solid var(--borde);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--panel-alto) 40%, transparent);
+.rd-filtros label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--texto-2);
 }
-.rd-caption {
-  caption-side: top;
-  text-align: left;
-  padding: 10px 8px 6px;
-  font-size: 13px;
+.rd-filtros select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  font-size: 14px;
+}
+.rd-filtros select:hover {
+  border-color: var(--borde-fuerte);
+}
+.rd-filtros select:focus-visible {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-suave);
+}
+.rd-fondos-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  margin: 12px 0 4px;
+  font-size: 12.5px;
+  color: var(--texto-2);
+}
+.rd-tabla-fondos tbody th,
+.rd-tabla-fondos td {
+  vertical-align: middle;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.rd-fondo-nombre {
+  white-space: normal !important;
+}
+.rd-fondo-titulo {
+  display: block;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--texto);
 }
-
-/* ── Combustibles: lista de precios ────────────────────────────────── */
-.rd-lista-precios {
-  width: 100%;
-  border-collapse: collapse;
-}
-.rd-lista-precios tbody tr > * {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--borde);
-  vertical-align: middle;
-}
-.rd-lista-precios tbody tr:last-child > * {
-  border-bottom: 0;
-}
-.rd-lista-precios th {
-  text-align: left;
-  font-weight: 500;
-}
-.rd-producto {
+.rd-fondo-safi {
   display: block;
-  font-size: 14px;
-  color: var(--texto);
-}
-.rd-unidad {
-  display: block;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--texto-3);
 }
+.rd-rend {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--texto);
+}
+.rd-rend-base {
+  display: block;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.rd-col-orden {
+  background: color-mix(in srgb, var(--acento) 6%, transparent);
+}
+.rd-tabla-fondos thead th[aria-sort] {
+  color: var(--texto);
+}
+.rd-tabla-fondos thead th[aria-sort]::after {
+  content: " ↓";
+}
+.rd-tabla-fondos thead th[aria-sort="ascending"]::after {
+  content: " ↑";
+}
+.rd-fondo-fuente .sello {
+  gap: 2px 8px;
+  align-items: center;
+}
+/* Celular: cada fondo es una tarjeta (nombre arriba, cifras en rejilla). */
+@media (max-width: 699px) {
+  .rd-tabla-fondos thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .rd-tabla-fondos,
+  .rd-tabla-fondos tbody {
+    display: block;
+  }
+  .rd-tabla-fondos tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: var(--panel-alto);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+  }
+  .rd-tabla-fondos tbody tr > * {
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    text-align: left !important;
+  }
+  .rd-tabla-fondos .rd-fondo-nombre {
+    grid-column: 1 / 3;
+  }
+  .rd-tabla-fondos .rd-fondo-moneda {
+    justify-self: end;
+  }
+  .rd-tabla-fondos .rd-fondo-fuente {
+    grid-column: 1 / -1;
+    padding-top: 8px !important;
+    border-top: 1px solid var(--borde) !important;
+  }
+  .rd-tabla-fondos td[data-etiqueta]:not(.rd-fondo-moneda):not(.rd-fondo-fuente)::before {
+    content: attr(data-etiqueta);
+    display: block;
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--texto-3);
+  }
+  .rd-tabla-fondos .rd-col-orden::before {
+    color: var(--texto-2) !important;
+  }
+}
+.rd-nota-pie {
+  padding-top: 12px;
+  border-top: 1px solid var(--borde);
+}
+
+/* ── Combustibles: lista compacta ──────────────────────────────────── */
+.rd-brent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.rd-brent-vacio {
+  margin: 0 0 12px;
+  color: var(--texto-3);
+}
+.rd-brent-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.rd-brent-cifra .rd-fuerte {
+  font-size: 15px;
+}
+.rd-brent .sello {
+  flex-basis: 100%;
+}
+.rd-precios {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rd-precios tbody {
+  display: grid;
+  column-gap: 24px;
+}
+@container (min-width: 520px) {
+  .rd-precios tbody {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.rd-precios tr {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.rd-precios th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-2);
+  min-width: 0;
+}
 .rd-precio {
   text-align: right;
-  font-size: 17px;
+  font-size: 14.5px;
   font-weight: 600;
   white-space: nowrap;
-  padding-left: 12px !important;
 }
 .rd-precio-cambio {
-  width: 1%;
   text-align: right;
   white-space: nowrap;
-  padding-left: 12px !important;
 }
 
 /* ── Subastas de Hacienda ──────────────────────────────────────────── */
-.rd-subastas {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-}
-/* En el celular las subastas se deslizan de lado (dentro del panel, sin mover la página). */
-@media (max-width: 599px) {
-  .rd-subastas {
-    grid-template-columns: none;
-    grid-auto-flow: column;
-    grid-auto-columns: 86%;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    overscroll-behavior-x: contain;
-    margin: 0 -8px;
-    padding: 0 8px 8px;
-    scroll-padding: 0 8px;
-    scrollbar-width: thin;
-  }
-  .rd-subastas > .rd-subasta {
-    scroll-snap-align: start;
-  }
-}
 .rd-subasta {
   display: flex;
   flex-direction: column;
@@ -481,9 +801,6 @@
   background: var(--panel-alto);
   border: 1px solid var(--borde);
   border-radius: 10px;
-}
-.rd-subasta:hover {
-  border-color: var(--borde-fuerte);
 }
 .rd-subasta-destacada {
   background: linear-gradient(180deg, color-mix(in srgb, var(--rd) 8%, var(--panel-alto)), var(--panel-alto));
@@ -511,8 +828,8 @@
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   margin-left: auto;
   border-radius: 8px;
   color: var(--texto-2);
@@ -554,14 +871,25 @@
   color: var(--texto);
   white-space: nowrap;
 }
+.rd-subasta-u {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.rd-subasta-destacada .rd-subasta-num {
+  font-size: 18px;
+}
 /* Celular: las tres cifras como filas (etiqueta a la izquierda, cifra a la derecha). */
 @media (max-width: 599px) {
+  .rd-subasta {
+    padding: 12px;
+  }
   .rd-subasta-cifras {
     grid-template-columns: 1fr;
     gap: 0;
     padding: 4px 12px;
-    border-radius: 8px;
     background: color-mix(in srgb, var(--fondo) 55%, transparent);
+    border-radius: 8px;
   }
   .rd-subasta-cifras > div {
     display: flex;
@@ -584,14 +912,6 @@
     margin-left: 4px;
   }
 }
-.rd-subasta-u {
-  display: block;
-  font-size: 11px;
-  color: var(--texto-3);
-}
-.rd-subasta-destacada .rd-subasta-num {
-  font-size: 19px;
-}
 .rd-subasta-detalle,
 .rd-subasta-nota {
   margin: 0;
@@ -600,6 +920,44 @@
 }
 .rd-subasta .sello {
   margin-top: auto;
+}
+.rd-subastas-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rd-subasta-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.rd-subasta-fila:last-child {
+  border-bottom: 0;
+}
+.rd-subasta-fila-titulo {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rd-subasta-fila-titulo:hover {
+  color: var(--texto);
+}
+.rd-subasta-fila-cifras {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.rd-subasta-fila-cifras .tenue {
+  font-size: 11.5px;
 }
 .rd-aviso {
   display: flex;
@@ -626,9 +984,9 @@
   margin: 12px 0 0;
 }
 
-/* ── Listas de emisiones y avisos ──────────────────────────────────── */
+/* ── Listas de avisos y emisiones ──────────────────────────────────── */
 .rd-lista {
-  margin: 0 0 8px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -638,6 +996,9 @@
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid var(--borde);
+}
+.rd-item:first-child {
+  padding-top: 2px;
 }
 .rd-item:last-child {
   border-bottom: 0;
@@ -653,12 +1014,12 @@
 .rd-item-titulo {
   font-size: 13.5px;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.4;
   color: var(--texto);
   overflow-wrap: anywhere;
 }
 .rd-item-titulo:hover {
-  color: #a9c1ff;
+  color: var(--texto);
 }
 .rd-item-meta {
   display: flex;
@@ -670,41 +1031,133 @@
   overflow-wrap: anywhere;
 }
 
-/* ── Carga manual ──────────────────────────────────────────────────── */
-.rd-carga-intro {
-  padding: 8px 4px 0;
-}
-.rd-carga-titulo {
-  margin: 0 0 6px;
-  font-size: 22px;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-}
-.rd-carga-intro p {
+/* ── Datos agregados a mano ────────────────────────────────────────── */
+.rd-manuales {
   margin: 0;
-  max-width: 72ch;
-  font-size: 13.5px;
+  padding: 0;
+  list-style: none;
+}
+.rd-manuales li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.rd-manuales li:last-child {
+  border-bottom: 0;
+}
+.rd-manual-dato {
+  font-size: 13px;
   color: var(--texto-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-.rd-carga-cabecera {
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 12px;
+.rd-manual-valor {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
 }
-.rd-carga-ayuda {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--texto-3);
+.rd-manuales .sello {
+  grid-column: 1 / -1;
 }
-.rd-formularios {
+
+/* ── Agregar un dato ───────────────────────────────────────────────── */
+.rd-carga {
   display: grid;
   gap: 16px;
-  align-items: start;
 }
-@media (min-width: 900px) {
-  .rd-formularios {
+@media (min-width: 1000px) {
+  .rd-carga {
+    grid-template-columns: 340px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.rd-carga-opciones {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+@media (min-width: 600px) and (max-width: 999px) {
+  .rd-carga-opciones {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .rd-carga-pregunta {
+    grid-column: 1 / -1;
+  }
+}
+.rd-carga-pregunta {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.rd-carga-opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  min-height: 44px;
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.rd-carga-opcion:hover {
+  border-color: var(--borde-fuerte);
+}
+.rd-carga-opcion[data-activa="si"] {
+  border-color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 8%, var(--panel));
+}
+.rd-carga-opcion:has(input:focus-visible) {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+.rd-carga-opcion-textos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.rd-carga-opcion-titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.rd-carga-opcion-ayuda {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--texto-3);
+}
+/* Celular: las cuatro opciones en 2×2, solo con su nombre (la ayuda va en el formulario elegido). */
+@media (max-width: 599px) {
+  .rd-carga-opciones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rd-carga-pregunta {
+    grid-column: 1 / -1;
+  }
+  .rd-carga-opcion {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+  .rd-carga-opcion-titulo {
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  .rd-carga-opcion-ayuda {
+    display: none;
+  }
+}
+.rd-carga-form-ayuda {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--texto-3);
 }
 .rd-form {
   display: grid;
@@ -713,24 +1166,31 @@
 .rd-form label {
   display: grid;
   gap: 6px;
+  align-content: start;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--texto-2);
 }
 .rd-form .rd-fila {
   display: grid;
   gap: 12px 16px;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+.rd-form .rd-fila-precios {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.rd-campo-medio {
+  max-width: 320px;
 }
 .rd-form input,
 .rd-form select,
 .rd-form textarea {
   width: 100%;
   min-width: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
-  min-height: 40px;
+  min-height: 44px;
 }
 .rd-form textarea {
   resize: vertical;
@@ -750,21 +1210,47 @@
 .rd-form input.mono {
   font-family: var(--mono);
 }
+/* Moneda o % pegados a la casilla, sin mover nada al escribir. */
+.rd-con-moneda {
+  position: relative;
+  display: block;
+}
+.rd-prefijo,
+.rd-sufijo {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-3);
+  pointer-events: none;
+}
+.rd-prefijo {
+  left: 11px;
+}
+.rd-sufijo {
+  right: 12px;
+}
+.rd-con-moneda .rd-prefijo + input {
+  padding-left: 46px;
+}
+.rd-con-moneda input:has(+ .rd-sufijo) {
+  padding-right: 30px;
+}
 .rd-opcional,
 .rd-unidad-campo {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 400;
   color: var(--texto-3);
 }
 .rd-form .rd-ayuda {
   margin: -4px 0 0;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--texto-3);
 }
 .rd-form-acciones {
   display: flex;
   gap: 8px;
-  padding-top: 4px;
 }
 @media (max-width: 599px) {
   .rd-form-acciones .boton {
@@ -778,7 +1264,10 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 13.5px;
+}
+.rd-mensaje[hidden] {
+  display: none;
 }
 .rd-mensaje.ok {
   background: var(--sube-suave);
@@ -786,7 +1275,11 @@
 }
 .rd-mensaje.error {
   background: var(--baja-suave);
-  color: #ff8a94;
+  color: var(--texto);
+  border: 1px solid color-mix(in srgb, var(--baja) 40%, transparent);
+}
+.rd-mensaje.error .rd-mensaje-icono {
+  color: var(--baja);
 }
 .rd-mensaje-icono {
   font-weight: 700;
@@ -794,7 +1287,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rd-panel *,
-  .rd-subnav * {
+  .rd-subnav *,
+  .rd-carga * {
     transition: none !important;
     animation: none !important;
   }

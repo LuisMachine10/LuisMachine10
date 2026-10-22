@@ -152,4 +152,62 @@ export const ICONOS_RD = {
   aviso: "M12 4l9 16H3zM12 10v4M12 17.5v.01",
   externo: "M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
   mas: "M12 5v14M5 12h14",
+  euro: "M18 6.5A7 7 0 1 0 18 17.5M4 10h10M4 14h10",
+  fondos: "M12 3a9 9 0 1 0 9 9h-9zM15 3.5A9 9 0 0 1 20.5 9H15z",
+  tasas: "M19 5L5 19M7.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM16.5 18a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z",
+  lapiz: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+  valores: "M4 4h16v16H4zM8 15l3-3 2 2 3-4",
 } as const;
+
+/**
+ * «¿Qué es esto?»: un botón «?» que abre 1–2 frases en palabras simples (sin JavaScript: <details>).
+ */
+export function QueEs({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <details className="rd-que">
+      <summary aria-label={`¿Qué es ${titulo}?`} title={`¿Qué es ${titulo}?`}>
+        <span aria-hidden="true">?</span>
+      </summary>
+      <div className="rd-que-texto" role="note">
+        <strong>{titulo}:</strong> {children}
+      </div>
+    </details>
+  );
+}
+
+/** Cabecera de panel del módulo: título, una línea de para qué sirve y, a la derecha, lo que haga falta. */
+export function Cabecera({
+  id,
+  titulo,
+  para,
+  icono,
+  ayuda,
+  children,
+}: {
+  id: string;
+  titulo: string;
+  para: string;
+  icono?: string;
+  ayuda?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="panel-cabecera rd-cabecera">
+      {icono ? (
+        <span className="rd-cabecera-icono" aria-hidden="true">
+          <Icono d={icono} tam={16} />
+        </span>
+      ) : null}
+      <div className="rd-cabecera-textos">
+        <div className="rd-titulo-fila">
+          <h2 className="panel-titulo" id={id}>
+            {titulo}
+          </h2>
+          {ayuda}
+        </div>
+        <p className="rd-para">{para}</p>
+      </div>
+      {children ? <div className="rd-cabecera-extra">{children}</div> : null}
+    </div>
+  );
+}
