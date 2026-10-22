@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BotonVerBienvenida, Bienvenida } from "@/componentes/ayuda/Bienvenida";
+import { GUIA } from "@/componentes/ayuda/guia";
+import { GuiaPreguntas } from "@/componentes/ayuda/GuiaPreguntas";
 import { Encabezado, SECCIONES } from "@/componentes/Encabezado";
 
-export const metadata: Metadata = { title: "Ayuda · Strategya" };
+export const metadata: Metadata = { title: "Guía de uso · Strategya" };
 
 const PASOS_CIFRA = [
   { titulo: "Qué es", texto: "El nombre y, debajo, una línea en palabras simples que explica qué mide." },
@@ -21,46 +23,18 @@ const ESTADOS = [
   { clase: "sin", nombre: "Sin dato", texto: "No llegó la cifra. Strategya nunca la inventa ni la rellena." },
 ];
 
-const PREGUNTAS = [
-  {
-    p: "¿De dónde salen las cifras?",
-    r: "De fuentes oficiales y públicas: Banco Central, Hacienda, Tesoro de EE. UU., la Fed, el BCE, Cboe, FRED y las páginas de las administradoras de fondos. Cada cifra muestra su fuente con enlace. Ninguna cifra sale de una inteligencia artificial.",
-  },
-  {
-    p: "¿Cada cuánto se actualiza?",
-    r: "Los precios de mercado cada 5 minutos con la bolsa abierta; el dólar del Banco Central dos veces al día; las noticias cada media hora; los fondos de inversión dos veces al día. La página se refresca sola.",
-  },
-  {
-    p: "Una cifra dice «dato viejo». ¿Qué hago?",
-    r: "Nada: significa que la fuente todavía no publicó. Si quieres saber por qué, abre «Estado de las fuentes» en el menú «Más».",
-  },
-  {
-    p: "¿Quién ve mis inversiones y mi presupuesto?",
-    r: "Solo tú, con tu usuario y contraseña. Nunca se piden números de cuenta, de tarjeta ni de cédula: basta un nombre que reconozcas («Cuenta de ahorro Popular»).",
-  },
-  {
-    p: "¿Strategya me dice qué comprar o vender?",
-    r: "No. Es una herramienta de información, no asesoría de inversión. Te muestra los datos y su porqué para que tú decidas.",
-  },
-  {
-    p: "Quiero agregar un dato que no aparece",
-    r: "En «Más» → «Agregar un dato» puedes escribir cualquier cifra oficial a mano, siempre con el enlace de donde la sacaste.",
-  },
-];
-
 export default function Ayuda() {
   return (
     <>
       <Encabezado actual="ayuda" ultimaActualizacion={null} />
       <main className="ayuda">
         <header className="ayuda-cab">
-          <h1>Cómo funciona Strategya</h1>
-          <p>
-            Strategya junta en un solo lugar los mercados del mundo, la República Dominicana y tu dinero. Lo informativo se
-            actualiza solo; tus finanzas las escribes tú.
-          </p>
+          <h1>Guía de uso</h1>
+          <p>Aquí encuentras, por pantalla, las respuestas a las dudas más comunes. Escribe tu duda en el buscador o toca una pregunta.</p>
           <BotonVerBienvenida />
         </header>
+
+        <GuiaPreguntas grupos={GUIA} />
 
         <section className="ayuda-bloque" aria-labelledby="ayuda-pantallas">
           <h2 id="ayuda-pantallas">Qué hay en cada pantalla</h2>
@@ -96,17 +70,6 @@ export default function Ayuda() {
           </ul>
         </section>
 
-        <section className="ayuda-bloque" aria-labelledby="ayuda-preguntas">
-          <h2 id="ayuda-preguntas">Preguntas comunes</h2>
-          <div className="ayuda-preguntas">
-            {PREGUNTAS.map((q) => (
-              <details key={q.p}>
-                <summary>{q.p}</summary>
-                <p>{q.r}</p>
-              </details>
-            ))}
-          </div>
-        </section>
       </main>
       <Bienvenida />
     </>

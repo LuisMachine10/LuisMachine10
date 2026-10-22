@@ -270,3 +270,68 @@
   line-height: 1.55;
   color: var(--texto-2);
 }
+
+/* Guía por preguntas (con buscador) */
+.guia {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.guia-buscar {
+  display: grid;
+  gap: 6px;
+  max-width: 560px;
+}
+.guia-buscar label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.guia-buscar input {
+  min-height: 46px;
+  font-size: 15px;
+}
+.guia-buscar > span:empty {
+  display: none;
+}
+.guia-indice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.guia-indice a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-2);
+}
+.guia-indice a:hover,
+.guia-indice a:focus-visible {
+  color: var(--texto);
+  border-color: var(--borde-fuerte);
+  text-decoration: none;
+}
+.guia-grupo {
+  scroll-margin-top: 72px;
+}
+.guia-grupo-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-bottom: 10px;
+}
+.guia-grupo-cab h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+}
+.guia-vacio {
+  max-width: 560px;
+}

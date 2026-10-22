@@ -1,6 +1,7 @@
-// Bloque «Hoy»: seis mosaicos grandes con la cifra, el cambio, la línea reciente y su sello.
+// Bloque «Hoy» (en News y como widgets del Dashboard): seis mosaicos grandes con la cifra, el cambio, la línea reciente y su sello.
 // Si una serie no tiene dato, su mosaico queda gris con el motivo. Nada se rellena.
 import "@/estilos/mercado.css";
+import "@/estilos/dashboard.css";
 import { PanelError } from "@/componentes/PanelError";
 import { SelloFuente } from "@/componentes/SelloFuente";
 import { historiasSeguras } from "@/componentes/mercado/historias";
@@ -48,103 +49,122 @@ export function fechaLargaRD(ahora: Date): string {
   return new Intl.DateTimeFormat("es-DO", { timeZone: ZONA_RD, weekday: "long", day: "numeric", month: "long" }).format(ahora);
 }
 
-function MosaicoVacio({ titulo, que, motivo }: { titulo: string; que?: string; motivo: string }) {
+type Contenedor = "li" | "article";
+
+function MosaicoVacio({ titulo, que, motivo, como: Etiqueta }: { titulo: string; que?: string; motivo: string; como: Contenedor }) {
   return (
-    <li className="ter-mosaico ter-mosaico-vacio">
+    <Etiqueta className="ter-mosaico ter-mosaico-vacio">
       <div className="ter-mosaico-cab">
         <h3 className="ter-mosaico-nombre">{titulo}</h3>
+        <span className="etiqueta neutra ter-sin-dato">Sin dato</span>
       </div>
       {que ? <p className="ter-mosaico-que">{que}</p> : null}
-      <p className="ter-mosaico-sin">Sin dato</p>
       <p className="ter-mosaico-motivo">{motivo}</p>
-    </li>
+    </Etiqueta>
   );
 }
 
-export async function BloqueHoy() {
+/**
+ * Un mosaico de «Hoy» (cifra, cambio, minigráfico y sello). Lo usan News (en lista) y el Dashboard
+ * (cada cifra es un widget). Las lecturas se comparten por petición (cache), así seis mosaicos
+ * sueltos no hacen seis consultas.
+ */
+export async function MosaicoHoy({ id, como = "li", nivel = 3 }: { id: string; como?: Contenedor; nivel?: 2 | 3 }) {
+  const m = MOSAICOS_HOY.find((x) => x.id === id);
+  if (!m) return null;
   let v: Awaited<ReturnType<typeof vistaMercado>>;
   try {
     v = await vistaMercado();
   } catch (e) {
-    return <PanelError titulo="Hoy" mensaje={(e as Error).message} />;
+    return <MosaicoVacio titulo={m.titulo} que={m.que} motivo={`No se pudieron leer los datos: ${(e as Error).message}`} como={como} />;
   }
   const h = await historiasSeguras();
   const hoy = hoyRD(v.ahora);
-  const crudas = new Map(v.datos.ultimas.map((o) => [o.serie_id, o]));
+  const Titulo = nivel === 2 ? "h2" : "h3";
+
+  const base = v.item(m.id);
+  if (!base) return <MosaicoVacio titulo={m.titulo} motivo="La serie no está en el catálogo." como={como} />;
+  if (!base.valor) {
+    return (
+      <MosaicoVacio
+        titulo={m.titulo}
+        que={m.que}
+        motivo={base.estado === "no_disponible" ? "La fuente no entrega este dato con el plan actual." : `Todavía no hay lectura. ${m.cuando}`}
+        como={como}
+      />
+    );
+  }
+  // Mismo dato con los decimales propios de la serie (texto exacto, redondeo decimal).
+  const cruda = v.datos.ultimas.find((o) => o.serie_id === m.id);
+  const item: ItemMercado =
+    m.decimales !== undefined && cruda
+      ? {
+          ...base,
+          valor: cifra(cruda.valor, m.decimales),
+          cambio: cruda.cambio === null ? null : cifraConSigno(cruda.cambio, m.decimales),
+        }
+      : base;
+
+  let puntos;
+  let periodo: string;
+  if (m.historia === "intradia") {
+    const lecturas = delUltimoDia(h, m.id);
+    puntos = puntosIntradia(item, lecturas);
+    const dia = lecturas.at(-1)?.fecha_dato;
+    periodo = !dia || dia === hoy ? "de hoy" : `del ${fechaCorta(dia, false)}`;
+  } else {
+    const cierres = cierresDiarios(h, m.id, 30);
+    puntos = puntosDiarios(cierres, m.decimales ?? 2);
+    periodo = `de los últimos ${cierres.length} cierres`;
+  }
+  const unidad = UNIDAD_CORTA[item.unidad] ?? item.unidad;
+  const Etiqueta = como;
 
   return (
+    <Etiqueta className={`ter-mosaico ter-mosaico-${item.direccion}`}>
+      <div className="ter-mosaico-cab">
+        <Titulo className="ter-mosaico-nombre" title={item.nombre}>
+          {m.titulo}
+        </Titulo>
+        <EstadoItem item={item} />
+      </div>
+      <p className="ter-mosaico-que">{m.que}</p>
+      <p className="ter-mosaico-cifra">
+        <span className="cifra-grande mono">
+          {item.valor}
+          {unidad === "%" ? "%" : null}
+        </span>
+        {unidad !== "%" ? <span className="mv-unidad">{unidad}</span> : null}
+      </p>
+      <Pastilla item={item} conAbsoluto />
+      <div className="ter-mosaico-grafico">
+        {puntos.length >= 2 ? (
+          <MiniDe item={item} puntos={puntos} periodo={periodo} alto={52} />
+        ) : (
+          <p className="ter-mini-vacio" title="La línea aparece cuando hay dos lecturas guardadas o más.">
+            La línea aparece con la próxima lectura
+          </p>
+        )}
+      </div>
+      <div className="ter-mosaico-pie">
+        {item.sello ? <SelloFuente d={item.sello} ahora={v.ahora} /> : null}
+        <HoraDato item={item} />
+      </div>
+    </Etiqueta>
+  );
+}
+
+export async function BloqueHoy() {
+  try {
+    await vistaMercado();
+  } catch (e) {
+    return <PanelError titulo="Hoy" mensaje={(e as Error).message} />;
+  }
+  return (
     <ul className="ter-mosaicos panel-ancho" aria-label="Cifras de hoy">
-      {MOSAICOS_HOY.map((m) => {
-        const base = v.item(m.id);
-        if (!base) return <MosaicoVacio key={m.id} titulo={m.titulo} motivo="La serie no está en el catálogo." />;
-        if (!base.valor) {
-          return (
-            <MosaicoVacio
-              key={m.id}
-              titulo={m.titulo}
-              que={m.que}
-              motivo={base.estado === "no_disponible" ? "La fuente no entrega este dato con el plan actual." : `Todavía no hay lectura. ${m.cuando}`}
-            />
-          );
-        }
-        // Mismo dato con los decimales propios de la serie (texto exacto, redondeo decimal).
-        const cruda = crudas.get(m.id);
-        const item: ItemMercado =
-          m.decimales !== undefined && cruda
-            ? {
-                ...base,
-                valor: cifra(cruda.valor, m.decimales),
-                cambio: cruda.cambio === null ? null : cifraConSigno(cruda.cambio, m.decimales),
-              }
-            : base;
-
-        let puntos;
-        let periodo: string;
-        if (m.historia === "intradia") {
-          const lecturas = delUltimoDia(h, m.id);
-          puntos = puntosIntradia(item, lecturas);
-          const dia = lecturas.at(-1)?.fecha_dato;
-          periodo = !dia || dia === hoy ? "de hoy" : `del ${fechaCorta(dia, false)}`;
-        } else {
-          const cierres = cierresDiarios(h, m.id, 30);
-          puntos = puntosDiarios(cierres, m.decimales ?? 2);
-          periodo = `de los últimos ${cierres.length} cierres`;
-        }
-        const unidad = UNIDAD_CORTA[item.unidad] ?? item.unidad;
-
-        return (
-          <li key={m.id} className={`ter-mosaico ter-mosaico-${item.direccion}`}>
-            <div className="ter-mosaico-cab">
-              <h3 className="ter-mosaico-nombre" title={item.nombre}>
-                {m.titulo}
-              </h3>
-              <EstadoItem item={item} />
-            </div>
-            <p className="ter-mosaico-que">{m.que}</p>
-            <p className="ter-mosaico-cifra">
-              <span className="cifra-grande mono">
-                {item.valor}
-                {unidad === "%" ? "%" : null}
-              </span>
-              {unidad !== "%" ? <span className="mv-unidad">{unidad}</span> : null}
-            </p>
-            <Pastilla item={item} conAbsoluto />
-            <div className="ter-mosaico-grafico">
-              {puntos.length >= 2 ? (
-                <MiniDe item={item} puntos={puntos} periodo={periodo} alto={52} />
-              ) : (
-                <p className="ter-mini-vacio" title="La línea aparece cuando hay dos lecturas guardadas o más.">
-                  La línea aparece con la próxima lectura
-                </p>
-              )}
-            </div>
-            <div className="ter-mosaico-pie">
-              {item.sello ? <SelloFuente d={item.sello} ahora={v.ahora} /> : null}
-              <HoraDato item={item} />
-            </div>
-          </li>
-        );
-      })}
+      {MOSAICOS_HOY.map((m) => (
+        <MosaicoHoy key={m.id} id={m.id} />
+      ))}
     </ul>
   );
 }

@@ -301,6 +301,17 @@ a:focus-visible {
     width: 20px;
     height: 20px;
   }
+  /* Barra de abajo: Dashboard, News, Mercados, Presupuesto, Portafolio y «Más» (orden propio del celular). */
+  .encabezado .nav > a {
+    order: var(--orden-movil, 50);
+  }
+  .encabezado .nav > .nav-mas {
+    order: 99;
+  }
+  .nav-mas > summary[data-actual-movil="si"] {
+    background: var(--acento-suave);
+    color: var(--texto);
+  }
   .encabezado .nav > a.nav-escritorio,
   .nav-largo,
   .solo-escritorio {

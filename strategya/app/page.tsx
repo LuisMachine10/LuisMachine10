@@ -1,183 +1,70 @@
+import "@/estilos/dashboard.css";
 import { Actualizador } from "@/componentes/Actualizador";
-import { BannerAlertas } from "@/componentes/alertas/BannerAlertas";
-import { ResumenCaja } from "@/componentes/caja/ResumenCaja";
-import { HallazgosCapital, ResumenCapital } from "@/componentes/capital/ResumenCapital";
-import { PanelGlobo } from "@/componentes/globo/PanelGlobo";
-import { CurvaTesoro } from "@/componentes/CurvaTesoro";
-import { Encabezado } from "@/componentes/Encabezado";
-import { GuerrasEnElMundo } from "@/componentes/ia/GuerrasEnElMundo";
-import { LasCincoDelDia } from "@/componentes/ia/LasCincoDelDia";
-import { CintaPrecios, PanelAcciones, PanelEnergia, PanelIndices, PanelMetales, PanelTasasDivisas } from "@/componentes/mercado";
-import {
-  Glosario,
-  Mapa,
-  PanelAgenda,
-  PanelFusionesIPO,
-  PanelInstituciones,
-  PanelNoticias,
-  PanelQueVigilar,
-} from "@/componentes/noticias";
-import { PanelError } from "@/componentes/PanelError";
-import { BloqueHoy, fechaLargaRD } from "@/componentes/terminal/BloqueHoy";
-import { ResumenDia } from "@/componentes/terminal/ResumenDia";
-import { Seccion } from "@/componentes/terminal/Seccion";
 import { Bienvenida } from "@/componentes/ayuda/Bienvenida";
-import { BoletinTasas, PanelCombustibles, PanelEmisiones, PanelRD } from "@/componentes/rd";
-import { armarCurva } from "@/lib/curva";
-import { datosTesoro, estadoTareas } from "@/lib/datos";
-import { fechaCorta, fechaHoraRD } from "@/lib/formato";
-import { frescura } from "@/lib/frescura";
+import { RENDER } from "@/componentes/dashboard/Widgets";
+import { Rejilla } from "@/componentes/dashboard/Rejilla";
+import { Encabezado, SECCIONES } from "@/componentes/Encabezado";
+import { CintaPrecios } from "@/componentes/mercado";
+import { fechaLargaRD } from "@/componentes/terminal/BloqueHoy";
+import { leerPreferencia } from "@/lib/dashboard/datos";
+import { normalizar, visibles } from "@/lib/dashboard/disposicion";
+import { WIDGETS } from "@/lib/dashboard/widgets";
+import { estadoTareas } from "@/lib/datos";
+import { fechaHoraRD } from "@/lib/formato";
 
 export const dynamic = "force-dynamic";
 
-/** Curva del Tesoro (sección 10, junto a Tasas y divisas). Maneja su propio error. */
-async function SeccionTesoro({ ahora }: { ahora: Date }) {
-  try {
-    const { series, observaciones, fuente, tarea } = await datosTesoro();
-    const curva = armarCurva(series, observaciones);
-    return <CurvaTesoro curva={curva} tarea={tarea} fuente={fuente} ahora={ahora} />;
-  } catch (e) {
-    return <PanelError titulo="Curva del Tesoro de EE. UU." mensaje={(e as Error).message} />;
-  }
-}
-
-/** Pie (sección 17): fuentes en uso y todo lo que hoy no está confirmado. */
-async function Pie({ ahora, estado }: { ahora: Date; estado: Awaited<ReturnType<typeof estadoTareas>> | null }) {
-  const noConfirmado: string[] = [];
-  if (!estado) noConfirmado.push("No se pudo leer el estado de las lecturas automáticas.");
-  else {
-    for (const t of estado.tareas) {
-      if (t.estado === "error") noConfirmado.push(`${t.tarea}: la última lectura falló (${t.error ?? "sin detalle"}).`);
-      else if (t.estado === "parcial") noConfirmado.push(`${t.tarea}: lectura parcial${t.error ? ` (${t.error})` : ""}.`);
-    }
-  }
-  try {
-    const { series, observaciones } = await datosTesoro();
-    const curva = armarCurva(series, observaciones);
-    if (!curva) noConfirmado.push("Curva del Tesoro: sin datos todavía.");
-    else if (frescura({ fecha_dato: curva.fecha }, curva.maxAntiguedadMin, ahora).desactualizado)
-      noConfirmado.push(`Curva del Tesoro: el último dato es del ${fechaCorta(curva.fecha)} (desactualizado).`);
-  } catch {
-    // El panel de la curva ya muestra el error.
-  }
-  const fuentes = (estado?.fuentes ?? []).filter((f) => f.lectura_automatica && f.url);
-  return (
-    <footer className="pie ter-pie">
-      <div className="ter-pie-bloque">
-        <h2>Fuentes</h2>
-        {fuentes.length ? (
-          <ul className="ter-pie-fuentes">
-            {fuentes.map((f) => (
-              <li key={f.id}>
-                <a href={f.url} target="_blank" rel="noopener noreferrer">
-                  {f.nombre}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>Sin fuentes registradas todavía.</p>
-        )}
-      </div>
-      <div className="ter-pie-bloque">
-        {noConfirmado.length ? (
-          <details className="ter-pie-noconf">
-            <summary>
-              <h2>No confirmado</h2> <span className="etiqueta alerta">{noConfirmado.length}</span>
-            </summary>
-            <ul>
-              {noConfirmado.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-          </details>
-        ) : (
-          <>
-            <h2>No confirmado</h2>
-            <p>
-              Todas las lecturas automáticas terminaron bien. Cada cifra se marca «dato viejo» si pasa de su antigüedad
-              máxima.
-            </p>
-          </>
-        )}
-      </div>
-      <p>
-        Strategya no es asesoría de inversión. Cifras de fuentes oficiales; ninguna sale de un modelo de lenguaje.
-        Página generada {fechaHoraRD(ahora.toISOString())} (hora RD). Gráficos con{" "}
-        <a href="https://www.tradingview.com/lightweight-charts/" target="_blank" rel="noopener noreferrer">
-          TradingView Lightweight Charts
-        </a>
-        .
-      </p>
-    </footer>
-  );
-}
-
-export default async function Terminal() {
+// Dashboard: la portada que Mena arma a su gusto. Cada widget lee sus propios datos (con su sello);
+// solo se piden los widgets visibles. La disposición vive en personal.preferencias («dashboard»).
+export default async function Dashboard() {
   const ahora = new Date();
-  const estado = await estadoTareas().catch(() => null);
+  const [estado, pref] = await Promise.all([estadoTareas().catch(() => null), leerPreferencia("dashboard")]);
   const ultima =
     estado?.tareas
       .map((t) => t.ultima_ok)
       .filter((v): v is string => Boolean(v))
       .sort()
       .at(-1) ?? null;
+  const disposicion = normalizar(pref.valor);
+  const fichas = new Map(WIDGETS.map((w) => [w.id, w]));
+  const nodos: Record<string, React.ReactNode> = {};
+  for (const w of visibles(disposicion)) {
+    const ficha = fichas.get(w.id);
+    const Render = RENDER[w.id];
+    if (ficha && Render) nodos[w.id] = <Render ficha={ficha} tamano={w.tamano} ahora={ahora} />;
+  }
+  const s = SECCIONES.find((x) => x.clave === "dashboard")!;
+  const dia = fechaLargaRD(ahora);
 
   return (
     <>
-      {/* 1 */}
-      <Encabezado actual="terminal" ultimaActualizacion={ultima} />
-      <main className="terminal ter">
-        {/* 2 */}
-        <CintaPrecios />
-        <BannerAlertas />
-
-        <Seccion id="hoy" titulo="Hoy" detalle={fechaLargaRD(ahora)} para="Las cifras que más mueven tu dinero. Debajo de cada una dice de dónde sale y de qué día es; verde sube, rojo baja.">
-          <ResumenDia />
-          <BloqueHoy />
-          <LasCincoDelDia />
-          <PanelQueVigilar ahora={ahora} />
-        </Seccion>
-
-        {/* 5–10 */}
-        <Seccion id="mercados" titulo="Mercados" para="Bolsas del mundo, tasas y monedas, metales y energía. Cuando algo se mueve fuerte, verás el porqué.">
-          <PanelIndices />
-          <PanelTasasDivisas />
-          <PanelMetales />
-          <PanelEnergia />
-          <SeccionTesoro ahora={ahora} />
-          <PanelAcciones />
-          <PanelFusionesIPO ahora={ahora} />
-        </Seccion>
-
-        {/* 11–13 */}
-        <Seccion id="rd" titulo="República Dominicana" para="Dólar del Banco Central, combustibles, tasas de los bancos y bonos del Gobierno.">
-          <PanelRD />
-          <PanelCombustibles />
-          <BoletinTasas />
-          <PanelEmisiones />
-        </Seccion>
-
-        {/* 3–4, 14–16 */}
-        <Seccion id="mundo" titulo="Mundo y noticias" para="Qué está pasando en el mundo y dónde, con titulares de medios reconocidos.">
-          <Mapa ahora={ahora} />
-          <PanelGlobo />
-          <GuerrasEnElMundo />
-          <PanelNoticias ahora={ahora} />
-          <PanelInstituciones ahora={ahora} />
-          <PanelAgenda ahora={ahora} />
-          <Glosario ahora={ahora} />
-        </Seccion>
-
-        {/* Personal: Mena Capital y Caja */}
-        <Seccion id="dinero" titulo="Tu dinero" para="Tus inversiones y tu presupuesto. Solo tú los ves; los escribes tú.">
-          <ResumenCapital />
-          <HallazgosCapital />
-          <ResumenCaja ahora={ahora} />
-        </Seccion>
+      <Encabezado actual="dashboard" ultimaActualizacion={ultima} />
+      <main className="dash">
+        <div className="dash-cinta">
+          <CintaPrecios />
+        </div>
+        <Rejilla
+          inicial={disposicion}
+          fichas={[...WIDGETS]}
+          nodos={nodos}
+          aviso={pref.error}
+          intro={
+            <header className="dash-intro">
+              <p className="dash-dia">{dia.charAt(0).toUpperCase() + dia.slice(1)}</p>
+              <h1>{s.nombre}</h1>
+              <p>
+                {s.para} Muévelo a tu gusto con <strong>Editar mi dashboard</strong>.
+              </p>
+            </header>
+          }
+        />
       </main>
-      {/* 17 */}
-      <Pie ahora={ahora} estado={estado} />
+      <footer className="pie dash-pie">
+        <p>
+          Strategya no es asesoría de inversión. Cada cifra viene de una fuente oficial con su enlace y su fecha; ninguna sale de un modelo de
+          lenguaje. Página generada {fechaHoraRD(ahora.toISOString())} (hora RD).
+        </p>
+      </footer>
       <Actualizador />
       <Bienvenida />
     </>

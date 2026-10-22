@@ -71,7 +71,8 @@ Sin estas, Strategya funciona igual: esas secciones dicen «no activo» y explic
 ## Parte 2 · Usar Strategya
 
 La primera vez que entras, una bienvenida de 3 pasos explica cómo funciona. Puedes volver a verla en
-**Más → Ayuda**, donde también está «Cómo leer una cifra» y las preguntas comunes.
+**Más → Ayuda** (también en **Ajustes → Guía de uso**): una guía por preguntas y respuestas, agrupada por
+pantalla y con buscador, más «Cómo leer una cifra».
 
 ### Entrar
 
@@ -93,27 +94,38 @@ La página se actualiza sola.
 
 | Pantalla | Qué hay |
 | --- | --- |
-| **Hoy** | «Hoy en 30 segundos» (frases simples con las cifras del día), las 6 cifras que más mueven tu dinero, alertas, noticias y el resumen de tus inversiones y tu presupuesto. |
+| **Dashboard** (inicio) | Tu portada armada a tu gusto con tarjetas: las 6 cifras del día (cada una por separado), «Hoy en 30 segundos», Mis noticias, alertas, curva del Tesoro, dólar BCRD, combustibles, fondos, agenda y el rendimiento de tu presupuesto y tu portafolio. Pulsa **Editar mi dashboard** para moverlas (arrastrando o con ↑ ↓), cambiarles el tamaño (S, M, L), ocultarlas o agregarlas; **Listo** guarda. |
+| **News** | Cómo amaneció el día en una sola página: «Hoy en 30 segundos», las 6 cifras que más mueven tu dinero, mercados, RD, el mundo y tu dinero. Desde aquí, **Todos los titulares**. |
 | **Mercados** | Bolsas del mundo, oro y metales, petróleo, tasas de interés y monedas, con su porqué. |
 | **RD** | Dólar del Banco Central, tasas de los bancos, combustibles, subastas de bonos del Gobierno y rendimientos de fondos de inversión (Excel y AFI Reservas se leen solos). |
-| **Noticias** | Titulares de WSJ, FT, CNBC, Bloomberg Línea, elEconomista, Expansión y prensa dominicana, por tema, más la agenda. |
+| **News → Todos los titulares** | Titulares de WSJ, FT, CNBC, Bloomberg Línea, elEconomista, Expansión y prensa dominicana, por tema, más la agenda. |
 | **Mapa** | Globo 3D: bolsas, conflictos, rutas de barcos, sismos y huracanes. Toca un punto para ver su tarjeta. |
-| **Mis inversiones** | Tu patrimonio: cuánto tienes, cuánto ganaste en el mes y cómo está repartido en 4 clases (Efectivo, Cuentas de ahorro, Renta fija, Renta variable), y tu Política de inversión (IPS). |
-| **Mi presupuesto** | Cuánto puedes gastar hoy sin pasarte, los pagos que vienen y el saldo de tus cuentas. La primera vez te guía en 4 pasos. |
+| **Portafolio Financiero** | Tu patrimonio: cuánto tienes, cuánto ganaste en el mes y cómo está repartido en 4 clases (Efectivo, Cuentas de ahorro, Renta fija, Renta variable), y tu Política de inversión (IPS). |
+| **Presupuesto** | Cuánto puedes gastar hoy sin pasarte, los pagos que vienen y el saldo de tus cuentas. La primera vez te guía en 4 pasos. |
 | **Más → Agregar un dato** | Para escribir a mano una cifra oficial que no llega sola (por ejemplo, un fondo de BHD), siempre con su enlace. |
 | **Más → Ajustes y alertas** | Cuándo quieres que te avisemos (por ejemplo, si el oro sube más de 2 %). |
 | **Más → Estado de las fuentes** | Si una cifra se ve vieja, aquí ves qué fuente falló y por qué. |
+| **Más → Ayuda** | La guía de uso por preguntas, con buscador. |
+
+En el celular, la barra de abajo trae Dashboard, News, Mercados, Presupuesto, Portafolio y **Más** (RD y Mapa
+están dentro de Más).
+
+### Mis noticias (en el Dashboard)
+
+En la tarjeta **Mis noticias** pulsa **Elegir mis noticias**: marca medios y temas, o escribe palabras clave
+separadas por comas (por ejemplo: *petróleo, Banco Central*). Solo se muestran titulares ya guardados que
+coincidan; si llenas varias partes, el titular debe cumplirlas todas.
 
 ### Tus datos personales
 
-Strategya arranca vacío en **Mis inversiones** y **Mi presupuesto**: cada pantalla te dice qué anotar y tiene un
+Strategya arranca vacío en **Portafolio Financiero** y **Presupuesto**: cada pantalla te dice qué anotar y tiene un
 botón azul para empezar. Nunca se piden números de cuenta, tarjeta ni cédula: basta un nombre que reconozcas.
 Tus datos solo los ves tú.
 
 ### Alertas
 
 Se revisan después de cada lectura. Llega una por activo y día:
-- en la Terminal (arriba);
+- en News (arriba) y en la tarjeta «Alertas de hoy» del Dashboard;
 - en tu correo, si activaste Resend.
 
 Para cambiar un umbral: **Más → Ajustes y alertas** → cambia el número → **Guardar**.

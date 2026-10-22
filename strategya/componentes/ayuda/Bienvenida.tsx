@@ -10,9 +10,9 @@ export const EVENTO_ABRIR = "strategya:abrir-bienvenida";
 
 const PASOS = [
   {
-    titulo: "Mira cómo amaneció el día",
+    titulo: "Tu Dashboard, a tu manera",
     texto:
-      "En «Hoy» tienes un resumen en frases simples y las 6 cifras que más mueven tu dinero: la bolsa de EE. UU., el oro, el petróleo, el dólar en RD, las tasas de interés y el bitcoin.",
+      "En «Dashboard» ves en tarjetas lo que tú elijas: las cifras del día, tus noticias, tu presupuesto y tu portafolio. Pulsa «Editar mi dashboard» para moverlas, cambiarles el tamaño u ocultarlas. En «News» tienes el día completo en una sola página.",
     icono: <path d="M3 17l5-6 4 3 6-8 3 4M3 21h18" />,
   },
   {
@@ -24,7 +24,7 @@ const PASOS = [
   {
     titulo: "Anota tu dinero",
     texto:
-      "En «Mis inversiones» y «Mi presupuesto» escribes tus cuentas, inversiones, ingresos y pagos. Solo tú los ves. Todo lo demás (mercados, RD, noticias) se actualiza solo.",
+      "En «Portafolio» y «Presupuesto» anotas tus inversiones, cuentas, ingresos y pagos (basta un nombre que reconozcas, nunca números de cuenta). Solo tú los ves. Todo lo demás (mercados, RD, noticias) se actualiza solo.",
     icono: <path d="M3 7h18v13H3zM3 7l2-3h14l2 3M8 12h8M8 16h5" />,
   },
 ];
@@ -112,7 +112,7 @@ export function Bienvenida() {
         </div>
       </div>
       <p className="bienvenida-pie">
-        Puedes volver a verla cuando quieras en <Link href="/ayuda" onClick={cerrar}>Ayuda</Link>.
+        Puedes volver a verla cuando quieras en la <Link href="/ayuda" onClick={cerrar}>Guía de uso</Link> (Más → Ayuda).
       </p>
     </dialog>
   );

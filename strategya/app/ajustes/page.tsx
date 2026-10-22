@@ -20,6 +20,12 @@ export default async function Ajustes() {
     <>
       <Encabezado actual="ajustes" ultimaActualizacion={null} />
       <main className="terminal">
+        <p className="panel-ancho" style={{ margin: 0, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px" }}>
+          <Link href="/ayuda" className="boton secundario">
+            Guía de uso
+          </Link>
+          <span className="tenue chico">Preguntas y respuestas sobre cada pantalla, con buscador.</span>
+        </p>
         <IntroPagina
           titulo="Ajustes"
           accion={

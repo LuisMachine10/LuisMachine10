@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import "@/estilos/dashboard.css";
 import { Actualizador } from "@/componentes/Actualizador";
 import { IntroPantalla } from "@/componentes/IntroPantalla";
 import { Encabezado } from "@/componentes/Encabezado";
@@ -12,7 +14,7 @@ import {
   PanelQueVigilar,
 } from "@/componentes/noticias";
 
-export const metadata: Metadata = { title: "Noticias · Strategya" };
+export const metadata: Metadata = { title: "Todos los titulares · Strategya" };
 export const dynamic = "force-dynamic";
 
 export default function PaginaNoticias() {
@@ -21,7 +23,14 @@ export default function PaginaNoticias() {
     <>
       <Encabezado actual="noticias" ultimaActualizacion={null} />
       <main className="terminal">
-        <IntroPantalla clave="noticias" />
+        <IntroPantalla clave="noticias">
+          <nav className="news-atajos" aria-label="Volver">
+            <Link href="/news">
+              <span aria-hidden="true">←</span> Volver a News
+            </Link>
+            <Link href="/">Mis noticias en el Dashboard</Link>
+          </nav>
+        </IntroPantalla>
         <Mapa ahora={ahora} />
         <PanelQueVigilar ahora={ahora} />
         <PanelAgenda ahora={ahora} />

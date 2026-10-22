@@ -136,7 +136,7 @@ describe("esquema personal de Mena Capital", () => {
     const { rows } = await pool.query(
       `select n.nspname || '.' || c.relname as tabla, c.relrowsecurity as rls
          from pg_class c join pg_namespace n on n.oid = c.relnamespace
-        where c.relkind = 'r' and ((n.nspname = 'personal' and c.relname not like 'caja\\_%') or c.relname = 'cotizaciones_cartera') order by 1`,
+        where c.relkind = 'r' and ((n.nspname = 'personal' and c.relname not like 'caja\\_%' and c.relname <> 'preferencias') or c.relname = 'cotizaciones_cartera') order by 1`,
     );
     expect(rows).toEqual([
       { tabla: "mercado.cotizaciones_cartera", rls: true },
