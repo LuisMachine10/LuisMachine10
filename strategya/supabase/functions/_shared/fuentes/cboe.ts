@@ -62,6 +62,10 @@ export interface CotizacionCboe {
   precio: string;
   cambio: string | null;
   cambioPct: string | null;
+  /** Máximo y mínimo del día y cierre anterior (las cotizaciones de acciones y ETF los traen; los índices, a veces). */
+  maximo: string | null;
+  minimo: string | null;
+  cierreAnterior: string | null;
   /** Día de negociación (fecha de Nueva York del último precio). */
   dia: string;
   hora: Date;
@@ -82,7 +86,21 @@ function cotizacionDe(d: Record<string, unknown>): CotizacionCboe | null {
   const precio = aDecimal(d.current_price);
   if (!simbolo || !precio || precio === "0" || typeof d.last_trade_time !== "string") return null;
   const { dia, hora } = horaNuevaYork(d.last_trade_time);
-  return { simbolo, precio, cambio: aDecimal(d.price_change), cambioPct: aDecimal(d.price_change_percent), dia, hora };
+  const positivo = (v: unknown) => {
+    const x = aDecimal(v);
+    return x !== null && /^[0-9.]+$/.test(x) && !/^0+(\.0+)?$/.test(x) ? x : null;
+  };
+  return {
+    simbolo,
+    precio,
+    cambio: aDecimal(d.price_change),
+    cambioPct: aDecimal(d.price_change_percent),
+    maximo: positivo(d.high),
+    minimo: positivo(d.low),
+    cierreAnterior: positivo(d.prev_day_close),
+    dia,
+    hora,
+  };
 }
 
 /** all_us_indices.json → cotizaciones de los símbolos pedidos (los demás se ignoran). */
