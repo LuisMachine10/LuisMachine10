@@ -89,7 +89,7 @@
 .globo-ayuda > summary {
   list-style: none;
   font-size: 13px;
-  color: #7aa2ff;
+  color: var(--enlace);
   padding: 2px 0;
 }
 .globo-ayuda > summary::-webkit-details-marker {
@@ -142,7 +142,7 @@
 /* Escena (3D o 2D) */
 .globo-escena {
   position: relative;
-  background: radial-gradient(circle at 50% 46%, #141b2b 0%, var(--fondo) 72%);
+  background: radial-gradient(circle at 50% 46%, var(--mapa-mar) 0%, var(--fondo) 72%);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   box-shadow: var(--sombra);
@@ -224,7 +224,7 @@
   touch-action: pan-y;
 }
 .globo2d-esfera {
-  fill: #0f1420;
+  fill: var(--mapa-mar);
   stroke: var(--borde-fuerte);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
@@ -236,12 +236,12 @@
   vector-effect: non-scaling-stroke;
 }
 .globo2d-tierra {
-  fill: #1f2638;
+  fill: var(--mapa-tierra);
   stroke: none;
 }
 .globo2d-fronteras {
   fill: none;
-  stroke: #343d55;
+  stroke: var(--mapa-frontera);
   stroke-width: 0.6;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
@@ -299,10 +299,10 @@
 .globo-segmento,
 .globo-boton-capas,
 .globo-zoom {
-  background: rgba(19, 23, 34, 0.9);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid color-mix(in srgb, var(--texto) 7%, transparent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -348,12 +348,12 @@
 .globo-segmento button:hover:not(:disabled),
 .globo-segmento label:hover {
   color: var(--texto);
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--texto) 7%, transparent);
 }
 .globo-segmento button[aria-pressed="true"],
 .globo-segmento label:has(input:checked) {
   background: var(--acento);
-  color: #fff;
+  color: var(--sobre-acento);
 }
 .globo-segmento button:disabled {
   color: var(--texto-3);
@@ -400,7 +400,7 @@
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--acento-suave);
-  color: #a9c1ff;
+  color: var(--enlace);
   font-size: 12px;
   text-align: center;
 }
@@ -491,7 +491,7 @@
   align-items: center;
   gap: 10px;
   padding: 7px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--texto) 7%, transparent);
   font-size: 13.5px;
   color: var(--texto);
   cursor: pointer;
@@ -548,7 +548,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #c9ccd6;
+  background: var(--texto-2);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   transition: transform 0.15s ease, background-color 0.15s ease;
 }
@@ -557,7 +557,7 @@
 }
 .globo-interruptor:checked::before {
   transform: translateX(16px);
-  background: #fff;
+  background: var(--sobre-acento);
 }
 .globo-interruptor:focus-visible {
   outline: 2px solid var(--acento);
@@ -570,7 +570,7 @@
   gap: 6px 14px;
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid color-mix(in srgb, var(--texto) 7%, transparent);
   font-size: 12px;
   color: var(--texto-2);
 }
@@ -590,7 +590,7 @@
   font-size: 10.5px;
   line-height: 1.35;
   color: var(--texto-3);
-  background: linear-gradient(to bottom, transparent, rgba(11, 14, 20, 0.9) 55%);
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--fondo) 90%, transparent) 55%);
   z-index: 1;
 }
 .globo-atribucion a {
@@ -624,7 +624,7 @@
   height: 36px;
   border-radius: 10px;
   background: var(--acento-suave);
-  color: #a9c1ff;
+  color: var(--enlace);
 }
 .globo-vacio-icono svg {
   width: 20px;
@@ -785,7 +785,7 @@
 }
 .globo-lista-capa > summary:hover .globo-lista-nombre,
 .globo-plegable > summary:hover {
-  color: #fff;
+  color: var(--texto);
 }
 .globo-flecha {
   margin-left: auto;

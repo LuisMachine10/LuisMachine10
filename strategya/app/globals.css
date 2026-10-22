@@ -1,32 +1,124 @@
-/* Strategya · sistema de diseño (inspirado en TradingView / TradeStation): oscuro, limpio, cifras tabulares. */
+/* Strategya · sistema de diseño «Tinta y champán».
+   Marino tinta, grafito, blanco hueso y un filete de champán como único acento; verde y rojo solo para
+   lo que sube y lo que baja. Dos temas: oscuro (por defecto) y claro, elegidos con <html data-tema>.
+   Tipografía: Newsreader (serif editorial) para títulos y cifras grandes; Geist para el texto y las tablas,
+   siempre con números tabulares en las cifras. */
 
 :root {
-  --fondo: #0b0e14;
-  --panel: #131722;
-  --panel-alto: #1c2130;
-  --panel-hover: #202637;
-  --borde: #232a3b;
-  --borde-fuerte: #2f3850;
-  --acento: #2962ff;
-  --acento-suave: rgba(41, 98, 255, 0.14);
-  --ambar: #f5a623;
-  --sube: #22ab94;
-  --sube-suave: rgba(34, 171, 148, 0.14);
-  --baja: #f23645;
-  --baja-suave: rgba(242, 54, 69, 0.14);
-  --rd: #4c8dff;
-  --texto: #e6e9f0;
-  --texto-2: #b2b5be;
-  --texto-3: #7c8296;
-  --contexto: #7c8296;
-  --rejilla: #1c2130;
-  --radio: 12px;
-  --radio-chico: 8px;
-  --sombra: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.25);
-  --sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "Inter Variable", "Inter", system-ui, sans-serif;
-  --codigo: "IBM Plex Mono", ui-monospace, monospace;
+  /* Superficies: de la más honda a la más alta */
+  --fondo: #0a0e15;
+  --panel: #0f141d;
+  --panel-alto: #161c27;
+  --panel-hover: #1b2230;
+  --borde: #1f2734;
+  --borde-fuerte: #2e3848;
+  --rejilla: #1a212c;
+  /* Champán: el acento fino (bordes, líneas, ícono activo, cifra clave). Nunca un relleno grande. */
+  --acento: #c8ae7d;
+  --acento-fuerte: #dcc69c;
+  --acento-suave: rgba(200, 174, 125, 0.12);
+  --acento-linea: rgba(200, 174, 125, 0.42);
+  --sobre-acento: #0a0e15;
+  /* Botón principal: hueso sobre tinta (en el claro, tinta sobre hueso) */
+  --primario: #ece6d8;
+  --primario-hover: #faf6ec;
+  --sobre-primario: #0a0e15;
+  --enlace: #d4bd90;
+  --enlace-fuerte: #ead9b6;
+  /* Mercado */
+  --sube: #45b88e;
+  --sube-suave: rgba(69, 184, 142, 0.13);
+  --baja: #e8706a;
+  --baja-suave: rgba(232, 112, 106, 0.13);
+  --ambar: #e2a854;
+  --ambar-suave: rgba(226, 168, 84, 0.14);
+  --rd: #93acd6;
+  /* Texto: hueso cálido y grises de grafito */
+  --texto: #ede8dd;
+  --texto-2: #b0b4bc;
+  --texto-3: #8a909c;
+  --contexto: #8a909c;
+  /* Series de los gráficos (además de sube/baja) y colores de categoría */
+  --serie-1: #c8ae7d;
+  --serie-2: #93acd6;
+  --serie-3: #9aa0ab;
+  --serie-4: #b7a0d6;
+  --cat-1: #93acd6;
+  --cat-2: #6fc4a8;
+  --cat-3: #dca86e;
+  --cat-4: #b7a0d6;
+  --cat-5: #7fc3dc;
+  --cat-6: #dc9fb8;
+  /* Mapas dibujados en la página */
+  --mapa-mar: #0d121b;
+  --mapa-tierra: #1d2433;
+  --mapa-frontera: #343e52;
+  /* Marca (igual en ambos temas) */
+  --marca-sello: #111b2b;
+  --marca-oro: #c8ae7d;
+  /* Capas */
+  --encabezado-fondo: rgba(10, 14, 21, 0.84);
+  --barra-fondo: rgba(15, 20, 29, 0.96);
+  --velo: rgba(3, 5, 9, 0.72);
+  --sombra: 0 1px 0 rgba(255, 255, 255, 0.025) inset, 0 10px 30px rgba(0, 0, 0, 0.28);
+  --sombra-flotante: 0 18px 48px rgba(0, 0, 0, 0.5);
+  --radio: 10px;
+  --radio-chico: 7px;
+  --sans: "Geist Variable", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Variable", "Geist", system-ui, sans-serif;
+  --serif: "Newsreader Variable", "Newsreader", "Iowan Old Style", Georgia, serif;
   color-scheme: dark;
+}
+
+/* Tema claro: hueso, tinta y latón. */
+:root[data-tema="claro"] {
+  --fondo: #f5f2ea;
+  --panel: #fdfbf7;
+  --panel-alto: #f0ece2;
+  --panel-hover: #ebe6da;
+  --borde: #e2dbcc;
+  --borde-fuerte: #cdc4b1;
+  --rejilla: #e8e2d5;
+  --acento: #80622a;
+  --acento-fuerte: #6b5020;
+  --acento-suave: rgba(128, 98, 42, 0.1);
+  --acento-linea: rgba(128, 98, 42, 0.38);
+  --sobre-acento: #fdfbf7;
+  --primario: #0f1b2d;
+  --primario-hover: #1c2b44;
+  --sobre-primario: #f5f2ea;
+  --enlace: #7a5a1f;
+  --enlace-fuerte: #573f12;
+  --sube: #12734c;
+  --sube-suave: rgba(18, 115, 76, 0.1);
+  --baja: #b1352e;
+  --baja-suave: rgba(177, 53, 46, 0.09);
+  --ambar: #935700;
+  --ambar-suave: rgba(147, 87, 0, 0.1);
+  --rd: #2b4a7e;
+  --texto: #101a2b;
+  --texto-2: #3e4757;
+  --texto-3: #5d6472;
+  --contexto: #5d6472;
+  --serie-1: #80622a;
+  --serie-2: #2b4a7e;
+  --serie-3: #6b7280;
+  --serie-4: #6a4f99;
+  --cat-1: #2b4a7e;
+  --cat-2: #17765c;
+  --cat-3: #92561a;
+  --cat-4: #6a4f99;
+  --cat-5: #1d6884;
+  --cat-6: #983d64;
+  --mapa-mar: #e9e4d8;
+  --mapa-tierra: #d7cfbe;
+  --mapa-frontera: #b9ae98;
+  --encabezado-fondo: rgba(253, 251, 247, 0.86);
+  --barra-fondo: rgba(253, 251, 247, 0.97);
+  --velo: rgba(16, 22, 34, 0.42);
+  --sombra: 0 1px 2px rgba(16, 26, 43, 0.04), 0 8px 24px rgba(16, 26, 43, 0.05);
+  --sombra-flotante: 0 18px 48px rgba(16, 26, 43, 0.16);
+  color-scheme: light;
 }
 
 * {
@@ -43,17 +135,30 @@ body {
   line-height: 1.45;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "cv11", "ss01";
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+/* Los títulos de pantalla van en la serif de la marca (cada módulo decide su tamaño). */
+h1 {
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 48;
 }
 
 a {
-  color: #7aa2ff;
+  color: var(--enlace);
   text-decoration: none;
 }
 a:hover,
 a:focus-visible {
-  color: #a9c1ff;
+  color: var(--enlace-fuerte);
   text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
 }
 :focus-visible {
   outline: 2px solid var(--acento);
@@ -65,7 +170,10 @@ a:focus-visible {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
+}
+.serif {
+  font-family: var(--serif);
 }
 
 /* Encabezado */
@@ -77,7 +185,7 @@ a:focus-visible {
   align-items: center;
   gap: 8px 20px;
   padding: 10px 20px;
-  background: rgba(11, 14, 20, 0.86);
+  background: var(--encabezado-fondo);
   backdrop-filter: saturate(160%) blur(12px);
   -webkit-backdrop-filter: saturate(160%) blur(12px);
   border-bottom: 1px solid var(--borde);
@@ -85,27 +193,26 @@ a:focus-visible {
 .marca {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.02em;
+  gap: 10px;
   color: var(--texto);
   text-decoration: none;
 }
-.marca:hover {
+.marca:hover,
+.marca:focus-visible {
   color: var(--texto);
   text-decoration: none;
 }
-.marca-logo {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #2962ff, #22ab94);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 800;
+.monograma {
+  display: block;
+  flex: none;
+}
+.marca-nombre {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+  font-variation-settings: "opsz" 36;
+  letter-spacing: 0.005em;
+  line-height: 1;
 }
 .nav {
   display: flex;
@@ -138,8 +245,12 @@ a:focus-visible {
   text-decoration: none;
 }
 .nav a[aria-current="page"] {
-  background: var(--acento-suave);
-  color: #fff;
+  color: var(--texto);
+  background: var(--panel-alto);
+  box-shadow: inset 0 -1.5px 0 var(--acento);
+}
+.nav a[aria-current="page"] svg {
+  color: var(--acento);
 }
 .encabezado .actualizado {
   margin-left: auto;
@@ -158,7 +269,7 @@ a:focus-visible {
   box-shadow: 0 0 0 3px var(--sube-suave);
 }
 .boton-texto {
-  background: var(--panel-alto);
+  background: transparent;
   border: 1px solid var(--borde);
   color: var(--texto-2);
   font: inherit;
@@ -204,8 +315,9 @@ a:focus-visible {
   color: var(--texto);
 }
 .nav-mas > summary[aria-current="page"] {
-  background: var(--acento-suave);
-  color: #fff;
+  color: var(--texto);
+  background: var(--panel-alto);
+  box-shadow: inset 0 -1.5px 0 var(--acento);
 }
 .nav-mas-menu {
   position: absolute;
@@ -220,7 +332,7 @@ a:focus-visible {
   background: var(--panel-alto);
   border: 1px solid var(--borde-fuerte);
   border-radius: var(--radio);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--sombra-flotante);
   white-space: normal;
 }
 .nav-mas-menu a {
@@ -237,13 +349,14 @@ a:focus-visible {
 }
 .nav-mas-menu a[aria-current="page"] {
   background: var(--acento-suave);
+  box-shadow: inset 2px 0 0 var(--acento);
 }
 .nav-mas-menu a svg {
   width: 18px;
   height: 18px;
   flex: none;
   margin-top: 2px;
-  color: #7aa2ff;
+  color: var(--acento);
 }
 .nav-mas-menu strong {
   display: block;
@@ -284,7 +397,7 @@ a:focus-visible {
     justify-content: space-between;
     gap: 0;
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-    background: rgba(19, 23, 34, 0.96);
+    background: var(--barra-fondo);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid var(--borde);
@@ -309,8 +422,16 @@ a:focus-visible {
     order: 99;
   }
   .nav-mas > summary[data-actual-movil="si"] {
-    background: var(--acento-suave);
+    background: transparent;
     color: var(--texto);
+    box-shadow: inset 0 1.5px 0 var(--acento);
+  }
+  .encabezado .nav a[aria-current="page"] {
+    background: transparent;
+    box-shadow: inset 0 1.5px 0 var(--acento);
+  }
+  .nav-mas > summary[data-actual-movil="si"] svg {
+    color: var(--acento);
   }
   .encabezado .nav > a.nav-escritorio,
   .nav-largo,
@@ -323,9 +444,6 @@ a:focus-visible {
   }
   .nav-mas-menu .solo-movil {
     display: flex !important;
-  }
-  .nav-mas-menu form.solo-movil {
-    padding: 8px 12px;
   }
   .nav-mas {
     flex: 1 0 56px;
@@ -369,10 +487,13 @@ a:focus-visible {
   padding: 4px 2px 2px;
 }
 .intro-pantalla h1 {
-  margin: 0 0 4px;
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 500;
+  font-variation-settings: "opsz" 48;
+  letter-spacing: -0.012em;
+  line-height: 1.12;
 }
 .intro-pantalla p {
   margin: 0;
@@ -424,8 +545,8 @@ a:focus-visible {
 .panel-titulo {
   margin: 0;
   font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.005em;
+  font-weight: 600;
+  letter-spacing: -0.006em;
   color: var(--texto);
 }
 .panel-cuerpo {
@@ -591,61 +712,6 @@ a:focus-visible {
   font-size: 14px;
 }
 
-/* Login */
-.login {
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-}
-.login form {
-  width: 100%;
-  max-width: 340px;
-  display: grid;
-  gap: 12px;
-  padding: 28px 24px;
-  background: var(--panel);
-  border: 1px solid var(--borde);
-  border-radius: 16px;
-  box-shadow: var(--sombra);
-}
-.login label {
-  display: grid;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--texto-2);
-}
-.login input {
-  font: inherit;
-  padding: 11px 12px;
-  background: var(--fondo);
-  color: var(--texto);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-chico);
-}
-.login input:focus {
-  border-color: var(--acento);
-  outline: none;
-}
-.login button {
-  font: inherit;
-  font-weight: 600;
-  padding: 11px 12px;
-  background: var(--acento);
-  color: #fff;
-  border: 0;
-  border-radius: var(--radio-chico);
-  cursor: pointer;
-}
-.login button:hover {
-  background: #1e53e5;
-}
-.login .error {
-  margin: 0;
-  color: var(--baja);
-  font-size: 13px;
-}
-
 .pie {
   max-width: 1360px;
   margin: 0 auto;
@@ -678,11 +744,13 @@ a:focus-visible {
 
 /* Piezas comunes del sistema de diseño */
 .cifra-grande {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 26px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-family: var(--serif);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum", "lnum";
+  font-variation-settings: "opsz" 48;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   line-height: 1.1;
 }
 .pastilla {
@@ -719,12 +787,22 @@ a:focus-visible {
   padding: 9px 14px;
   border-radius: var(--radio-chico);
   border: 1px solid transparent;
-  background: var(--acento);
-  color: #fff;
+  background: var(--primario);
+  color: var(--sobre-primario);
   cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 .boton:hover {
-  background: #1e53e5;
+  background: var(--primario-hover);
+}
+a.boton:hover,
+a.boton:focus-visible {
+  color: var(--sobre-primario);
+  text-decoration: none;
+}
+a.boton.secundario:hover,
+a.boton.secundario:focus-visible {
+  color: var(--texto);
 }
 .boton:disabled {
   opacity: 0.55;
@@ -758,5 +836,97 @@ details > summary {
   cursor: pointer;
 }
 ::selection {
-  background: var(--acento-suave);
+  background: var(--acento-linea);
+}
+
+/* Interruptor de tema (claro · oscuro · según el sistema) */
+.selector-tema {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--panel);
+}
+.selector-tema button {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--texto-3);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.selector-tema button:hover {
+  color: var(--texto);
+}
+.selector-tema button[aria-pressed="true"] {
+  background: var(--panel-alto);
+  color: var(--acento);
+  box-shadow: 0 0 0 1px var(--acento-linea) inset;
+}
+.selector-tema svg {
+  width: 16px;
+  height: 16px;
+}
+.selector-tema.con-texto {
+  display: flex;
+  width: 100%;
+  border-radius: var(--radio-chico);
+  padding: 3px;
+}
+.selector-tema-rotulo {
+  padding: 0 6px 0 8px;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.selector-tema.con-texto button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: auto;
+  height: 38px;
+  gap: 6px;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+}
+.nav-mas-menu .nav-mas-pie {
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 8px 4px 2px;
+  border-top: 1px solid var(--borde);
+}
+.nav-mas-pie .selector-tema {
+  flex: 1;
+  min-width: 0;
+}
+.nav-mas-pie .selector-tema-rotulo {
+  display: none;
+}
+.nav-mas-pie .boton-texto {
+  min-height: 44px;
+  padding: 0 14px;
+}
+.encabezado .acciones-escritorio {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Cambio de tema suave (solo colores; sin animación si se pidió menos movimiento) */
+@media (prefers-reduced-motion: no-preference) {
+  .panel,
+  .encabezado,
+  body {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+  }
 }

@@ -5,6 +5,8 @@
 // La descripción y la tabla equivalente van en texto para lectores de pantalla.
 
 import { useEffect, useRef } from "react";
+import { colorTema, conAlfa } from "@/componentes/tema/colores";
+import { useTemaActivo } from "@/componentes/tema/usarTema";
 
 export interface PuntoMini {
   /** Segundos Unix (UTC) del dato. */
@@ -19,23 +21,8 @@ export interface PuntoMini {
 
 export type Tono = "sube" | "baja" | "igual";
 
-const COLOR: Record<Tono, { linea: string; arriba: string; abajo: string }> = {
-  sube: {
-    linea: "#22ab94",
-    arriba: "rgba(34, 171, 148, 0.28)",
-    abajo: "rgba(34, 171, 148, 0)",
-  },
-  baja: {
-    linea: "#f23645",
-    arriba: "rgba(242, 54, 69, 0.26)",
-    abajo: "rgba(242, 54, 69, 0)",
-  },
-  igual: {
-    linea: "#7c8296",
-    arriba: "rgba(124, 130, 150, 0.22)",
-    abajo: "rgba(124, 130, 150, 0)",
-  },
-};
+// Cada tono toma su color del tema activo (variables de app/globals.css) al dibujar.
+const VARIABLE: Record<Tono, string> = { sube: "--sube", baja: "--baja", igual: "--texto-3" };
 
 export function MiniGrafico({
   puntos,
@@ -53,6 +40,8 @@ export function MiniGrafico({
 }) {
   const caja = useRef<HTMLDivElement>(null);
   const clave = puntos.map((p) => `${p.t}:${p.v}`).join("|");
+  // Al cambiar de claro a oscuro (o al revés) el gráfico se vuelve a dibujar con los colores nuevos.
+  const tema = useTemaActivo();
 
   useEffect(() => {
     const el = caja.current;
@@ -62,12 +51,13 @@ export function MiniGrafico({
     void import("lightweight-charts").then(
       ({ createChart, AreaSeries, LineType, ColorType }) => {
         if (!vivo) return;
-        const c = COLOR[tono];
+        const linea = colorTema(VARIABLE[tono]);
+        const c = { linea, arriba: conAlfa(linea, 0.24), abajo: conAlfa(linea, 0) };
         const chart = createChart(el, {
           autoSize: true,
           layout: {
             background: { type: ColorType.Solid, color: "transparent" },
-            textColor: "#7c8296",
+            textColor: colorTema("--texto-3"),
             attributionLogo: false,
           },
           grid: {
@@ -114,9 +104,9 @@ export function MiniGrafico({
       vivo = false;
       destruir?.();
     };
-    // `clave` resume los puntos: el gráfico se vuelve a crear solo si cambian los datos o el tono.
+    // `clave` resume los puntos: el gráfico se vuelve a crear solo si cambian los datos, el tono o el tema.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clave, tono]);
+  }, [clave, tono, tema]);
 
   if (puntos.length < 2) return null;
   return (

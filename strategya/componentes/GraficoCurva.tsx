@@ -19,8 +19,9 @@ export interface PuntoGrafico {
 
 const ALTO = 240;
 const M = { arriba: 16, derecha: 16, abajo: 28, izquierda: 40 };
-const AZUL = "#2962ff";
-const GRIS = "#7c8296";
+// Colores del tema activo (app/globals.css): cambian solos entre claro y oscuro.
+const PRINCIPAL = "var(--serie-1)";
+const GRIS = "var(--texto-3)";
 
 function pasoLimpio(rango: number): number {
   for (const p of [0.05, 0.1, 0.25, 0.5, 1, 2]) if (rango / p <= 5) return p;
@@ -133,7 +134,7 @@ export function GraficoCurva({
     <div className="curva">
       <ul className="leyenda" aria-label="Leyenda">
         <li>
-          <span className="clave-linea" style={{ background: AZUL }} aria-hidden="true" />
+          <span className="clave-linea" style={{ background: PRINCIPAL }} aria-hidden="true" />
           {etiquetaActual}
         </li>
         {etiquetaComparacion ? (
@@ -162,8 +163,8 @@ export function GraficoCurva({
         <svg width={ancho} height={ALTO} aria-hidden="true">
           <defs>
             <linearGradient id={idGradiente} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={AZUL} stopOpacity={0.22} />
-              <stop offset="100%" stopColor={AZUL} stopOpacity={0} />
+              <stop offset="0%" stopColor={PRINCIPAL} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={PRINCIPAL} stopOpacity={0} />
             </linearGradient>
           </defs>
           <g className="eje">
@@ -187,24 +188,24 @@ export function GraficoCurva({
           {comparacion.length > 1 ? (
             <path d={trazoSuave(comparacion)} fill="none" stroke={GRIS} strokeWidth={1.5} strokeDasharray="4 4" strokeLinecap="round" />
           ) : null}
-          <path d={lineaActual} fill="none" stroke={AZUL} strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={lineaActual} fill="none" stroke={PRINCIPAL} strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" />
           {activo !== null ? (
             <g>
               <line x1={g.x(activo)} x2={g.x(activo)} y1={M.arriba} y2={base} stroke="var(--borde-fuerte)" strokeWidth={1} />
               {puntos[activo].valorComparacion && etiquetaComparacion ? (
                 <circle cx={g.x(activo)} cy={g.y(Number(puntos[activo].valorComparacion))} r={3.5} fill={GRIS} stroke="var(--panel)" strokeWidth={2} />
               ) : null}
-              <circle cx={g.x(activo)} cy={g.y(Number(puntos[activo].valor))} r={5} fill={AZUL} stroke="var(--panel)" strokeWidth={2.5} />
+              <circle cx={g.x(activo)} cy={g.y(Number(puntos[activo].valor))} r={5} fill={PRINCIPAL} stroke="var(--panel)" strokeWidth={2.5} />
             </g>
           ) : (
-            <circle cx={actual.at(-1)!.x} cy={actual.at(-1)!.y} r={3.5} fill={AZUL} stroke="var(--panel)" strokeWidth={2} />
+            <circle cx={actual.at(-1)!.x} cy={actual.at(-1)!.y} r={3.5} fill={PRINCIPAL} stroke="var(--panel)" strokeWidth={2} />
           )}
         </svg>
         {p ? (
           <div className="tooltip" style={{ left: izquierdaTooltip, top: 0 }} role="status">
             <div className="tenue">{p.nombre}</div>
             <div className="fila">
-              <span className="clave-linea" style={{ background: AZUL }} />
+              <span className="clave-linea" style={{ background: PRINCIPAL }} />
               <strong>{p.valor}%</strong> <span>{etiquetaActual}</span>
             </div>
             {p.valorComparacion && etiquetaComparacion ? (

@@ -68,7 +68,7 @@ export function PanelPatrimonio({ datos, mes }: Props) {
       </div>
       {puntos.length >= 2 ? (
         <GraficoSerie
-          series={[{ nombre: "Patrimonio", color: "#2962ff", puntos, area: true }]}
+          series={[{ nombre: "Patrimonio", color: "var(--serie-1)", puntos, area: true }]}
           etiqueta={`Patrimonio neto por mes: ${historial.length} cierres${ind.foto.vivo ? " y el valor de hoy" : ""}. La tabla del historial tiene las cifras.`}
           alto={260}
         />

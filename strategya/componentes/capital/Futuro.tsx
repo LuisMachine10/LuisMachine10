@@ -17,8 +17,9 @@ import { Dato, Kpi, Mas, Mosaicos, Panel, SinDatos } from "./Piezas";
 type Props = { datos: DatosCapital; mes: string };
 
 // Colores literales: lightweight-charts dibuja en canvas y no lee variables CSS.
-const COLORES: Record<string, string> = { estres: "#f23645", base: "#2962ff", optim: "#22ab94" };
-const PALETA = ["#4c8dff", "#b2b5be", "#a77bf3"];
+// Variables del tema (app/globals.css): el gráfico las lee al dibujar; la leyenda las usa tal cual.
+const COLORES: Record<string, string> = { estres: "var(--baja)", base: "var(--serie-1)", optim: "var(--sube)" };
+const PALETA = ["var(--serie-2)", "var(--serie-3)", "var(--serie-4)"];
 
 function MosaicosFuturo({ datos, mes }: Props) {
   const { ctx } = datos;
