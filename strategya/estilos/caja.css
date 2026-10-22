@@ -82,7 +82,7 @@
   border-color: var(--borde-fuerte);
 }
 .caja-pestanas a[aria-current="page"] {
-  color: #fff;
+  color: var(--texto);
   background: var(--acento-suave);
   border-color: color-mix(in srgb, var(--acento) 55%, transparent);
 }
@@ -133,14 +133,14 @@
   font: inherit;
   font-size: 14px;
   font-weight: 600;
-  background: var(--acento);
-  color: #fff;
+  background: var(--primario);
+  color: var(--sobre-primario);
   border: 1px solid transparent;
   border-radius: var(--radio-chico);
   cursor: pointer;
 }
 .caja-boton:hover {
-  background: #1e53e5;
+  background: var(--primario-hover);
 }
 .caja-boton.secundario {
   background: var(--panel-alto);
@@ -153,7 +153,7 @@
 }
 .caja-boton.peligro {
   background: var(--baja-suave);
-  color: #ff8a94;
+  color: var(--baja);
   border-color: color-mix(in srgb, var(--baja) 45%, transparent);
 }
 .caja-boton:disabled,
@@ -214,7 +214,7 @@
 }
 .caja-ayuda > summary:hover,
 .caja-ayuda[open] > summary {
-  color: #fff;
+  color: var(--texto);
   border-color: var(--acento);
   background: var(--acento-suave);
 }
@@ -369,7 +369,7 @@
   color: var(--caja-cerca);
 }
 .caja-estado.bajo {
-  color: #ff6b77;
+  color: var(--baja);
 }
 
 .caja-aviso,
@@ -536,7 +536,7 @@ button.caja-dia.bajo:hover {
 }
 .caja-dia.hoy .caja-dia-num {
   background: var(--acento);
-  color: #fff;
+  color: var(--sobre-acento);
 }
 .caja-dia-saldo {
   max-width: 100%;
@@ -550,7 +550,7 @@ button.caja-dia.bajo:hover {
   min-height: 13px;
 }
 .caja-dia.bajo .caja-dia-saldo {
-  color: #ff8a94;
+  color: var(--baja);
   font-weight: 600;
 }
 .caja-dia-puntos {
@@ -616,7 +616,7 @@ button.caja-dia.bajo:hover {
   align-items: center;
   min-height: 40px;
   font-size: 13.5px;
-  color: #7aa2ff;
+  color: var(--enlace);
 }
 .caja-leyenda-caja p {
   margin: 4px 0 8px;
@@ -831,7 +831,7 @@ button.caja-dia.bajo:hover {
     position: fixed;
     inset: 0;
     z-index: 44;
-    background: rgba(5, 7, 12, 0.6);
+    background: var(--velo);
     animation: caja-aparecer 0.2s ease-out;
   }
 }
@@ -915,12 +915,12 @@ button.caja-dia.bajo:hover {
 }
 .caja-item-icono.gasto {
   background: var(--baja-suave);
-  color: #ff8a94;
+  color: var(--baja);
 }
 .caja-item-icono.transferencia,
 .caja-item-icono.pago_tarjeta {
   background: var(--acento-suave);
-  color: #7aa2ff;
+  color: var(--enlace);
 }
 .caja-item-texto {
   display: grid;
@@ -1125,7 +1125,7 @@ button.caja-dia.bajo:hover {
 }
 .caja-mensaje.error,
 .caja-error {
-  color: #ff8a94;
+  color: var(--baja);
 }
 .caja-error,
 .caja-exito {
@@ -1148,10 +1148,10 @@ button.caja-dia.bajo:hover {
   border: 1px solid var(--borde-fuerte);
   background: var(--panel);
   color: var(--texto);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--sombra-flotante);
 }
 .caja-dialogo::backdrop {
-  background: rgba(5, 7, 12, 0.65);
+  background: var(--velo);
 }
 .caja-dialogo[open] {
   animation: caja-subir 0.2s ease-out;
@@ -1265,7 +1265,7 @@ button.caja-dia.bajo:hover {
   height: 52px;
   border-radius: 14px;
   background: var(--acento-suave);
-  color: #7aa2ff;
+  color: var(--enlace);
 }
 
 /* ───────────── Presupuesto ───────────── */
@@ -1467,7 +1467,7 @@ button.caja-dia.bajo:hover {
   height: 26px;
   border-radius: 50%;
   background: var(--acento);
-  color: #fff;
+  color: var(--sobre-acento);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1575,7 +1575,7 @@ button.caja-dia.bajo:hover {
   height: 36px;
   border-radius: 10px;
   background: var(--acento-suave);
-  color: #7aa2ff;
+  color: var(--enlace);
 }
 .caja-fila-icono.ingreso,
 .caja-fila-icono.ahorro {
@@ -1585,7 +1585,7 @@ button.caja-dia.bajo:hover {
 .caja-fila-icono.gasto,
 .caja-fila-icono.tarjeta {
   background: var(--baja-suave);
-  color: #ff8a94;
+  color: var(--baja);
 }
 .caja-fila-icono.efectivo {
   background: color-mix(in srgb, var(--ambar) 14%, transparent);
