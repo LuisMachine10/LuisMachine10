@@ -33,7 +33,7 @@
 }
 .rd-pestanas a[aria-current="page"] {
   background: var(--acento-suave);
-  color: #fff;
+  color: var(--texto);
 }
 @media (max-width: 899px) {
   .rd-subnav {
@@ -58,7 +58,7 @@
   color: var(--texto-2);
 }
 .rd-panel .sello a:hover {
-  color: #a9c1ff;
+  color: var(--enlace-fuerte);
 }
 .rd-panel .sello .vencido {
   display: inline-flex;
@@ -658,7 +658,7 @@
   overflow-wrap: anywhere;
 }
 .rd-item-titulo:hover {
-  color: #a9c1ff;
+  color: var(--enlace-fuerte);
 }
 .rd-item-meta {
   display: flex;
@@ -786,7 +786,7 @@
 }
 .rd-mensaje.error {
   background: var(--baja-suave);
-  color: #ff8a94;
+  color: var(--baja);
 }
 .rd-mensaje-icono {
   font-weight: 700;
