@@ -85,7 +85,7 @@
   gap: 6px;
   font-size: 15px;
   line-height: 1.5;
-  color: #d3d7e0;
+  color: var(--texto);
 }
 .ter-resumen-nota {
   margin: 10px 0 0;
@@ -503,12 +503,12 @@
   white-space: nowrap;
 }
 .sello-vencido {
-  color: #ff7b85;
+  color: var(--baja);
   background: var(--baja-suave);
 }
 .sello-fallo {
   color: var(--ambar);
-  background: rgba(245, 166, 35, 0.14);
+  background: var(--ambar-suave);
 }
 
 /* ───────────── Movimientos de acciones ───────────── */
@@ -717,7 +717,7 @@
   margin-bottom: 8px;
 }
 .clave-punteada {
-  background: repeating-linear-gradient(90deg, #7c8296 0 4px, transparent 4px 7px);
+  background: repeating-linear-gradient(90deg, var(--texto-3) 0 4px, transparent 4px 7px);
 }
 .curva .grafico {
   margin-bottom: 8px;

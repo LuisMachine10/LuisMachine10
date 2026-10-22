@@ -54,7 +54,7 @@
 }
 a.boton:hover,
 a.boton:focus-visible {
-  color: #fff;
+  color: var(--sobre-primario);
   text-decoration: none;
 }
 a.boton.secundario:hover,
@@ -107,7 +107,7 @@ a.boton.secundario:focus-visible {
 .aj-ayuda[open] .aj-ayuda-icono {
   border-color: var(--acento);
   background: var(--acento-suave);
-  color: #fff;
+  color: var(--texto);
 }
 .aj-ayuda[open] {
   flex-basis: 100%;
@@ -129,12 +129,12 @@ a.boton.secundario:focus-visible {
   margin-top: 8px;
 }
 .aj-detalle > summary {
-  color: #7aa2ff;
+  color: var(--enlace);
   font-weight: 500;
   width: fit-content;
 }
 .aj-detalle > summary:hover {
-  color: #a9c1ff;
+  color: var(--enlace-fuerte);
 }
 .aj-detalle > p {
   margin: 6px 0 0;
@@ -164,7 +164,7 @@ a.boton.secundario:focus-visible {
   height: 44px;
   border-radius: 50%;
   background: var(--acento-suave);
-  color: #a9c1ff;
+  color: var(--enlace);
   margin-bottom: 4px;
 }
 .aj-vacio-titulo {
@@ -411,7 +411,7 @@ a.boton.secundario:focus-visible {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #c9cdd8;
+  background: var(--texto-2);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   transition: transform 0.15s ease, background 0.15s ease;
 }
@@ -420,7 +420,7 @@ a.boton.secundario:focus-visible {
 }
 .interruptor input:checked + .interruptor-pista::after {
   transform: translateX(16px);
-  background: #fff;
+  background: var(--sobre-acento);
 }
 .interruptor input:focus-visible + .interruptor-pista {
   outline: 2px solid var(--acento);
@@ -597,7 +597,7 @@ a.boton.secundario:focus-visible {
 
 /* ───────── Paneles con IA ───────── */
 .ia-sello {
-  color: #8fb0ff;
+  color: var(--enlace);
 }
 .ia-panel p {
   margin: 4px 0;
@@ -627,7 +627,7 @@ a.boton.secundario:focus-visible {
   height: 28px;
   border-radius: 50%;
   background: var(--acento-suave);
-  color: #a9c1ff;
+  color: var(--enlace);
   font-size: 13px;
   font-weight: 700;
 }
@@ -738,7 +738,7 @@ a.boton.secundario:focus-visible {
 }
 .estado-escala {
   background: var(--baja-suave);
-  color: #ff6b77;
+  color: var(--baja);
 }
 .estado-tension {
   background: color-mix(in srgb, var(--ambar) 15%, transparent);
@@ -746,7 +746,7 @@ a.boton.secundario:focus-visible {
 }
 .estado-tregua {
   background: var(--acento-suave);
-  color: #8fb0ff;
+  color: var(--enlace);
 }
 .estado-baja-intensidad {
   background: var(--panel-hover);
@@ -800,7 +800,7 @@ a.boton.secundario:focus-visible {
 }
 .titular-enlace:hover,
 .titular-enlace:focus-visible {
-  color: #a9c1ff;
+  color: var(--enlace-fuerte);
 }
 
 /* ───────── Porqué bajo una serie ───────── */

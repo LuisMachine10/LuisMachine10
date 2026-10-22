@@ -5,6 +5,7 @@
 // tarjetas y en la tabla sale del texto original). La tabla equivalente está junto al gráfico.
 
 import { useEffect, useRef } from "react";
+import { useTemaActivo } from "@/componentes/tema/usarTema";
 import { AreaSeries, ColorType, createChart, LineSeries, LineStyle } from "lightweight-charts";
 
 export interface PuntoDolar {
@@ -33,6 +34,8 @@ function aSerie(puntos: PuntoDolar[]) {
 
 export function GraficoDolar({ venta, compra, etiqueta }: { venta: PuntoDolar[]; compra: PuntoDolar[]; etiqueta: string }) {
   const caja = useRef<HTMLDivElement>(null);
+  // Al cambiar entre claro y oscuro el gráfico se rehace con los colores del tema nuevo.
+  const tema = useTemaActivo();
 
   useEffect(() => {
     const el = caja.current;
@@ -50,7 +53,7 @@ export function GraficoDolar({ venta, compra, etiqueta }: { venta: PuntoDolar[];
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: COLORES.texto,
-        fontFamily: '"Inter Variable", Inter, system-ui, sans-serif',
+        fontFamily: '"Geist Variable", Geist, system-ui, sans-serif',
         fontSize: 11,
       },
       grid: { vertLines: { visible: false }, horzLines: { color: COLORES.rejilla } },
@@ -93,7 +96,7 @@ export function GraficoDolar({ venta, compra, etiqueta }: { venta: PuntoDolar[];
     }
     chart.timeScale().fitContent();
     return () => chart.remove();
-  }, [venta, compra]);
+  }, [venta, compra, tema]);
 
   return <div ref={caja} className="rd-grafico" role="img" aria-label={etiqueta} />;
 }

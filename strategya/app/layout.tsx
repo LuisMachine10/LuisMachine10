@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/inter";
-import "@fontsource/ibm-plex-mono/latin-400.css";
+// Geist (texto, tablas y cifras con números tabulares) y Newsreader (títulos y cifras grandes). Ambas SIL OFL 1.1.
+import "@fontsource-variable/geist";
+import "@fontsource-variable/newsreader/opsz.css";
 import "./globals.css";
+import { COLOR_BARRA, SCRIPT_TEMA } from "@/componentes/tema/tema";
 
 export const metadata: Metadata = {
   title: "Strategya",
@@ -11,14 +13,18 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A0E13",
+  themeColor: COLOR_BARRA.oscuro,
   width: "device-width",
   initialScale: 1,
 };
 
 export default function Raiz({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-DO">
+    // data-tema lo fija el script de abajo antes de pintar (claro, oscuro o según el sistema): sin parpadeo.
+    <html lang="es-DO" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
       <body>{children}</body>
     </html>
   );

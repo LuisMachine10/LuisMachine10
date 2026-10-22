@@ -6,6 +6,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AreaSeries, ColorType, createChart, type IChartApi, LineSeries, LineStyle, type Time } from "lightweight-charts";
+import { colorTema, coloresGrafico, conAlfa } from "@/componentes/tema/colores";
+import { useTemaActivo } from "@/componentes/tema/usarTema";
 import { cifra } from "@/lib/formato";
 
 export interface PuntoSerie {
@@ -17,18 +19,13 @@ export interface PuntoSerie {
 
 export interface SerieGrafico {
   nombre: string;
+  /** Color de la serie: una variable del tema («var(--serie-1)») o un color fijo. */
   color: string;
   puntos: PuntoSerie[];
   /** Área rellena bajo la línea (la serie principal). */
   area?: boolean;
   ancho?: number;
 }
-
-const COLORES = {
-  texto: "#7c8296",
-  rejilla: "rgba(35, 42, 59, 0.55)",
-  cruz: "#4a5168",
-};
 
 /** "1,234,567" → "1.2M", "45,000" → "45k" (solo para el eje). */
 function corto(x: number): string {
@@ -66,17 +63,20 @@ export function GraficoSerie({
   })();
 
   const clave = JSON.stringify([series, meta, alto]);
+  // Los colores salen del tema activo: al cambiar de claro a oscuro el gráfico se vuelve a dibujar.
+  const tema = useTemaActivo();
 
   useEffect(() => {
     const el = caja.current;
     if (!el) return;
+    const COLORES = coloresGrafico();
     const chart: IChartApi = createChart(el, {
       autoSize: true,
       height: alto,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: COLORES.texto,
-        fontFamily: "'Inter Variable', Inter, system-ui, sans-serif",
+        fontFamily: COLORES.fuente,
         fontSize: 11,
         // El crédito de TradingView Lightweight Charts va en el pie de Mena Capital (con enlace).
         attributionLogo: false,
@@ -85,8 +85,8 @@ export function GraficoSerie({
       rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.18, bottom: 0.06 } },
       timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true, lockVisibleTimeRangeOnResize: true },
       crosshair: {
-        vertLine: { color: COLORES.cruz, width: 1, style: LineStyle.Dashed, labelBackgroundColor: "#2a3045" },
-        horzLine: { color: COLORES.cruz, width: 1, style: LineStyle.Dashed, labelBackgroundColor: "#2a3045" },
+        vertLine: { color: COLORES.cruz, width: 1, style: LineStyle.Dashed, labelBackgroundColor: COLORES.etiqueta },
+        horzLine: { color: COLORES.cruz, width: 1, style: LineStyle.Dashed, labelBackgroundColor: COLORES.etiqueta },
       },
       localization: { locale: "es-DO", priceFormatter: corto },
       handleScroll: false,
@@ -97,12 +97,13 @@ export function GraficoSerie({
     series.forEach((s, i) => {
       const datos = s.puntos.map((p) => ({ time: p.t as Time, value: Number(p.v) }));
       const comun = { lineWidth: (s.ancho ?? 2) as 1 | 2 | 3 | 4, priceLineVisible: false, lastValueVisible: i === 0, crosshairMarkerRadius: 4 };
+      const color = colorTema(s.color);
       const serie = s.area
-        ? chart.addSeries(AreaSeries, { ...comun, lineColor: s.color, topColor: `${s.color}55`, bottomColor: `${s.color}05` })
-        : chart.addSeries(LineSeries, { ...comun, color: s.color });
+        ? chart.addSeries(AreaSeries, { ...comun, lineColor: color, topColor: conAlfa(color, 0.3), bottomColor: conAlfa(color, 0.02) })
+        : chart.addSeries(LineSeries, { ...comun, color });
       serie.setData(datos);
       if (i === 0 && meta) {
-        serie.createPriceLine({ price: Number(meta.v), color: "#f5a623", lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: meta.nombre });
+        serie.createPriceLine({ price: Number(meta.v), color: colorTema("--ambar"), lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: meta.nombre });
       }
       textos.set(s.nombre, new Map(s.puntos.map((p) => [p.t, p.v])));
     });
@@ -118,9 +119,9 @@ export function GraficoSerie({
     });
 
     return () => chart.remove();
-    // `clave` resume series, meta y alto: el gráfico se recrea solo si cambian los datos.
+    // `clave` resume series, meta y alto: el gráfico se recrea solo si cambian los datos o el tema.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clave]);
+  }, [clave, tema]);
 
   const mostrar = cursor ?? ultimo;
   return (

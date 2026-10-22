@@ -2,7 +2,7 @@
    Prefijo nt- para no chocar con otros módulos. Usa los tokens de app/globals.css; rejilla de 8 px. */
 
 .nt-panel {
-  --nt-inst: #b39dff;
+  --nt-inst: var(--cat-4);
 }
 .nt-columna {
   display: grid;
@@ -218,7 +218,7 @@ abbr[title] {
 }
 .nt-titular:hover,
 .nt-titular:focus-visible {
-  color: #fff;
+  color: var(--texto);
   text-decoration: none;
 }
 .nt-tarjeta:focus-within {
@@ -273,22 +273,22 @@ abbr[title] {
   border: 1px solid color-mix(in srgb, var(--nt-logo, var(--acento)) 28%, transparent);
 }
 .nt-logo-0 {
-  --nt-logo: #7aa2ff;
+  --nt-logo: var(--cat-1);
 }
 .nt-logo-1 {
-  --nt-logo: #4fc3b0;
+  --nt-logo: var(--cat-2);
 }
 .nt-logo-2 {
-  --nt-logo: #f0a35e;
+  --nt-logo: var(--cat-3);
 }
 .nt-logo-3 {
-  --nt-logo: #b39dff;
+  --nt-logo: var(--cat-4);
 }
 .nt-logo-4 {
-  --nt-logo: #5cc8ff;
+  --nt-logo: var(--cat-5);
 }
 .nt-logo-5 {
-  --nt-logo: #e58fb6;
+  --nt-logo: var(--cat-6);
 }
 .nt-inst-cuerpo {
   display: grid;
@@ -797,7 +797,7 @@ abbr[title] {
   background: var(--panel-alto);
   border: 1px solid var(--borde-fuerte);
   border-radius: var(--radio);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+  box-shadow: var(--sombra-flotante);
   font-size: 13px;
   color: var(--texto-2);
 }
@@ -848,7 +848,7 @@ abbr[title] {
   overflow-wrap: anywhere;
 }
 .nt-ficha a:hover {
-  color: #fff;
+  color: var(--texto);
 }
 .nt-ficha-detalle {
   font-size: 12px;

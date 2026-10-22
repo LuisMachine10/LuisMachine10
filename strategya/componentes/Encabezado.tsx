@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { cerrarSesion } from "@/app/acciones";
+import { Monograma } from "@/componentes/marca/Monograma";
+import { SelectorTema } from "@/componentes/tema/SelectorTema";
 import { fechaHoraRD, horaRD } from "@/lib/formato";
 
 // Íconos de trazo (24×24), dibujados aquí para no cargar una librería entera.
@@ -80,10 +82,8 @@ export function Encabezado({ actual, ultimaActualizacion }: { actual: Seccion; u
   return (
     <header className="encabezado">
       <Link href="/" className="marca" aria-label="Strategya, ir al Dashboard">
-        <span className="marca-logo" aria-hidden="true">
-          S
-        </span>
-        Strategya
+        <Monograma tamano={30} />
+        <span className="marca-nombre">Strategya</span>
       </Link>
       <nav className="nav" aria-label="Secciones">
         {principales.map((s) => (
@@ -123,11 +123,14 @@ export function Encabezado({ actual, ultimaActualizacion }: { actual: Seccion; u
                 </span>
               </Link>
             ))}
-            <form action={cerrarSesion} className="solo-movil">
-              <button type="submit" className="boton-texto">
-                Salir
-              </button>
-            </form>
+            <div className="solo-movil nav-mas-pie">
+              <SelectorTema conTexto />
+              <form action={cerrarSesion}>
+                <button type="submit" className="boton-texto">
+                  Salir
+                </button>
+              </form>
+            </div>
           </div>
         </details>
       </nav>
@@ -139,11 +142,14 @@ export function Encabezado({ actual, ultimaActualizacion }: { actual: Seccion; u
       ) : (
         <span className="actualizado" aria-hidden="true" />
       )}
-      <form action={cerrarSesion} className="solo-escritorio">
-        <button type="submit" className="boton-texto">
-          Salir
-        </button>
-      </form>
+      <div className="acciones-escritorio solo-escritorio">
+        <SelectorTema />
+        <form action={cerrarSesion}>
+          <button type="submit" className="boton-texto">
+            Salir
+          </button>
+        </form>
+      </div>
     </header>
   );
 }

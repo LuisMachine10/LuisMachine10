@@ -5,6 +5,7 @@
 // Number() solo ubica cada punto en el gráfico. La tabla equivalente está junto al gráfico.
 
 import { useEffect, useRef } from "react";
+import { useTemaActivo } from "@/componentes/tema/usarTema";
 import { ColorType, createChart, LineSeries, LineStyle } from "lightweight-charts";
 
 export interface SerieDivisa {
@@ -33,6 +34,8 @@ function aSerie(puntos: SerieDivisa["puntos"]) {
 
 export function GraficoDivisas({ series, etiqueta }: { series: SerieDivisa[]; etiqueta: string }) {
   const caja = useRef<HTMLDivElement>(null);
+  // Al cambiar entre claro y oscuro el gráfico se rehace con los colores del tema nuevo.
+  const tema = useTemaActivo();
 
   useEffect(() => {
     const el = caja.current;
@@ -47,7 +50,7 @@ export function GraficoDivisas({ series, etiqueta }: { series: SerieDivisa[]; et
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: texto3,
-        fontFamily: '"Inter Variable", Inter, system-ui, sans-serif',
+        fontFamily: '"Geist Variable", Geist, system-ui, sans-serif',
         fontSize: 11,
         attributionLogo: false,
       },
@@ -83,7 +86,7 @@ export function GraficoDivisas({ series, etiqueta }: { series: SerieDivisa[]; et
     }
     chart.timeScale().fitContent();
     return () => chart.remove();
-  }, [series]);
+  }, [series, tema]);
 
   return <div ref={caja} className="rd-grafico" role="img" aria-label={etiqueta} />;
 }
