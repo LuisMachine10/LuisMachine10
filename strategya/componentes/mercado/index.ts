@@ -5,3 +5,5 @@ export { PanelAcciones } from "./PanelAcciones";
 export { PanelMetales } from "./PanelMetales";
 export { PanelEnergia } from "./PanelEnergia";
 export { PanelTasasDivisas } from "./PanelTasasDivisas";
+export { PanelMiLista } from "./PanelMiLista";
+export { PanelPosiciones } from "./PanelPosiciones";

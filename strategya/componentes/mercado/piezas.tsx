@@ -203,13 +203,14 @@ export function TarjetaCotizacion({
   );
 }
 
-export function CabeceraPanel({ id, titulo, nota }: { id: string; titulo: string; nota?: string }) {
+export function CabeceraPanel({ id, titulo, nota, para }: { id: string; titulo: string; nota?: string; para?: string }) {
   return (
     <div className="panel-cabecera">
       <h2 className="panel-titulo" id={id}>
         {titulo}
       </h2>
       {nota ? <span className="mv-nota-cab">{nota}</span> : null}
+      {para ? <p className="mv-para-cab">{para}</p> : null}
     </div>
   );
 }

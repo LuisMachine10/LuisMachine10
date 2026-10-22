@@ -8,14 +8,26 @@ import {
   PanelEnergia,
   PanelIndices,
   PanelMetales,
+  PanelMiLista,
+  PanelPosiciones,
   PanelTasasDivisas,
 } from "@/componentes/mercado";
-import { BloqueHoy, fechaLargaRD } from "@/componentes/terminal/BloqueHoy";
 import { Seccion } from "@/componentes/terminal/Seccion";
 import { datosMercado } from "@/lib/datos-mercado";
 
-export const metadata: Metadata = { title: "Mercado en vivo · Strategya" };
+export const metadata: Metadata = { title: "Mercados · Strategya" };
 export const dynamic = "force-dynamic";
+
+/** Atajos a cada parte de la pantalla (en el celular evitan bajar mucho). */
+const SALTOS = [
+  { href: "#mi-lista", texto: "Mi lista" },
+  { href: "#mis-posiciones", texto: "Mis posiciones" },
+  { href: "#t-indices", texto: "Índices" },
+  { href: "#t-tasas", texto: "Tasas y divisas" },
+  { href: "#t-metales", texto: "Metales" },
+  { href: "#t-energia", texto: "Energía" },
+  { href: "#t-acciones", texto: "Acciones y ETF" },
+];
 
 export default async function Mercado() {
   let ultima: string | null = null;
@@ -25,17 +37,25 @@ export default async function Mercado() {
   } catch {
     // Cada panel muestra su propio error con el motivo.
   }
-  const ahora = new Date();
   return (
     <>
       <Encabezado actual="mercado" ultimaActualizacion={ultima} />
-      <main className="terminal ter">
-        <IntroPantalla clave="mercado" />
+      <main className="terminal ter mv-pagina">
+        <IntroPantalla clave="mercado">
+          <nav className="mv-saltos" aria-label="Ir a una parte de Mercados">
+            {SALTOS.map((s) => (
+              <a key={s.href} href={s.href}>
+                {s.texto}
+              </a>
+            ))}
+          </nav>
+        </IntroPantalla>
         <CintaPrecios />
-        <Seccion id="hoy" titulo="Hoy" detalle={fechaLargaRD(ahora)}>
-          <BloqueHoy />
+        <Seccion id="tus-acciones" titulo="Tus acciones" para="Aquí anotas las acciones de EE. UU. que quieres seguir y ves cómo van hoy las que ya tienes.">
+          <PanelMiLista />
+          <PanelPosiciones />
         </Seccion>
-        <Seccion id="mercados" titulo="Mercados">
+        <Seccion id="mercados" titulo="El mercado hoy" para="Bolsas, tasas, monedas, metales y energía. Cuando algo se mueve fuerte, verás el porqué.">
           <PanelIndices />
           <PanelTasasDivisas />
           <PanelMetales />
@@ -47,10 +67,10 @@ export default async function Mercado() {
         <div className="ter-pie-bloque">
           <h2>Fuentes</h2>
           <ul className="ter-pie-fuentes">
+            <li>Cboe (Mi lista y Mis posiciones, diferido 15 min; respaldo de índices y ETF)</li>
             <li>Financial Modeling Prep (índices, divisas, oro, plata, Brent, bitcoin, mayores alzas y bajas)</li>
-            <li>Finnhub (ETF de EE. UU., cobre por el ETF CPER)</li>
+            <li>Finnhub (ETF de EE. UU., cobre por el ETF CPER, cierres de la cartera)</li>
             <li>Tesoro de EE. UU., Reserva Federal (FRED) y BCE (tasas)</li>
-            <li>Banco Central de la RD (dólar)</li>
           </ul>
         </div>
         <p>

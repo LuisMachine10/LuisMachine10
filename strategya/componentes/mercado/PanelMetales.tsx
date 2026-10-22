@@ -21,7 +21,7 @@ export async function PanelMetales() {
   const h = await historiasSeguras();
   return (
     <section className="panel" aria-labelledby="t-metales">
-      <CabeceraPanel id="t-metales" titulo="Metales" nota="Futuros (FMP) · cobre por ETF (Finnhub)" />
+      <CabeceraPanel id="t-metales" titulo="Metales" nota="FMP · cobre por ETF" para="Oro, plata y cobre: su precio y cuánto cambiaron hoy." />
       <div className="panel-cuerpo">
         <ul className="mv-rejilla">
           {METALES.map(({ id, titulo, rotulo }) => {

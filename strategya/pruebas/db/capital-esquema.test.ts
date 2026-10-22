@@ -145,6 +145,7 @@ describe("esquema personal de Mena Capital", () => {
       { tabla: "personal.ips", rls: true },
       { tabla: "personal.parametros", rls: true },
       { tabla: "personal.transacciones", rls: true },
+      { tabla: "personal.watchlist", rls: true }, // Mercados · Mi lista (20261021000200_watchlist)
     ]);
   });
 });

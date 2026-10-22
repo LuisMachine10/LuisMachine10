@@ -22,7 +22,7 @@ export async function PanelEnergia() {
   const h = await historiasSeguras();
   return (
     <section className="panel" aria-labelledby="t-energia">
-      <CabeceraPanel id="t-energia" titulo="Energía" nota="Futuros (FMP) · ETF (Finnhub) como sustituto" />
+      <CabeceraPanel id="t-energia" titulo="Energía" nota="FMP · ETF como sustituto" para="Petróleo y gas: mueven lo que pagas por combustible en RD." />
       <div className="panel-cuerpo">
         <ul className="mv-rejilla">
           {ENERGIA.map(({ id, sustituto }) => {

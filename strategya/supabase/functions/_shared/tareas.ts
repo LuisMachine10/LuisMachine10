@@ -6,6 +6,7 @@ import { tareaTesoro } from "./fuentes/tesoro.ts";
 import { tareaCotizacionesFmp, tareaMovimientosAcciones } from "./fuentes/fmp.ts";
 import { tareaCotizacionesFinnhub } from "./fuentes/finnhub.ts";
 import { tareaCotizacionesCboe } from "./fuentes/cboe.ts";
+import { tareaCotizacionesLista } from "./fuentes/cotizaciones-lista.ts";
 import { tareaDivisasBce } from "./fuentes/ecb-fx.ts";
 import { tareaCierresFred } from "./fuentes/fred-mercado.ts";
 import { tareaFondosSafis } from "./fuentes/fondos-safis.ts";
@@ -31,6 +32,7 @@ const LISTA: Tarea[] = [
   tareaCotizacionesFmp,
   tareaCotizacionesFinnhub,
   tareaCotizacionesCboe,
+  tareaCotizacionesLista,
   tareaDivisasBce,
   tareaCierresFred,
   tareaFondosSafis,

@@ -80,7 +80,7 @@ export async function PanelAcciones() {
 
   return (
     <section className="panel panel-ancho" aria-labelledby="t-acciones">
-      <CabeceraPanel id="t-acciones" titulo="Lo que movió acciones" nota="Acciones y ETF de EE. UU. · horario regular" />
+      <CabeceraPanel id="t-acciones" titulo="Lo que movió acciones" nota="EE. UU. · horario regular" para="Las acciones de EE. UU. que más subieron y bajaron hoy, y los ETF más seguidos." />
       <div className="panel-cuerpo">
         {movs.length && recogido ? (
           <>
@@ -121,7 +121,7 @@ export async function PanelAcciones() {
           </div>
         )}
         <Subtitulo>ETF del día</Subtitulo>
-        <ul className="mv-rejilla mv-carrusel" aria-label="ETF del día">
+        <ul className="mv-rejilla mv-carrusel mv-rejilla-etf" aria-label="ETF del día">
           {etfs.map((i) => (
             <TarjetaCotizacion
               key={i.id}

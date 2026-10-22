@@ -20,7 +20,7 @@ export async function PanelIndices() {
   const items = SERIES_INDICES.map((id) => v.item(id)).filter((i): i is NonNullable<typeof i> => !!i);
   return (
     <section className="panel" aria-labelledby="t-indices">
-      <CabeceraPanel id="t-indices" titulo="Índices con su porqué" nota="Nivel en puntos · FMP" />
+      <CabeceraPanel id="t-indices" titulo="Índices con su porqué" nota="Puntos · FMP" para="Cómo van hoy las bolsas más grandes del mundo." />
       <div className="panel-cuerpo">
         <ul className="mv-rejilla">
           {items.map((i) => (

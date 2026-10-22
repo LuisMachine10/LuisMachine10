@@ -4,7 +4,7 @@ import { delUltimoDia } from "@/componentes/terminal/datos";
 import { cifra } from "@/lib/formato";
 import { frescura } from "@/lib/frescura";
 import { historiasSeguras } from "./historias";
-import { CabeceraPanel, Pastilla, porqueDe, Subtitulo, TarjetaCotizacion } from "./piezas";
+import { CabeceraPanel, Pastilla, porqueDe, TarjetaCotizacion } from "./piezas";
 import { vistaMercado } from "./vista";
 
 const TASA_ANTIGUEDAD_MIN = 525600;
@@ -33,17 +33,12 @@ export async function PanelTasasDivisas() {
 
   return (
     <section className="panel" aria-labelledby="t-tasas">
-      <CabeceraPanel id="t-tasas" titulo="Tasas y divisas" />
+      <CabeceraPanel id="t-tasas" titulo="Tasas y divisas" para="Lo que cuesta pedir prestado en el mundo y cuánto vale una moneda frente a otra." />
       <div className="panel-cuerpo">
-        <Subtitulo>Tesoro de EE. UU.</Subtitulo>
-        <ul className="mv-rejilla">
+        <ul className="mv-rejilla mv-rejilla-tasas" aria-label="Tesoro de EE. UU., divisas y bancos centrales">
           {tesoro.map((i) => (
             <TarjetaCotizacion key={i.id} item={i} ahora={v.ahora} cuando="El Tesoro publica la curva al cierre de cada día hábil." />
           ))}
-        </ul>
-
-        <Subtitulo>Divisas</Subtitulo>
-        <ul className="mv-rejilla">
           {divisas.map((i) => (
             <TarjetaCotizacion
               key={i.id}
@@ -54,10 +49,6 @@ export async function PanelTasasDivisas() {
               porque={porqueDe(v.datos.explicaciones, i.id, v.ahora)}
             />
           ))}
-        </ul>
-
-        <Subtitulo>Bancos centrales</Subtitulo>
-        <ul className="mv-rejilla">
           <li className={`mv-tarjeta${fedSup?.valor && fedInf?.valor ? "" : " mv-tarjeta-vacia"}`}>
             <div className="mv-tarjeta-cab">
               <h3 className="mv-tarjeta-nombre">Fed · rango objetivo</h3>
@@ -116,6 +107,15 @@ export async function PanelTasasDivisas() {
             </li>
           )}
         </ul>
+        <details className="mv-detalles">
+          <summary>¿Qué son estas tasas?</summary>
+          <p>
+            <strong>Tesoro de EE. UU.:</strong> lo que paga el Gobierno de EE. UU. por pedir prestado a 2 y 10 años; guía préstamos
+            e hipotecas en todo el mundo. <strong>Fed, BCE y BoJ:</strong> los bancos centrales de EE. UU., Europa y Japón; su tasa
+            sube o baja el costo del dinero. <strong>Divisas:</strong> cuánto vale una moneda frente a otra. Una tasa que sube se
+            ve en verde; su cambio va en puntos básicos (pb): 100 pb = 1 %.
+          </p>
+        </details>
       </div>
     </section>
   );
