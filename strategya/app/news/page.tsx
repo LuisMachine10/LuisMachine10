@@ -26,7 +26,7 @@ import { BloqueHoy, fechaLargaRD } from "@/componentes/terminal/BloqueHoy";
 import { ResumenDia } from "@/componentes/terminal/ResumenDia";
 import { Seccion } from "@/componentes/terminal/Seccion";
 import { Bienvenida } from "@/componentes/ayuda/Bienvenida";
-import { BoletinTasas, PanelCombustibles, PanelEmisiones, PanelRD } from "@/componentes/rd";
+import { BoletinTasas, PanelCombustibles, PanelEmisiones, PanelFondos, PanelRD } from "@/componentes/rd";
 import { armarCurva } from "@/lib/curva";
 import { datosTesoro, estadoTareas } from "@/lib/datos";
 import { fechaCorta, fechaHoraRD } from "@/lib/formato";
@@ -176,6 +176,7 @@ export default async function News() {
           <PanelCombustibles />
           <BoletinTasas />
           <PanelEmisiones />
+          <PanelFondos />
         </Seccion>
 
         {/* 3–4, 14–16 */}

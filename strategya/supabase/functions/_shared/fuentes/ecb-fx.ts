@@ -1,7 +1,8 @@
 // BCE · tipos de cambio de referencia del euro (uno por día hábil, hacia las 16:00 CET).
 //   https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
 //   <Cube time='2026-10-16'><Cube currency='USD' rate='1.1253'/><Cube currency='JPY' rate='177.82'/>…
-// Respaldo de FMP para EUR/USD y USD/JPY (solo si falta FMP_API_KEY). EUR/USD es la tasa publicada;
+// Se lee siempre: es la referencia oficial diaria (y la base del cruce EUR/DOP de la sección RD); con
+// FMP activo convive con sus cotizaciones (cada fila lleva su fuente). EUR/USD es la tasa publicada;
 // USD/JPY es el cruce JPY÷USD de esas mismas tasas, con big.js, a 4 decimales (rotulado en la fuente).
 // El proveedor «ecb» de OpenBB lee el mismo archivo.
 
@@ -52,7 +53,6 @@ export const tareaDivisasBce: Tarea = {
   nombre: "divisas-bce",
   fuenteId: "bce_fx",
   async ejecutar(ctx) {
-    if (ctx.entorno("FMP_API_KEY")) return { detalle: { omitida: "FMP tiene clave: EUR/USD y USD/JPY vienen de FMP" } };
     const r = await ctx.obtener(URL_FX_BCE);
     const t = parsearFxBce(r.texto);
     const filas = filasFxBce(t);

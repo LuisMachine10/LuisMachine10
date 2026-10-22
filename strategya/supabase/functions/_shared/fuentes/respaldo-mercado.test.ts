@@ -135,13 +135,14 @@ describe("BCE · tipos de referencia", () => {
     ]);
   });
 
-  it("con clave de FMP no lee", async () => {
-    const { almacen } = almacenMemoria();
+  it("con clave de FMP también lee (referencia oficial y base del cruce EUR/DOP)", async () => {
+    const { almacen, observaciones } = almacenMemoria();
     const r = await correrTarea(tareaDivisasBce, almacen, {
-      obtener: async () => { throw new Error("no"); },
+      obtener: async (url) => ok(url, FX),
       entorno: (n) => (n === "FMP_API_KEY" ? "x" : undefined),
     });
-    expect(r.detalle).toMatchObject({ omitida: expect.any(String) });
+    expect(r.estado).toBe("ok");
+    expect(observaciones.map((o) => o.fuente_id)).toEqual(["bce_fx", "bce_fx"]);
   });
 
   it("formato roto: error, nada inventado", () => {
