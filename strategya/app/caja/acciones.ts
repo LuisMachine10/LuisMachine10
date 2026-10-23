@@ -7,6 +7,9 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { armarDesdeAsistente, leerAsistente } from "@/lib/caja/asistente";
 import { leerCaja } from "@/lib/caja/datos";
+import { COLUMNAS, filasADatos } from "@/lib/caja/filas";
+import { rd } from "@/lib/caja/formato";
+import { adicionalDesdeV1 } from "@/lib/caja/resultados";
 import { aJsonSQL, parsearImportacion, type ResumenImportacion } from "@/lib/caja/importar";
 import { esFecha, hoyRD } from "@/lib/caja/fechas";
 import {
@@ -63,12 +66,22 @@ export async function registrarMovimiento(_p: EstadoAccion, form: FormData): Pro
   });
   const e = errorBase(error, "registrar el movimiento");
   if (e) return e;
+  let nota = "";
   if (m.recurrenteId) {
     // Si estaba omitido ese día, confirmar lo saca de omitidos.
     await db.from("caja_omitidos").delete().eq("fecha", m.fecha).eq("recurrente_id", m.recurrenteId);
+    // Un fijo de antes sin categoría queda enlazado a la que se eligió al decir «Sí, ya se hizo».
+    if (m.categoria) {
+      const enlazado = await db.from("caja_recurrentes").update({ categoria: m.categoria, actualizado_en: new Date().toISOString() }).eq("id", m.recurrenteId).is("categoria", null).select("id");
+      if (!enlazado.error && enlazado.data?.length) {
+        const cat = await db.from("caja_categorias").select("id, nombre, adicional::text").eq("id", m.categoria).maybeSingle();
+        nota = " El fijo quedó en esa categoría desde ahora.";
+        if (cat.data) nota += await descontarDelAdicional(m.recurrenteId, cat.data as unknown as { id: string; nombre: string; adicional: string | null });
+      }
+    }
   }
   refrescar();
-  return bien(m.recurrenteId ? "Confirmado." : "Registrado.");
+  return bien(m.recurrenteId ? `Listo: ya se hizo.${nota}` : "Anotado.");
 }
 
 export async function editarMovimiento(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
@@ -115,7 +128,7 @@ export async function omitirRecurrente(_p: EstadoAccion, form: FormData): Promis
   const e = errorBase(error, "omitir");
   if (e) return e;
   refrescar();
-  return bien("Omitido este día.");
+  return bien("Listo: este mes no se cuenta.");
 }
 
 export async function deshacerOmitido(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
@@ -127,7 +140,7 @@ export async function deshacerOmitido(_p: EstadoAccion, form: FormData): Promise
   const e = errorBase(error, "deshacer");
   if (e) return e;
   refrescar();
-  return bien("Vuelve a contar.");
+  return bien("Vuelve a contar como programado.");
 }
 
 // ───────────────────────── Cuadrar con el banco y nota ─────────────────────────
@@ -190,7 +203,7 @@ export async function guardarConfig(_p: EstadoAccion, form: FormData): Promise<E
   const e = errorBase(error, "guardar los ajustes");
   if (e) return e;
   refrescar();
-  return bien("Ajustes guardados.");
+  return bien("Guardado.");
 }
 
 async function enUso(columnas: { tabla: string; col: string }[], id: string): Promise<boolean> {
@@ -224,7 +237,7 @@ async function guardarEn(tabla: string, id: string | undefined, fila: Record<str
 async function eliminarDe(tabla: string, id: string, usos: { tabla: string; col: string }[], que: string): Promise<EstadoAccion> {
   if (!ID.test(id)) return mal("Id inválido.");
   try {
-    if (await enUso(usos, id)) return mal(`No se puede eliminar ${que}: hay movimientos o recurrentes que la usan. Cámbialos primero.`);
+    if (await enUso(usos, id)) return mal(`No se puede eliminar ${que}: hay movimientos o pagos fijos que la usan. Cámbialos primero.`);
   } catch (e) {
     return mal(`No se pudo revisar si está en uso: ${(e as Error).message}`);
   }
@@ -262,7 +275,49 @@ export async function guardarCategoria(_p: EstadoAccion, form: FormData): Promis
   const c = campos(form);
   const r = validarCategoria(c);
   if (!r.ok) return mal(r.error);
-  return guardarEn("caja_categorias", c.id || undefined, { nombre: r.valor.nombre, grupo: r.valor.grupo, presupuesto: r.valor.presupuesto }, "la categoría");
+  return guardarEn("caja_categorias", c.id || undefined, { nombre: r.valor.nombre, tipo: r.valor.tipo, adicional: r.valor.adicional }, "la categoría");
+}
+
+/**
+ * «Asígnale una categoría»: pone la categoría a un fijo o a un movimiento que no la tenía, sin tocar
+ * nada más. Campos: cual (recurrente | movimiento), id, categoria.
+ */
+/**
+ * Para no contarlo dos veces: si la categoría ya tenía escrito un monto que incluía este fijo (como en la
+ * versión anterior, donde no estaban enlazados), su adicional baja en lo que el fijo pone al mes.
+ * Devuelve la frase para avisarle a Mena (vacía si no cambió nada).
+ */
+async function descontarDelAdicional(recurrenteId: string, cat: { id: string; nombre: string; adicional: string | null }): Promise<string> {
+  if (!cat.adicional) return "";
+  const db = await personal();
+  const r = await db.from("caja_recurrentes").select(COLUMNAS.caja_recurrentes).eq("id", recurrenteId).maybeSingle();
+  if (r.error || !r.data) return "";
+  const vacio = { config: null, cuentas: [], categorias: [], movimientos: [], omitidos: [], saldos: [], notas: [] };
+  const [rec] = filasADatos({ ...vacio, recurrentes: [r.data as unknown as Record<string, unknown>] }).recurrentes;
+  const nuevo = adicionalDesdeV1(cat.adicional, [rec]);
+  if (nuevo === cat.adicional) return "";
+  const u = await db.from("caja_categorias").update({ adicional: nuevo, actualizado_en: new Date().toISOString() }).eq("id", cat.id);
+  return u.error ? "" : ` El monto adicional de «${cat.nombre}» pasó a ${rd(nuevo ?? "0")} para no contar este fijo dos veces.`;
+}
+
+export async function asignarCategoria(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const cual = String(form.get("cual") ?? "");
+  const id = String(form.get("id") ?? "");
+  const categoria = String(form.get("categoria") ?? "").trim();
+  if ((cual !== "recurrente" && cual !== "movimiento") || !ID.test(id)) return mal("Datos inválidos. Recarga la página.");
+  if (!categoria || !ID.test(categoria)) return mal("Elige una categoría de la lista.");
+  const db = await personal();
+  const cat = await db.from("caja_categorias").select("id, nombre, adicional::text").eq("id", categoria).maybeSingle();
+  if (cat.error) return mal(`No se pudo revisar la categoría: ${cat.error.message}`);
+  if (!cat.data) return mal("Esa categoría ya no existe. Recarga la página y elige otra.");
+  const tabla = cual === "recurrente" ? "caja_recurrentes" : "caja_movimientos";
+  const { error, data } = await db.from(tabla).update({ categoria, actualizado_en: new Date().toISOString() }).eq("id", id).select("id");
+  const e = errorBase(error, "asignar la categoría");
+  if (e) return e;
+  if (!data?.length) return mal("Ya no existe. Recarga la página.");
+  const nota = cual === "recurrente" ? await descontarDelAdicional(id, cat.data as unknown as { id: string; nombre: string; adicional: string | null }) : "";
+  refrescar();
+  return bien(`Listo: ya cuenta en su categoría.${nota}`);
 }
 
 export async function eliminarCategoria(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
@@ -289,7 +344,7 @@ export async function guardarRecurrente(_p: EstadoAccion, form: FormData): Promi
       nombre: v.nombre, tipo: v.tipo, monto: v.monto, moneda: v.moneda, pago_total: v.pagoTotal, cuenta: v.cuenta, destino: v.destino,
       categoria: v.categoria, frecuencia: v.frecuencia, dias: v.dias, cada_n: v.cadaN, fecha: v.fecha, desde: v.desde, hasta: v.hasta, activo: v.activo,
     },
-    "el recurrente",
+    "el pago fijo",
   );
 }
 
@@ -299,11 +354,11 @@ export async function eliminarRecurrente(_p: EstadoAccion, form: FormData): Prom
   if (!ID.test(id)) return mal("Id inválido.");
   const db = await personal();
   const { error } = await db.from("caja_recurrentes").delete().eq("id", id);
-  const e = errorBase(error, "eliminar el recurrente");
+  const e = errorBase(error, "eliminar el pago fijo");
   if (e) return e;
   await db.from("caja_omitidos").delete().eq("recurrente_id", id);
   refrescar();
-  return bien("Eliminado. Los movimientos que ya confirmaste se quedan.");
+  return bien("Eliminado. Lo que ya marcaste como hecho se queda.");
 }
 
 // ───────────────────────── Asistente de bienvenida ─────────────────────────
@@ -322,13 +377,13 @@ export async function crearCajaDesdeAsistente(_p: EstadoAccion, form: FormData):
   } catch (e) {
     return mal(`No se pudo leer tu caja para guardar: ${(e as Error).message}. Revisa tu conexión e inténtalo de nuevo.`);
   }
-  if (actual.datos.config) return mal("Tu calendario ya estaba creado. Para cambiar algo, ve a Ajustes de la caja.");
+  if (actual.datos.config) return mal("Tu presupuesto ya estaba creado. Para cambiar algo, ve a Configuración.");
   const r = armarDesdeAsistente(a.valor, hoyRD(), actual.datos, randomUUID);
   if (!r.ok) return mal(r.error);
   const { error } = await (await personal()).rpc("caja_importar", { p_datos: aJsonSQL(r.valor) });
   if (error) return mal(`No se guardó nada (la base respondió: ${error.message}). Inténtalo de nuevo en un momento.`);
   refrescar();
-  return bien("¡Listo! Tu calendario ya está funcionando.");
+  return bien("¡Listo! Tu presupuesto ya está funcionando.");
 }
 
 // ───────────────────────── Importar ─────────────────────────

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { aJsonSQL, parsearImportacion } from "./importar";
 import { simular } from "./motor";
 import { EJEMPLO } from "../../pruebas/apoyo/caja-ejemplo";
-import { montoDeTexto, validarConfig, validarCuenta, validarMovimiento, validarRecurrente, validarSaldoReal } from "./validar";
+import { montoDeTexto, validarCategoria, validarConfig, validarCuenta, validarMovimiento, validarRecurrente, validarSaldoReal } from "./validar";
 
 
 
@@ -17,7 +17,11 @@ describe("importación del artefacto", () => {
     const d = r.datos!;
     expect(d.config).toEqual({ inicio: "2026-10-01", colchon: "5000", margen: "3000", tasaUSD: "60.25" });
     expect(d.cuentas.map((c) => [c.id, c.saldoInicial])).toEqual([["c1", "25000.1"], ["c2", "1500"], ["c3", "7000"], ["c4", "0.1"]]);
-    expect(d.categorias[1]).toEqual({ id: "k2", nombre: "Comida", grupo: "variable", presupuesto: "12000.5" });
+    // Grupos del artefacto convertidos: variable → gasto; el presupuesto pasa a adicional (sin fijos que descontar).
+    expect(d.categorias).toEqual([
+      { id: "k1", nombre: "Salario", tipo: "ingreso", adicional: null },
+      { id: "k2", nombre: "Comida", tipo: "gasto", adicional: "12000.5" },
+    ]);
     expect(d.recurrentes[1]).toMatchObject({ id: "r2", pagoTotal: true, destino: "c3", dias: "28" });
     expect(d.recurrentes[2]).toMatchObject({ frecuencia: "cada_n", cadaN: 30, moneda: "USD", monto: "2.99", desde: "2026-10-05" });
     expect(d.recurrentes[3]).toMatchObject({ frecuencia: "unica", fecha: "2026-11-02", activo: false });
@@ -123,15 +127,39 @@ describe("validación de formularios", () => {
     expect(validarMovimiento({ fecha: "2026-10-15", tipo: "gasto", monto: "10" })).toEqual({ ok: false, error: "Elige la cuenta." });
     expect(validarMovimiento({ fecha: "2026-10-15", tipo: "transferencia", monto: "10", cuenta: "b", destino: "b" }).ok).toBe(false);
     expect(validarMovimiento({ fecha: "2026-02-30", tipo: "gasto", monto: "10", cuenta: "b" }).ok).toBe(false);
-    const r = validarMovimiento({ fecha: "2026-10-15", tipo: "gasto", monto: "1,200.5", moneda: "USD", tasa: "", cuenta: "b", destino: "x", nota: " " });
+    const r = validarMovimiento({ fecha: "2026-10-15", tipo: "gasto", monto: "1,200.5", moneda: "USD", tasa: "", cuenta: "b", destino: "x", categoria: "k", nota: " " });
     expect(r).toEqual({
       ok: true,
-      valor: { fecha: "2026-10-15", tipo: "gasto", monto: "1200.5", moneda: "USD", tasa: null, cuenta: "b", destino: null, categoria: null, nota: null, recurrenteId: null },
+      valor: { fecha: "2026-10-15", tipo: "gasto", monto: "1200.5", moneda: "USD", tasa: null, cuenta: "b", destino: null, categoria: "k", nota: null, recurrenteId: null },
     });
   });
 
+  it("ingresos y gastos llevan categoría; mover entre cuentas no la necesita", () => {
+    expect(validarMovimiento({ fecha: "2026-10-15", tipo: "gasto", monto: "10", cuenta: "b" })).toEqual({
+      ok: false,
+      error: "Elige la categoría del gasto (por ejemplo «Comida»). Si no está, créala en Configuración.",
+    });
+    expect(validarMovimiento({ fecha: "2026-10-15", tipo: "ingreso", monto: "10", cuenta: "b" }).ok).toBe(false);
+    expect(validarMovimiento({ fecha: "2026-10-15", tipo: "transferencia", monto: "10", cuenta: "b", destino: "a" }).ok).toBe(true);
+    expect(validarMovimiento({ fecha: "2026-10-15", tipo: "pago_tarjeta", monto: "10", cuenta: "b", destino: "v" }).ok).toBe(true);
+    expect(validarRecurrente({ nombre: "Luz", tipo: "gasto", monto: "10", cuenta: "b", dias: "5" }).ok).toBe(false);
+    expect(validarRecurrente({ nombre: "Luz", tipo: "gasto", monto: "10", cuenta: "b", dias: "5", categoria: "k" }).ok).toBe(true);
+  });
+
+  it("categoría: tipo del estado de resultados y monto adicional", () => {
+    expect(validarCategoria({ nombre: "Intereses", tipo: "gasto_financiero", adicional: "1,500" })).toEqual({
+      ok: true,
+      valor: { nombre: "Intereses", tipo: "gasto_financiero", adicional: "1500" },
+    });
+    expect(validarCategoria({ nombre: "Comida", tipo: "gasto", adicional: "" })).toMatchObject({ ok: true, valor: { adicional: null } });
+    expect(validarCategoria({ nombre: "Comida", tipo: "gasto", adicional: "0" })).toMatchObject({ ok: true, valor: { adicional: null } });
+    expect(validarCategoria({ nombre: "Comida", tipo: "variable" }).ok).toBe(false);
+    expect(validarCategoria({ nombre: "Comida", tipo: "gasto", adicional: "-5" }).ok).toBe(false);
+    expect(validarCategoria({ nombre: "", tipo: "gasto" }).ok).toBe(false);
+  });
+
   it("recurrente: días del mes, cada N, única y pago total", () => {
-    const b = { nombre: "X", tipo: "gasto", monto: "10", cuenta: "b", activo: "true" };
+    const b = { nombre: "X", tipo: "gasto", monto: "10", cuenta: "b", categoria: "k", activo: "true" };
     expect(validarRecurrente({ ...b, dias: "15, 32" }).ok).toBe(false);
     expect(validarRecurrente({ ...b, dias: "15, 31" })).toMatchObject({ ok: true, valor: { dias: "15, 31", frecuencia: "mensual" } });
     expect(validarRecurrente({ ...b, frecuencia: "cada_n", cadaN: "0" }).ok).toBe(false);

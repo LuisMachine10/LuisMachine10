@@ -1,7 +1,10 @@
 import Big from "big.js";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { asignarCategoria } from "@/app/caja/acciones";
 import { BotonesNuevo } from "@/componentes/caja/BotonesNuevo";
+import { SelectCategoria } from "@/componentes/caja/CamposMovimiento";
+import { FormAccion } from "@/componentes/caja/FormAccion";
 import { Ayuda, Icono, type NombreIcono } from "@/componentes/caja/Iconos";
 import { MarcoCaja } from "@/componentes/caja/MarcoCaja";
 import { NavMes } from "@/componentes/caja/NavMes";
@@ -15,11 +18,10 @@ import { type MovimientoAplicado, movimientosDelMes } from "@/lib/caja/motor";
 import { NOMBRE_TIPO } from "@/lib/caja/tipos";
 import { catalogos } from "@/lib/caja/vista";
 
-export const metadata: Metadata = { title: "Movimientos · Caja · Strategya" };
+export const metadata: Metadata = { title: "Movimientos · Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
 
-const TITULO = "Movimientos";
-const SUB = "Aquí ves todo lo que anotaste en el mes, día por día, y cuánto te entró y te salió.";
+const SUB = "Aquí ves todo lo que anotaste o marcaste como hecho en el mes, día por día, con su categoría.";
 const ICONO: Record<string, NombreIcono> = { ingreso: "ingreso", gasto: "gasto", transferencia: "transferir", pago_tarjeta: "tarjeta" };
 
 export default async function PaginaMovimientos({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
@@ -31,7 +33,7 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
     lectura = await leerCaja();
   } catch (e) {
     return (
-      <MarcoCaja actual="movimientos" editadoEn={null} titulo={TITULO} sub={SUB}>
+      <MarcoCaja actual="movimientos" editadoEn={null} sub={SUB}>
         <PanelError titulo="Movimientos del mes" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
@@ -39,7 +41,7 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
   const { datos, editadoEn } = lectura;
   if (!datos.config) {
     return (
-      <MarcoCaja actual="movimientos" editadoEn={editadoEn} titulo={TITULO} sub={SUB}>
+      <MarcoCaja actual="movimientos" editadoEn={editadoEn} sub={SUB}>
         <SinDatosCaja que="movimientos" />
       </MarcoCaja>
     );
@@ -49,6 +51,7 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
   const categorias = new Map(datos.categorias.map((c) => [c.id, c.nombre]));
   const cuenta = (id: string | null) => (id ? (cuentas.get(id) ?? `«${id}»`) : "—");
   const cat = catalogos(datos);
+  const sinCat = t.movimientos.filter((m) => (m.tipo === "ingreso" || m.tipo === "gasto") && !(m.categoria && categorias.has(m.categoria)));
 
   // Agrupado por día, del más reciente al más viejo.
   const porDia = new Map<string, MovimientoAplicado[]>();
@@ -58,7 +61,7 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
     ms.reduce((s, m) => (m.montoDOP == null ? s : m.tipo === "ingreso" ? s.plus(m.montoDOP) : m.tipo === "gasto" ? s.minus(m.montoDOP) : s), new Big(0));
 
   return (
-    <MarcoCaja actual="movimientos" mes={mes} editadoEn={editadoEn} titulo={TITULO} sub={SUB} acciones={<BotonesNuevo />}>
+    <MarcoCaja actual="movimientos" mes={mes} editadoEn={editadoEn} sub={SUB} acciones={<BotonesNuevo />}>
       <section className="panel panel-ancho" aria-labelledby="t-totales">
         <div className="panel-cabecera caja-cabecera-mes">
           <h2 className="sr-solo" id="t-totales">
@@ -97,11 +100,48 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
           </div>
           {t.sinTasa ? (
             <p className="caja-aviso">
-              {t.sinTasa} movimiento(s) en dólares no entran en los totales porque falta la tasa. Ponla en Ajustes → General.
+              {t.sinTasa} movimiento(s) en dólares no entran en los totales porque falta la tasa. Ponla en Configuración → General.
             </p>
           ) : null}
         </div>
       </section>
+
+      {sinCat.length ? (
+        <section className="panel panel-ancho caja-conf-sin" id="sin-categoria" aria-labelledby="t-mov-sin">
+          <div className="panel-cabecera">
+            <h2 className="panel-titulo" id="t-mov-sin">
+              <Icono n="aviso" tam={18} /> Asígnale una categoría ({sinCat.length})
+            </h2>
+            <span className="chico tenue">Sin categoría caen en «Sin categoría» del estado de resultados.</span>
+          </div>
+          <ul className="panel-cuerpo caja-lista caja-conf-rejilla">
+            {sinCat.map((m) => (
+              <li key={m.id} className="caja-item">
+                <div className="caja-item-fila">
+                  <span className="caja-item-texto">
+                    <span className="caja-item-nombre">{m.nota || NOMBRE_TIPO[m.tipo]}</span>
+                    <span className="caja-item-detalle">
+                      {NOMBRE_TIPO[m.tipo]} · {fechaLarga(m.fecha).replace(/ de \d{4}$/, "")} · {cuenta(m.cuenta)}
+                    </span>
+                  </span>
+                  <span className={`caja-item-monto ${m.tipo === "ingreso" ? "sube" : "baja"}`}>
+                    {m.tipo === "ingreso" ? "+" : "−"}
+                    {enMoneda(m.monto, m.moneda)}
+                  </span>
+                </div>
+                <FormAccion accion={asignarCategoria} boton="Asignar" className="caja-asignar" etiqueta={`Categoría del movimiento de ${enMoneda(m.monto, m.moneda)}`}>
+                  <input type="hidden" name="cual" value="movimiento" />
+                  <input type="hidden" name="id" value={m.id} />
+                  <label className="sr-solo" htmlFor={`asignar-${m.id}`}>
+                    Categoría
+                  </label>
+                  <SelectCategoria id={`asignar-${m.id}`} valor={null} categorias={cat.categorias} tipo={m.tipo} />
+                </FormAccion>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="panel panel-ancho" aria-labelledby="t-movs">
         <div className="panel-cabecera">

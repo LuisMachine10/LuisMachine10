@@ -1,7 +1,7 @@
 "use client";
 
-// Panel del día: confirmar / ajustar / omitir lo programado, anotar, editar y eliminar, cuadrar con
-// el banco y la nota del día. En el celular es una hoja que sube desde abajo.
+// Panel del día: «¿Ya se hizo?» de los fijos (sí / este mes no / fue otro monto), anotar, editar y
+// eliminar, cuadrar con el banco y la nota del día. En el celular es una hoja que sube desde abajo.
 
 import Big from "big.js";
 import { useEffect, useRef } from "react";
@@ -18,7 +18,8 @@ import { enMoneda, rd } from "@/lib/caja/formato";
 import { NOMBRE_ESTADO, type Ocurrencia } from "@/lib/caja/motor";
 import { NOMBRE_TIPO, NOMBRE_TIPO_CUENTA, type TipoMovimiento } from "@/lib/caja/tipos";
 import type { PanelDiaVista } from "@/lib/caja/vista";
-import { CamposMovimiento, type OpcionCategoria, type OpcionCuenta } from "./CamposMovimiento";
+import { BotonesAnotar } from "./BotonesNuevo";
+import { CamposMovimiento, type OpcionCategoria, type OpcionCuenta, SelectCategoria } from "./CamposMovimiento";
 import { BotonEliminar, FormAccion } from "./FormAccion";
 import { Ayuda, Icono, type NombreIcono } from "./Iconos";
 
@@ -70,6 +71,8 @@ function MontoOcurrencia({ o }: { o: Ocurrencia }) {
 
 function Planificado({ o, fecha, pendiente, cat }: { o: Ocurrencia; fecha: string; pendiente: boolean; cat: Catalogos }) {
   const sinMonto = new Big(o.monto).lte(0);
+  // Fijos de antes sin categoría: se elige aquí mismo al decir «Sí, ya se hizo».
+  const faltaCategoria = (o.tipo === "ingreso" || o.tipo === "gasto") && !(o.categoria && cat.categorias.some((c) => c.id === o.categoria));
   const ocultos = (
     <>
       <input type="hidden" name="fecha" value={fecha} />
@@ -83,7 +86,8 @@ function Planificado({ o, fecha, pendiente, cat }: { o: Ocurrencia; fecha: strin
         <span className="caja-item-texto">
           <span className="caja-item-nombre">
             {o.nombre}
-            {pendiente ? <span className="etiqueta alerta">por confirmar</span> : null}
+            {pendiente ? <span className="etiqueta alerta">¿ya se hizo?</span> : null}
+            {faltaCategoria ? <span className="etiqueta alerta">sin categoría</span> : null}
             {o.pagoTotal ? <span className="tenue chico"> · paga todo lo que debas</span> : null}
           </span>
           <Ruta tipo={o.tipo} cuenta={o.cuenta} destino={o.destino} categoria={o.categoria} cat={cat} />
@@ -94,23 +98,32 @@ function Planificado({ o, fecha, pendiente, cat }: { o: Ocurrencia; fecha: strin
         {sinMonto ? (
           <span className="chico tenue">No hay deuda que pagar ese día.</span>
         ) : (
-          <FormAccion accion={registrarMovimiento} boton={pendiente ? "Sí, se hizo" : "Ya se hizo"} className="caja-acciones" etiqueta={`Confirmar ${o.nombre}`}>
+          <FormAccion accion={registrarMovimiento} boton="Sí, ya se hizo" className="caja-acciones" etiqueta={`${o.nombre}: sí, ya se hizo`}>
             {ocultos}
             <input type="hidden" name="tipo" value={o.tipo} />
             <input type="hidden" name="monto" value={o.monto} />
             <input type="hidden" name="moneda" value={o.moneda} />
             <input type="hidden" name="cuenta" value={o.cuenta ?? ""} />
             <input type="hidden" name="destino" value={o.destino ?? ""} />
-            <input type="hidden" name="categoria" value={o.categoria ?? ""} />
+            {faltaCategoria ? (
+              <span className="caja-asignar-linea">
+                <label className="sr-solo" htmlFor={`cat-${fecha}-${o.recurrenteId}`}>
+                  Categoría de {o.nombre}
+                </label>
+                <SelectCategoria id={`cat-${fecha}-${o.recurrenteId}`} valor={null} categorias={cat.categorias} tipo={o.tipo} />
+              </span>
+            ) : (
+              <input type="hidden" name="categoria" value={o.categoria ?? ""} />
+            )}
           </FormAccion>
         )}
-        <FormAccion accion={omitirRecurrente} boton={pendiente ? "No se hizo" : "Este mes no"} claseBoton="caja-boton secundario" className="caja-acciones" etiqueta={`Omitir ${o.nombre} este día`}>
+        <FormAccion accion={omitirRecurrente} boton="Este mes no" claseBoton="caja-boton secundario" className="caja-acciones" etiqueta={`${o.nombre}: este mes no`}>
           {ocultos}
         </FormAccion>
       </div>
       <details className="caja-desplegable">
         <summary>Fue otro monto o cuenta</summary>
-        <FormAccion accion={registrarMovimiento} boton="Confirmar con estos datos" etiqueta={`Ajustar ${o.nombre}`}>
+        <FormAccion accion={registrarMovimiento} boton="Sí, ya se hizo con estos datos" etiqueta={`Ajustar ${o.nombre}`}>
           {ocultos}
           <CamposMovimiento v={{ ...o, monto: sinMonto ? "" : o.monto }} cuentas={cat.cuentas} categorias={cat.categorias} />
         </FormAccion>
@@ -191,26 +204,19 @@ export function PanelDia({
           </div>
         )}
 
-        {nuevo && hayCuentas ? (
-          <div className="caja-botones-nuevo" role="group" aria-label="Anotar en este día">
-            <button type="button" className="boton caja-boton-grande" onClick={() => nuevo("gasto")}>
-              <Icono n="mas" tam={18} /> Gasto
-            </button>
-            <button type="button" className="boton secundario caja-boton-grande" onClick={() => nuevo("ingreso")}>
-              <Icono n="mas" tam={18} /> Ingreso
-            </button>
-            <button type="button" className="boton secundario caja-boton-grande" onClick={() => nuevo("transferencia")}>
-              <Icono n="transferir" tam={18} /> Transferir
-            </button>
-          </div>
+        {nuevo && hayCuentas ? <BotonesAnotar alElegir={nuevo} etiqueta="Anotar en este día" /> : null}
+
+        {p.porConfirmar.length || p.planificados.length ? (
+          <p className="caja-explica-fijos">Tus fijos se planifican solos; aquí dices si de verdad ocurrieron.</p>
         ) : null}
 
         {p.porConfirmar.length ? (
           <div className="caja-bloque">
             <h3>
-              ¿Se hizo? ({p.porConfirmar.length})
-              <Ayuda que="«por confirmar»">
-                Son pagos o cobros fijos de un día que ya pasó. No se cuentan en tus saldos hasta que digas si se hicieron.
+              ¿Ya se hizo? ({p.porConfirmar.length})
+              <Ayuda que="«¿ya se hizo?»">
+                Son pagos o cobros fijos de un día que ya pasó. No se cuentan en tus saldos ni en lo real del estado de resultados hasta
+                que digas «Sí, ya se hizo».
               </Ayuda>
             </h3>
             <ul className="caja-lista">
@@ -223,7 +229,7 @@ export function PanelDia({
 
         {p.planificados.length ? (
           <div className="caja-bloque">
-            <h3>Programado ({p.planificados.length})</h3>
+            <h3>Programado para este día ({p.planificados.length})</h3>
             <ul className="caja-lista">
               {p.planificados.map((o) => (
                 <Planificado key={o.recurrenteId} o={o} fecha={p.fecha} pendiente={false} cat={cat} />
@@ -234,7 +240,7 @@ export function PanelDia({
 
         {p.omitidos.length ? (
           <div className="caja-bloque">
-            <h3>No se hizo este día</h3>
+            <h3>Este mes no</h3>
             <ul className="caja-lista">
               {p.omitidos.map((o) => (
                 <li key={o.recurrenteId} className="caja-item omitido">
@@ -308,7 +314,7 @@ export function PanelDia({
         {vacio ? (
           <p className="caja-vacio-dia">
             <Icono n="calendario" tam={18} />
-            {hayCuentas ? "Nada programado ni anotado este día. Usa «+ Gasto» si pagaste algo." : "Primero agrega una cuenta en Ajustes."}
+            {hayCuentas ? "Nada programado ni anotado este día. Usa «+ Ingreso» o «+ Gasto» si te entró o pagaste algo." : "Primero agrega una cuenta en Configuración."}
           </p>
         ) : null}
 

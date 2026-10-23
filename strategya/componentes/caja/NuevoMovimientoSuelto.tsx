@@ -1,14 +1,13 @@
 "use client";
 
-// La ventana de «+ Gasto / + Ingreso / Transferir» en pantallas sin calendario (Movimientos): anota
+// La ventana de «+ Ingreso / + Gasto / Mover entre mis cuentas» en pantallas sin calendario (Movimientos): anota
 // en el día de hoy (se puede cambiar en la misma ventana).
 
 import { useEffect, useState } from "react";
 import type { Fecha } from "@/lib/caja/fechas";
 import type { TipoMovimiento } from "@/lib/caja/tipos";
-import { EVENTO_NUEVO } from "./BotonesNuevo";
+import { BotonesAnotar, EVENTO_NUEVO } from "./BotonesNuevo";
 import type { OpcionCategoria, OpcionCuenta } from "./CamposMovimiento";
-import { Icono } from "./Iconos";
 import { NuevoMovimiento } from "./NuevoMovimiento";
 
 export function NuevoMovimientoSuelto({ cuentas, categorias, hoy, conBoton = false }: { cuentas: OpcionCuenta[]; categorias: OpcionCategoria[]; hoy: Fecha; conBoton?: boolean }) {
@@ -24,10 +23,7 @@ export function NuevoMovimientoSuelto({ cuentas, categorias, hoy, conBoton = fal
   return (
     <>
       {conBoton ? (
-        <button type="button" className="boton caja-boton-grande" onClick={() => setTipo("gasto")}>
-          <Icono n="mas" tam={18} />
-          Anotar mi primer gasto
-        </button>
+        <BotonesAnotar alElegir={setTipo} etiqueta="Anotar mi primer movimiento" />
       ) : null}
       <NuevoMovimiento tipo={tipo} fecha={hoy} cuentas={cuentas} categorias={categorias} cerrar={() => setTipo(null)} />
     </>

@@ -1,5 +1,8 @@
+import Big from "big.js";
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
+  asignarCategoria,
   eliminarCategoria,
   eliminarCuenta,
   eliminarRecurrente,
@@ -8,7 +11,7 @@ import {
   guardarCuenta,
   guardarRecurrente,
 } from "@/app/caja/acciones";
-import Link from "next/link";
+import { SelectCategoria } from "@/componentes/caja/CamposMovimiento";
 import { CamposRecurrente } from "@/componentes/caja/CamposRecurrente";
 import { BotonEliminar, FormAccion } from "@/componentes/caja/FormAccion";
 import { Ayuda, Icono } from "@/componentes/caja/Iconos";
@@ -16,26 +19,39 @@ import { ImportarCaja } from "@/componentes/caja/ImportarCaja";
 import { MarcoCaja } from "@/componentes/caja/MarcoCaja";
 import { PanelError } from "@/componentes/PanelError";
 import { leerCaja } from "@/lib/caja/datos";
-import { fechaBreve } from "@/lib/caja/fechas";
+import { fechaBreve, hoyRD, mesDe, nombreMes } from "@/lib/caja/fechas";
 import { enMoneda, rd } from "@/lib/caja/formato";
+import { estadoDeResultados, fijosDelMes } from "@/lib/caja/resultados";
 import {
+  AYUDA_TIPO_CATEGORIA,
   type Categoria,
   type Cuenta,
-  GRUPOS,
   NOMBRE_FRECUENCIA,
-  NOMBRE_GRUPO,
   NOMBRE_TIPO,
+  NOMBRE_TIPO_CATEGORIA,
+  NOMBRE_TIPO_CATEGORIA_UNO,
   NOMBRE_TIPO_CUENTA,
   type Recurrente,
+  TIPOS_CATEGORIA,
   TIPOS_CUENTA,
+  type TipoCategoria,
 } from "@/lib/caja/tipos";
 import { catalogos } from "@/lib/caja/vista";
 
-export const metadata: Metadata = { title: "Ajustes · Caja · Strategya" };
+export const metadata: Metadata = { title: "Configuración · Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
 
-const TITULO = "Ajustes de la caja";
-const SUB = "Aquí cambias tus cuentas, tus pagos fijos, tus categorías y tu colchón.";
+const SUB = "Aquí, en un solo lugar, pones tus categorías con lo que esperas de cada una y tus pagos fijos. El calendario, los movimientos y el estado de resultados usan esta misma lista.";
+
+const EJEMPLO_CATEGORIA: Record<TipoCategoria, string> = {
+  ingreso: "Ej.: Sueldo",
+  costo: "Ej.: Mercancía",
+  gasto: "Ej.: Comida",
+  gasto_financiero: "Ej.: Intereses de la tarjeta",
+  otro_ingreso: "Ej.: Venta de algo usado",
+  otro_gasto: "Ej.: Arreglo del carro",
+  ahorro_inversion: "Ej.: Ahorro e inversión",
+};
 
 function CamposCuenta({ c }: { c?: Cuenta }) {
   return (
@@ -45,7 +61,7 @@ function CamposCuenta({ c }: { c?: Cuenta }) {
         Nombre
         <input name="nombre" required maxLength={120} defaultValue={c?.nombre ?? ""} autoComplete="off" placeholder="Ej.: Banco Popular" aria-describedby="ayuda-nombre-cuenta" />
         <span id="ayuda-nombre-cuenta" className="caja-campo-ayuda">
-          Basta un nombre que reconozcas: nunca pongas números de cuenta ni de tarjeta.
+          Basta un nombre que reconozcas: nunca pongas números de cuenta, de tarjeta ni cédula.
         </span>
       </label>
       <label>
@@ -58,14 +74,22 @@ function CamposCuenta({ c }: { c?: Cuenta }) {
           ))}
         </select>
       </label>
-      <label>
-        Saldo el día de inicio (RD$; en tarjeta, lo que debías)
-        <input name="saldoInicial" inputMode="decimal" defaultValue={c?.saldoInicial ?? ""} placeholder="Ej.: 25,000" autoComplete="off" />
-      </label>
-      <label>
-        Límite de la tarjeta (RD$, opcional)
-        <input name="limite" inputMode="decimal" defaultValue={c?.limite ?? ""} placeholder="Ej.: 80,000" autoComplete="off" />
-      </label>
+      <div className="caja-campo">
+        <label htmlFor={`saldo-${c?.id ?? "nueva"}`}>Saldo el día de inicio (en tarjeta, lo que debías)</label>
+        <div className="caja-monto">
+          <span aria-hidden="true">RD$</span>
+          <input id={`saldo-${c?.id ?? "nueva"}`} name="saldoInicial" inputMode="decimal" defaultValue={c?.saldoInicial ?? ""} placeholder="Ej.: 25,000" autoComplete="off" />
+        </div>
+      </div>
+      <div className="caja-campo">
+        <label htmlFor={`limite-${c?.id ?? "nueva"}`}>
+          Límite de la tarjeta <span className="tenue">(opcional)</span>
+        </label>
+        <div className="caja-monto">
+          <span aria-hidden="true">RD$</span>
+          <input id={`limite-${c?.id ?? "nueva"}`} name="limite" inputMode="decimal" defaultValue={c?.limite ?? ""} placeholder="Ej.: 80,000" autoComplete="off" />
+        </div>
+      </div>
       <label>
         Posición en la lista
         <input name="orden" inputMode="numeric" defaultValue={c ? String(c.orden) : ""} placeholder="Ej.: 1" autoComplete="off" />
@@ -74,28 +98,37 @@ function CamposCuenta({ c }: { c?: Cuenta }) {
   );
 }
 
-function CamposCategoria({ c }: { c?: Categoria }) {
+function CamposCategoria({ c, tipo }: { c?: Categoria; tipo: TipoCategoria }) {
+  const id = c?.id ?? `nueva-${tipo}`;
   return (
     <div className="caja-campos">
       {c ? <input type="hidden" name="id" value={c.id} /> : null}
       <label className="ancho">
         Nombre
-        <input name="nombre" required maxLength={120} defaultValue={c?.nombre ?? ""} autoComplete="off" placeholder="Ej.: Comida" />
+        <input name="nombre" required maxLength={120} defaultValue={c?.nombre ?? ""} autoComplete="off" placeholder={EJEMPLO_CATEGORIA[c?.tipo ?? tipo]} />
       </label>
       <label>
-        Grupo
-        <select name="grupo" defaultValue={c?.grupo ?? "variable"}>
-          {GRUPOS.map((g) => (
-            <option key={g} value={g}>
-              {NOMBRE_GRUPO[g]}
+        Tipo
+        <select name="tipo" defaultValue={c?.tipo ?? tipo}>
+          {TIPOS_CATEGORIA.map((t) => (
+            <option key={t} value={t}>
+              {NOMBRE_TIPO_CATEGORIA_UNO[t]}
             </option>
           ))}
         </select>
       </label>
-      <label>
-        Límite al mes (RD$, opcional)
-        <input name="presupuesto" inputMode="decimal" defaultValue={c?.presupuesto ?? ""} autoComplete="off" placeholder="Ej.: 12,000" />
-      </label>
+      <div className="caja-campo">
+        <label htmlFor={`adicional-${id}`}>
+          Monto adicional al mes <span className="tenue">(opcional)</span>
+        </label>
+        <div className="caja-monto">
+          <span aria-hidden="true">RD$</span>
+          <input id={`adicional-${id}`} name="adicional" inputMode="decimal" defaultValue={c?.adicional ?? ""} autoComplete="off" placeholder="Ej.: 12,000" aria-describedby={`adicional-${id}-ayuda`} />
+        </div>
+      </div>
+      <p id={`adicional-${id}-ayuda`} className="ancho caja-campo-ayuda" style={{ margin: 0 }}>
+        Lo que esperas además de sus pagos fijos (por ejemplo, la comida del mes). Lo presupuestado = fijos + este monto.
+      </p>
     </div>
   );
 }
@@ -110,18 +143,18 @@ function describirRecurrente(r: Recurrente): string {
           ? `el ${fechaBreve(r.fecha)} de ${r.fecha.slice(0, 4)}`
           : "sin fecha";
   const rango = [r.desde ? `desde ${r.desde}` : null, r.hasta ? `hasta ${r.hasta}` : null].filter(Boolean).join(" ");
-  const base = r.frecuencia === "mensual" ? `Cada mes, ${cuando}` : `${NOMBRE_FRECUENCIA[r.frecuencia]}: ${cuando}`;
+  const base = r.frecuencia === "mensual" ? `cada mes, ${cuando}` : `${NOMBRE_FRECUENCIA[r.frecuencia].toLowerCase()}: ${cuando}`;
   return `${base}${rango ? ` · ${rango}` : ""}`;
 }
 
-export default async function PaginaAjustes() {
+export default async function PaginaConfiguracion() {
   let lectura: Awaited<ReturnType<typeof leerCaja>>;
   try {
     lectura = await leerCaja();
   } catch (e) {
     return (
-      <MarcoCaja actual="ajustes" editadoEn={null} titulo={TITULO} sub={SUB}>
-        <PanelError titulo="Ajustes de caja" mensaje={(e as Error).message} />
+      <MarcoCaja actual="configuracion" editadoEn={null} sub={SUB}>
+        <PanelError titulo="Configuración del presupuesto" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
   }
@@ -130,14 +163,55 @@ export default async function PaginaAjustes() {
   const { cuentas, categorias } = catalogos(datos);
   const hayDatos = !!datos.config || datos.cuentas.length > 0 || datos.movimientos.length > 0;
   const nombreCuenta = (id: string | null) => (id ? (datos.cuentas.find((c) => c.id === id)?.nombre ?? `«${id}»`) : "—");
+  const mes = mesDe(hoyRD());
+  const e = estadoDeResultados(datos, mes);
+  const alMes = new Map(fijosDelMes(datos, mes).map((f) => [f.recurrente.id, f]));
+  const idsCat = new Set(datos.categorias.map((c) => c.id));
+  const sinCategoria = datos.recurrentes.filter((r) => (r.tipo === "ingreso" || r.tipo === "gasto") && !(r.categoria && idsCat.has(r.categoria)));
+  const entreCuentas = datos.recurrentes.filter((r) => (r.tipo === "transferencia" || r.tipo === "pago_tarjeta") && !(r.categoria && idsCat.has(r.categoria)));
+  const lineaDe = (c: Categoria) => e.secciones[c.tipo].lineas.find((l) => l.clave === c.id);
+
+  const Fijo = ({ r }: { r: Recurrente }) => {
+    const f = alMes.get(r.id);
+    return (
+      <li className={`caja-conf-fijo ${r.activo ? "" : "omitido"}`}>
+        <div className="caja-item-fila">
+          <span className="caja-item-texto">
+            <span className="caja-item-nombre">
+              {r.nombre}
+              {r.activo ? null : <span className="etiqueta neutra">en pausa</span>}
+            </span>
+            <span className="caja-item-detalle">
+              {NOMBRE_TIPO[r.tipo]} · {nombreCuenta(r.cuenta)}
+              {r.destino ? ` → ${nombreCuenta(r.destino)}` : ""} · {describirRecurrente(r)}
+            </span>
+          </span>
+          <span className="caja-item-monto-col">
+            <span className={`caja-item-monto ${r.tipo === "ingreso" ? "sube" : ""}`}>{r.pagoTotal ? "todo lo que debas" : enMoneda(r.monto, r.moneda)}</span>
+            {f && f.veces > 1 && f.totalDOP ? <span className="chico tenue mono">{rd(f.totalDOP)} este mes</span> : null}
+          </span>
+        </div>
+        <details className="caja-desplegable">
+          <summary>Editar o borrar</summary>
+          <FormAccion accion={guardarRecurrente} boton="Guardar" etiqueta={`Editar ${r.nombre}`}>
+            <input type="hidden" name="id" value={r.id} />
+            <CamposRecurrente r={r} cuentas={cuentas} categorias={categorias} />
+          </FormAccion>
+          <div className="caja-form">
+            <BotonEliminar accion={eliminarRecurrente} id={r.id} que={`el pago fijo ${r.nombre}`} />
+          </div>
+        </details>
+      </li>
+    );
+  };
 
   return (
-    <MarcoCaja actual="ajustes" editadoEn={editadoEn} titulo={TITULO} sub={SUB}>
+    <MarcoCaja actual="configuracion" editadoEn={editadoEn} sub={SUB}>
       {!cfg ? (
         <section className="panel panel-ancho caja-aviso-panel">
           <div>
             <h2 className="panel-titulo">¿Primera vez?</h2>
-            <p className="chico tenue">El asistente te pide lo necesario en 4 pasos cortos y deja el calendario listo.</p>
+            <p className="chico tenue">El asistente te pide lo necesario en 4 pasos cortos: ingresos, gastos, cuentas y ahorro.</p>
           </div>
           <Link href="/caja" className="boton caja-boton-grande">
             Usar el asistente
@@ -145,7 +219,228 @@ export default async function PaginaAjustes() {
           </Link>
         </section>
       ) : null}
-      <section className="panel" aria-labelledby="t-general">
+
+      <section className="panel panel-ancho caja-conf-mes" aria-labelledby="t-conf-mes">
+        <div className="panel-cabecera">
+          <h2 className="panel-titulo" id="t-conf-mes">
+            Así queda tu mes presupuestado · {nombreMes(mes)}
+          </h2>
+          <Link href="/caja/resultados" className="caja-enlace-flecha">
+            Ver el estado de resultados <Icono n="derecha" tam={16} />
+          </Link>
+        </div>
+        <ol className="caja-conf-cadena" aria-label="Cuenta del mes presupuestado">
+          <li>
+            <span>Ingresos</span>
+            <strong className="mono">{rd(new Big(e.secciones.ingreso.presupuestado).plus(e.secciones.otro_ingreso.presupuestado).toString())}</strong>
+          </li>
+          <li>
+            <span>− Costos y gastos</span>
+            <strong className="mono">{rd(e.gastosTotales.presupuestado)}</strong>
+          </li>
+          <li className="total">
+            <span>= Utilidad neta</span>
+            <strong className={`mono ${new Big(e.utilidadNeta.presupuestado).lt(0) ? "baja" : "sube"}`}>{rd(e.utilidadNeta.presupuestado)}</strong>
+          </li>
+          <li>
+            <span>− Ahorro e inversión</span>
+            <strong className="mono">{rd(e.secciones.ahorro_inversion.presupuestado)}</strong>
+          </li>
+          <li className="total">
+            <span>= Te queda disponible</span>
+            <strong className={`mono ${new Big(e.disponible.presupuestado).lt(0) ? "baja" : ""}`}>{rd(e.disponible.presupuestado)}</strong>
+          </li>
+        </ol>
+      </section>
+
+      {sinCategoria.length ? (
+        <section className="panel panel-ancho caja-conf-sin" id="sin-categoria" aria-labelledby="t-sin-cat">
+          <div className="panel-cabecera">
+            <h2 className="panel-titulo" id="t-sin-cat">
+              <Icono n="aviso" tam={18} /> Asígnale una categoría ({sinCategoria.length})
+            </h2>
+            <span className="chico tenue">Estos pagos fijos no tienen categoría: así no caen en su línea del estado de resultados.</span>
+          </div>
+          <ul className="panel-cuerpo caja-lista caja-conf-rejilla">
+            {sinCategoria.map((r) => (
+              <li key={r.id} className="caja-item">
+                <div className="caja-item-fila">
+                  <span className="caja-item-texto">
+                    <span className="caja-item-nombre">{r.nombre}</span>
+                    <span className="caja-item-detalle">
+                      {NOMBRE_TIPO[r.tipo]} · {describirRecurrente(r)}
+                    </span>
+                  </span>
+                  <span className={`caja-item-monto ${r.tipo === "ingreso" ? "sube" : ""}`}>{enMoneda(r.monto, r.moneda)}</span>
+                </div>
+                <FormAccion accion={asignarCategoria} boton="Asignar" className="caja-asignar" etiqueta={`Categoría de ${r.nombre}`}>
+                  <input type="hidden" name="cual" value="recurrente" />
+                  <input type="hidden" name="id" value={r.id} />
+                  <label className="sr-solo" htmlFor={`asignar-${r.id}`}>
+                    Categoría de {r.nombre}
+                  </label>
+                  <SelectCategoria id={`asignar-${r.id}`} valor={null} categorias={categorias} tipo={r.tipo} />
+                </FormAccion>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <div className="panel-ancho caja-conf-tipos">
+        {TIPOS_CATEGORIA.map((t) => {
+          const cats = datos.categorias.filter((c) => c.tipo === t);
+          const s = e.secciones[t];
+          return (
+            <section key={t} className="panel panel-ancho caja-conf-tipo" id={`tipo-${t}`} aria-labelledby={`t-tipo-${t}`}>
+              <div className="panel-cabecera">
+                <h2 className="panel-titulo" id={`t-tipo-${t}`}>
+                  {NOMBRE_TIPO_CATEGORIA[t]}
+                  <Ayuda que={NOMBRE_TIPO_CATEGORIA[t].toLowerCase()}>{AYUDA_TIPO_CATEGORIA[t]}</Ayuda>
+                </h2>
+                <span className="mono chico caja-conf-total" title="Presupuestado este mes">
+                  {rd(s.presupuestado)} al mes
+                </span>
+              </div>
+              <div className="panel-cuerpo">
+                {cats.length ? (
+                  <ul className="caja-conf-cats">
+                    {cats.map((c) => {
+                      const l = lineaDe(c);
+                      const fijos = datos.recurrentes.filter((r) => r.categoria === c.id);
+                      return (
+                        <li key={c.id} className="caja-conf-cat">
+                          <div className="caja-item-fila">
+                            <span className="caja-item-texto">
+                              <span className="caja-item-nombre">{c.nombre}</span>
+                              <span className="caja-item-detalle">
+                                {fijos.length ? `${fijos.length} fijo(s) ${rd(l?.fijos ?? "0")}` : "Sin fijos"}
+                                {c.adicional ? ` + adicional ${rd(c.adicional)}` : ""}
+                              </span>
+                            </span>
+                            <span className="caja-item-monto">{l && new Big(l.presupuestado).gt(0) ? rd(l.presupuestado) : <span className="tenue">sin monto</span>}</span>
+                          </div>
+                          {fijos.length ? (
+                            <ul className="caja-conf-fijos">
+                              {fijos.map((r) => (
+                                <Fijo key={r.id} r={r} />
+                              ))}
+                            </ul>
+                          ) : null}
+                          <div className="caja-conf-acciones">
+                            <details className="caja-desplegable">
+                              <summary>Editar</summary>
+                              <FormAccion accion={guardarCategoria} boton="Guardar" etiqueta={`Editar ${c.nombre}`}>
+                                <CamposCategoria c={c} tipo={t} />
+                              </FormAccion>
+                              <div className="caja-form">
+                                <BotonEliminar accion={eliminarCategoria} id={c.id} que={`la categoría ${c.nombre}`} />
+                              </div>
+                            </details>
+                            {
+                              <details className="caja-desplegable">
+                                <summary>+ Pago o cobro fijo</summary>
+                                {cuentas.length ? (
+                                  <FormAccion accion={guardarRecurrente} boton="Guardar fijo" reiniciar etiqueta={`Nuevo fijo en ${c.nombre}`}>
+                                    <CamposRecurrente
+                                      inicial={{ tipo: t === "ingreso" || t === "otro_ingreso" ? "ingreso" : t === "ahorro_inversion" ? "transferencia" : "gasto", categoria: c.id }}
+                                      cuentas={cuentas}
+                                      categorias={categorias}
+                                    />
+                                  </FormAccion>
+                                ) : (
+                                  <p className="caja-form chico">Primero agrega una cuenta (abajo).</p>
+                                )}
+                              </details>
+                            }
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="chico tenue caja-conf-vacio">{AYUDA_TIPO_CATEGORIA[t]}</p>
+                )}
+                <details className="caja-desplegable caja-conf-nueva" open={!cats.length && (t === "ingreso" || t === "gasto")}>
+                  <summary>+ Agregar en {NOMBRE_TIPO_CATEGORIA[t].toLowerCase()}</summary>
+                  <FormAccion accion={guardarCategoria} boton="Crear categoría" reiniciar etiqueta={`Nueva categoría en ${NOMBRE_TIPO_CATEGORIA[t]}`}>
+                    <CamposCategoria tipo={t} />
+                  </FormAccion>
+                </details>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      <section className="panel panel-ancho caja-conf-cuentas" aria-labelledby="t-cuentas">
+        <div className="panel-cabecera">
+          <h2 className="panel-titulo" id="t-cuentas">
+            Tus cuentas ({datos.cuentas.length})
+          </h2>
+          <span className="chico tenue">Banco, efectivo, ahorro y tarjetas</span>
+        </div>
+        <div className="panel-cuerpo">
+          <ul className="caja-lista">
+            {[...datos.cuentas]
+              .sort((a, b) => a.orden - b.orden)
+              .map((c) => (
+                <li key={c.id} className="caja-item">
+                  <div className="caja-item-fila">
+                    <span className="caja-item-texto">
+                      <span className="caja-item-nombre">{c.nombre}</span>
+                      <span className="caja-item-detalle" title={`Identificador interno: ${c.id}`}>
+                        {NOMBRE_TIPO_CUENTA[c.tipo]}
+                        {c.limite ? ` · límite ${rd(c.limite)}` : ""} · {c.tipo === "tarjeta" ? "deuda" : "saldo"} el día de inicio
+                      </span>
+                    </span>
+                    <span className="caja-item-monto">{rd(c.saldoInicial)}</span>
+                  </div>
+                  <details className="caja-desplegable">
+                    <summary>Editar o borrar</summary>
+                    <FormAccion accion={guardarCuenta} boton="Guardar cuenta" etiqueta={`Editar ${c.nombre}`}>
+                      <CamposCuenta c={c} />
+                    </FormAccion>
+                    <div className="caja-form">
+                      <BotonEliminar accion={eliminarCuenta} id={c.id} que={`la cuenta ${c.nombre}`} />
+                    </div>
+                  </details>
+                </li>
+              ))}
+          </ul>
+          <details className="caja-desplegable caja-conf-nueva" open={datos.cuentas.length === 0}>
+            <summary>+ Agregar una cuenta</summary>
+            <FormAccion accion={guardarCuenta} boton="Crear cuenta" reiniciar etiqueta="Nueva cuenta">
+              <CamposCuenta />
+            </FormAccion>
+          </details>
+          <h3 className="caja-subtitulo" id="t-entre">
+            Fijos entre tus cuentas ({entreCuentas.length})
+          </h3>
+          <p className="chico tenue caja-conf-vacio">Pagos de tarjeta y dinero que mueves solo de lugar: no son ingreso ni gasto.</p>
+          {entreCuentas.length ? (
+            <ul className="caja-conf-fijos sueltos">
+              {entreCuentas.map((r) => (
+                <Fijo key={r.id} r={r} />
+              ))}
+            </ul>
+          ) : (
+            <p className="chico tenue caja-conf-vacio">Ninguno. Ej.: pagar la tarjeta completa cada día 28.</p>
+          )}
+          <details className="caja-desplegable">
+            <summary>+ Agregar un fijo entre cuentas</summary>
+            {cuentas.length ? (
+              <FormAccion accion={guardarRecurrente} boton="Guardar fijo" reiniciar etiqueta="Nuevo fijo entre cuentas">
+                <CamposRecurrente inicial={{ tipo: "pago_tarjeta" }} cuentas={cuentas} categorias={categorias} />
+              </FormAccion>
+            ) : (
+              <p className="caja-form chico">Primero agrega una cuenta.</p>
+            )}
+          </details>
+        </div>
+      </section>
+
+      <section className="panel panel-ancho caja-conf-general" aria-labelledby="t-general">
         <div className="panel-cabecera">
           <h2 className="panel-titulo" id="t-general">
             General
@@ -159,22 +454,28 @@ export default async function PaginaAjustes() {
                 Día en que empieza tu calendario
                 <input type="date" name="inicio" required defaultValue={cfg?.inicio ?? ""} />
               </label>
-              <label>
-                <span>
-                  Colchón mínimo (RD$){" "}
+              <div className="caja-campo">
+                <label htmlFor="cfg-colchon">
+                  Colchón mínimo{" "}
                   <Ayuda que="el colchón">El dinero de reserva que no quieres tocar. Los días en que quedarías por debajo se pintan de rojo.</Ayuda>
-                </span>
-                <input name="colchon" inputMode="decimal" required defaultValue={cfg?.colchon ?? ""} autoComplete="off" placeholder="Ej.: 10,000" />
-              </label>
-              <label>
-                <span>
-                  Aviso antes del colchón (RD$){" "}
+                </label>
+                <div className="caja-monto">
+                  <span aria-hidden="true">RD$</span>
+                  <input id="cfg-colchon" name="colchon" inputMode="decimal" required defaultValue={cfg?.colchon ?? ""} autoComplete="off" placeholder="Ej.: 10,000" />
+                </div>
+              </div>
+              <div className="caja-campo">
+                <label htmlFor="cfg-margen">
+                  Aviso antes del colchón{" "}
                   <Ayuda que="el aviso antes del colchón">
                     Un margen extra: si quedas a menos de esta cifra por encima del colchón, el día se marca en ámbar («cerca del mínimo»).
                   </Ayuda>
-                </span>
-                <input name="margen" inputMode="decimal" required defaultValue={cfg?.margen ?? "3000"} autoComplete="off" placeholder="Ej.: 3,000" />
-              </label>
+                </label>
+                <div className="caja-monto">
+                  <span aria-hidden="true">RD$</span>
+                  <input id="cfg-margen" name="margen" inputMode="decimal" required defaultValue={cfg?.margen ?? "3000"} autoComplete="off" placeholder="Ej.: 3,000" />
+                </div>
+              </div>
               <label>
                 <span>
                   Tasa del dólar (RD$ por US$, opcional){" "}
@@ -189,143 +490,6 @@ export default async function PaginaAjustes() {
         </div>
       </section>
 
-      <section className="panel" aria-labelledby="t-cuentas">
-        <div className="panel-cabecera">
-          <h2 className="panel-titulo" id="t-cuentas">
-            Tus cuentas ({datos.cuentas.length})
-          </h2>
-          <span className="chico tenue">Banco, efectivo, ahorro y tarjetas</span>
-        </div>
-        <div className="panel-cuerpo">
-          <ul className="caja-lista">
-            {[...datos.cuentas]
-              .sort((a, b) => a.orden - b.orden)
-              .map((c) => (
-                <li key={c.id} className="caja-item">
-                  <div className="caja-item-fila">
-                    <span className="caja-item-nombre">{c.nombre}</span>
-                    <span className="caja-item-monto">{rd(c.saldoInicial)}</span>
-                  </div>
-                  <span className="caja-item-detalle" title={`Identificador interno: ${c.id}`}>
-                    {NOMBRE_TIPO_CUENTA[c.tipo]}
-                    {c.limite ? ` · límite ${rd(c.limite)}` : ""} · {c.tipo === "tarjeta" ? "deuda" : "saldo"} el día de inicio
-                  </span>
-                  <details className="caja-desplegable">
-                    <summary>Editar</summary>
-                    <FormAccion accion={guardarCuenta} boton="Guardar cuenta" etiqueta={`Editar ${c.nombre}`}>
-                      <CamposCuenta c={c} />
-                    </FormAccion>
-                  </details>
-                  <div className="caja-acciones">
-                    <BotonEliminar accion={eliminarCuenta} id={c.id} que={`la cuenta ${c.nombre}`} />
-                  </div>
-                </li>
-              ))}
-          </ul>
-          <details className="caja-desplegable" style={{ marginTop: 8 }} open={datos.cuentas.length === 0}>
-            <summary>Agregar una cuenta</summary>
-            <FormAccion accion={guardarCuenta} boton="Crear cuenta" reiniciar etiqueta="Nueva cuenta">
-              <CamposCuenta />
-            </FormAccion>
-          </details>
-        </div>
-      </section>
-
-      <section className="panel panel-ancho" aria-labelledby="t-recurrentes">
-        <div className="panel-cabecera">
-          <h2 className="panel-titulo" id="t-recurrentes">
-            Pagos y cobros fijos ({datos.recurrentes.length})
-          </h2>
-          <span className="chico tenue">Lo que se repite cada mes: sueldo, alquiler, luz… El calendario los pone solo.</span>
-        </div>
-        <div className="panel-cuerpo">
-          <ul className="caja-lista">
-            {datos.recurrentes.map((r) => (
-              <li key={r.id} className={`caja-item ${r.activo ? "" : "omitido"}`}>
-                <div className="caja-item-fila">
-                  <span className="caja-item-nombre">
-                    {r.nombre}
-                    {r.activo ? "" : " (en pausa)"}
-                  </span>
-                  <span className={`caja-item-monto ${r.tipo === "ingreso" ? "sube" : ""}`}>
-                    {r.pagoTotal ? "todo lo que debas" : enMoneda(r.monto, r.moneda)}
-                  </span>
-                </div>
-                <span className="caja-item-detalle">
-                  {NOMBRE_TIPO[r.tipo]} · {nombreCuenta(r.cuenta)}
-                  {r.destino ? ` → ${nombreCuenta(r.destino)}` : ""} · {describirRecurrente(r)}
-                </span>
-                <details className="caja-desplegable">
-                  <summary>Editar</summary>
-                  <FormAccion accion={guardarRecurrente} boton="Guardar recurrente" etiqueta={`Editar ${r.nombre}`}>
-                    <input type="hidden" name="id" value={r.id} />
-                    <CamposRecurrente r={r} cuentas={cuentas} categorias={categorias} />
-                  </FormAccion>
-                </details>
-                <div className="caja-acciones">
-                  <BotonEliminar accion={eliminarRecurrente} id={r.id} que={`el recurrente ${r.nombre}`} />
-                </div>
-              </li>
-            ))}
-          </ul>
-          <details className="caja-desplegable" style={{ marginTop: 8 }}>
-            <summary>Agregar un pago o cobro fijo</summary>
-            {cuentas.length ? (
-              <FormAccion accion={guardarRecurrente} boton="Crear recurrente" reiniciar etiqueta="Nuevo recurrente">
-                <CamposRecurrente cuentas={cuentas} categorias={categorias} />
-              </FormAccion>
-            ) : (
-              <p className="caja-form chico">Primero agrega una cuenta.</p>
-            )}
-          </details>
-        </div>
-      </section>
-
-      <section className="panel panel-ancho" aria-labelledby="t-categorias">
-        <div className="panel-cabecera">
-          <h2 className="panel-titulo" id="t-categorias">
-            Categorías ({datos.categorias.length})
-          </h2>
-          <span className="chico tenue">Para agrupar tus gastos y ponerles un límite al mes</span>
-        </div>
-        <div className="panel-cuerpo">
-          {GRUPOS.filter((g) => datos.categorias.some((c) => c.grupo === g)).map((g) => (
-            <div key={g}>
-              <h3 className="caja-subtitulo">
-                {NOMBRE_GRUPO[g]}
-              </h3>
-              <ul className="caja-lista">
-                {datos.categorias
-                  .filter((c) => c.grupo === g)
-                  .map((c) => (
-                    <li key={c.id} className="caja-item">
-                      <div className="caja-item-fila">
-                        <span className="caja-item-nombre">{c.nombre}</span>
-                        <span className="caja-item-monto">{c.presupuesto ? `${rd(c.presupuesto)} al mes` : <span className="tenue">sin límite</span>}</span>
-                      </div>
-                      <details className="caja-desplegable">
-                        <summary>Editar</summary>
-                        <FormAccion accion={guardarCategoria} boton="Guardar categoría" etiqueta={`Editar ${c.nombre}`}>
-                          <CamposCategoria c={c} />
-                        </FormAccion>
-                      </details>
-                      <div className="caja-acciones">
-                        <BotonEliminar accion={eliminarCategoria} id={c.id} que={`la categoría ${c.nombre}`} />
-                      </div>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ))}
-          <details className="caja-desplegable" style={{ marginTop: 8 }}>
-            <summary>Agregar una categoría</summary>
-            <FormAccion accion={guardarCategoria} boton="Crear categoría" reiniciar etiqueta="Nueva categoría">
-              <CamposCategoria />
-            </FormAccion>
-          </details>
-        </div>
-      </section>
-
       <section className="panel panel-ancho" aria-labelledby="importar" id="avanzado">
         <details className="caja-avanzado">
           <summary>
@@ -336,8 +500,9 @@ export default async function PaginaAjustes() {
           </summary>
           <div className="panel-cuerpo">
             <p className="chico">
-              Primero se revisa el archivo y se muestra un resumen; nada se guarda hasta que confirmes. Al confirmar se reemplaza todo lo de
-              la caja de una sola vez: si algo falla, no cambia nada.
+              Primero se revisa el archivo y se muestra un resumen; nada se guarda hasta que confirmes. Al confirmar se reemplaza todo lo del
+              presupuesto de una sola vez: si algo falla, no cambia nada. Los grupos viejos se convierten solos (fijo y variable → gasto,
+              ahorro → ahorro e inversión, deuda → gasto financiero).
             </p>
             {hayDatos ? (
               <p className="caja-aviso">

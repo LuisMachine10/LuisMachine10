@@ -1,22 +1,22 @@
 import Link from "next/link";
 import { Icono, type NombreIcono } from "./Iconos";
 
-/** «importar» vive ahora dentro de Ajustes (Avanzado); se conserva el valor para la ruta vieja. */
-export type PestanaCaja = "calendario" | "movimientos" | "presupuesto" | "ajustes" | "importar";
+/** «importar» vive dentro de Configuración (Avanzado); se conserva el valor para la ruta vieja. */
+export type PestanaCaja = "calendario" | "movimientos" | "resultados" | "configuracion" | "importar";
 
-const PESTANAS: { id: PestanaCaja; ruta: string; texto: string; icono: NombreIcono }[] = [
-  { id: "calendario", ruta: "/caja", texto: "Calendario", icono: "calendario" },
-  { id: "movimientos", ruta: "/caja/movimientos", texto: "Movimientos", icono: "lista" },
-  { id: "presupuesto", ruta: "/caja/presupuesto", texto: "Presupuesto", icono: "balanza" },
-  { id: "ajustes", ruta: "/caja/ajustes", texto: "Ajustes", icono: "nota" },
+const PESTANAS: { id: PestanaCaja; ruta: string; texto: string; icono: NombreIcono; conMes: boolean }[] = [
+  { id: "calendario", ruta: "/caja", texto: "Calendario", icono: "calendario", conMes: true },
+  { id: "movimientos", ruta: "/caja/movimientos", texto: "Movimientos", icono: "lista", conMes: true },
+  { id: "resultados", ruta: "/caja/resultados", texto: "Estado de resultados", icono: "balanza", conMes: true },
+  { id: "configuracion", ruta: "/caja/ajustes", texto: "Configuración", icono: "ajustes", conMes: false },
 ];
 
 export function PestanasCaja({ actual, mes }: { actual: PestanaCaja; mes?: string }) {
-  const marcada = actual === "importar" ? "ajustes" : actual;
+  const marcada = actual === "importar" ? "configuracion" : actual;
   return (
-    <nav className="caja-pestanas" aria-label="Mi presupuesto">
+    <nav className="caja-pestanas" aria-label="Partes del presupuesto">
       {PESTANAS.map((p) => (
-        <Link key={p.id} href={mes && p.id !== "ajustes" ? `${p.ruta}?mes=${mes}` : p.ruta} aria-current={marcada === p.id ? "page" : undefined}>
+        <Link key={p.id} href={mes && p.conMes ? `${p.ruta}?mes=${mes}` : p.ruta} aria-current={marcada === p.id ? "page" : undefined}>
           <Icono n={p.icono} tam={16} />
           {p.texto}
         </Link>

@@ -40,7 +40,7 @@ export const SECCIONES = [
   { clave: "capital", nombre: "Portafolio Financiero", corto: "Portafolio", href: "/capital", menu: "principal", movil: 5,
     para: "Aquí anotas tus inversiones y ves cuánto tienes, cuánto ganaste en el mes y cómo está repartido. Solo tú lo ves." },
   { clave: "caja", nombre: "Presupuesto", corto: "Presupuesto", href: "/caja", menu: "principal", movil: 4,
-    para: "Aquí anotas tus cuentas y pagos fijos y ves cuánto puedes gastar hoy sin pasarte. Solo tú lo ves." },
+    para: "Tus ingresos, costos y gastos del mes en un estado de resultados: lo presupuestado contra lo real, y cuánto te queda. Solo tú lo ves." },
   { clave: "globo", nombre: "Mapa", corto: "Mapa", href: "/globo", menu: "principal", movil: null,
     para: "Aquí ves en un globo 3D las bolsas, conflictos, rutas de barcos, sismos y huracanes que pueden mover precios." },
   { clave: "noticias", nombre: "Todos los titulares", corto: "Titulares", href: "/noticias", menu: "oculto", movil: null, padre: "news",

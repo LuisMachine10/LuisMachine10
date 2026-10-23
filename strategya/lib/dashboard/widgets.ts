@@ -40,7 +40,7 @@ export const WIDGETS: readonly FichaWidget[] = [
   { id: "cifra-bono-10a", titulo: "Bono de EE. UU. a 10 años", que: "La tasa que guía préstamos e hipotecas en el mundo.", grupo: "cifras", tamano: 1, visible: true },
   { id: "cifra-bitcoin", titulo: "Bitcoin", que: "La criptomoneda más grande.", grupo: "cifras", tamano: 1, visible: true },
   { id: "portafolio", titulo: "Rendimiento del portafolio", que: "Cuánto tienes invertido y cuánto cambió en el mes.", grupo: "personal", tamano: 1, visible: true },
-  { id: "presupuesto", titulo: "Rendimiento del presupuesto", que: "Cuánto puedes gastar hoy y lo que viene en 7 días.", grupo: "personal", tamano: 2, visible: true },
+  { id: "presupuesto", titulo: "Rendimiento del presupuesto", que: "Tu utilidad neta del mes: lo presupuestado contra lo real.", grupo: "personal", tamano: 2, visible: true },
   { id: "mis-noticias", titulo: "Mis noticias", que: "Los titulares de los medios, temas y palabras que tú eliges.", grupo: "noticias", tamano: 2, visible: true },
   { id: "alertas", titulo: "Alertas de hoy", que: "Los activos que cruzaron uno de tus umbrales hoy.", grupo: "dia", tamano: 1, visible: true },
   { id: "dolar-bcrd", titulo: "Dólar BCRD", que: "Compra y venta del dólar según el Banco Central.", grupo: "rd", tamano: 1, visible: true },

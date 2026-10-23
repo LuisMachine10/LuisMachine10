@@ -20,12 +20,9 @@
 import Big from "big.js";
 import { type Fecha, diasDelMes, diasEntre, esFecha, mesDe, rangoFechas, sumarDias, ultimoDia, type Mes } from "./fechas";
 import {
-  type Categoria,
   type ConfigCaja,
   type Cuenta,
   type DatosCaja,
-  type Grupo,
-  GRUPOS,
   type Moneda,
   type Movimiento,
   type Recurrente,
@@ -426,68 +423,4 @@ export function movimientosDelMes(datos: DatosCaja, mes: Mes): TotalesMes {
     tasaAhorro: ingresos.gt(0) ? ahorro.div(ingresos).times(100).toFixed(1, Big.roundHalfUp) : null,
     sinTasa,
   };
-}
-
-// ───────────────────────── Presupuesto por grupo ─────────────────────────
-
-export interface FilaPresupuesto {
-  categoria: Categoria;
-  presupuesto: string | null;
-  real: string;
-  /** Planificado de hoy al fin del mes. */
-  viene: string;
-  /** presupuesto − real − viene. null sin presupuesto. */
-  queda: string | null;
-  /** (real + viene) / presupuesto × 100, entero. null sin presupuesto. */
-  usado: number | null;
-}
-
-export interface GrupoPresupuesto {
-  grupo: Grupo;
-  filas: FilaPresupuesto[];
-  presupuesto: string;
-  real: string;
-  viene: string;
-  queda: string;
-}
-
-export function presupuestoDelMes(datos: DatosCaja, sim: Simulacion, mes: Mes): GrupoPresupuesto[] {
-  const real = new Map<string, Big>();
-  const viene = new Map<string, Big>();
-  const sumar = (m: Map<string, Big>, k: string | null, v: string | null) => {
-    if (!k || v == null) return;
-    m.set(k, (m.get(k) ?? CERO).plus(v));
-  };
-  for (const m of datos.movimientos) {
-    if (mesDe(m.fecha) !== mes) continue;
-    const dop = aDOP(m.monto, m.moneda, m.tasa, datos.config);
-    sumar(real, m.categoria, dop ? dop.toString() : null);
-  }
-  for (const d of sim.dias) {
-    if (mesDe(d.fecha) !== mes || d.fecha < sim.hoy) continue;
-    for (const o of d.planificados) sumar(viene, o.categoria, o.montoDOP);
-  }
-  const grupos: GrupoPresupuesto[] = [];
-  for (const g of GRUPOS) {
-    const cats = datos.categorias.filter((c) => c.grupo === g);
-    if (!cats.length) continue;
-    let tp = CERO;
-    let tr = CERO;
-    let tv = CERO;
-    const filas = cats.map((c): FilaPresupuesto => {
-      const r = real.get(c.id) ?? CERO;
-      const v = viene.get(c.id) ?? CERO;
-      tr = tr.plus(r);
-      tv = tv.plus(v);
-      if (c.presupuesto == null) return { categoria: c, presupuesto: null, real: r.toString(), viene: v.toString(), queda: null, usado: null };
-      const p = new Big(c.presupuesto);
-      tp = tp.plus(p);
-      const usado = p.gt(0) ? Number(r.plus(v).div(p).times(100).round(0, Big.roundHalfUp).toString()) : null;
-      return { categoria: c, presupuesto: p.toString(), real: r.toString(), viene: v.toString(), queda: p.minus(r).minus(v).toString(), usado };
-    });
-    // «Queda» del grupo: solo de las categorías con presupuesto (las otras no tienen de dónde quedar).
-    const queda = filas.reduce((a, f) => (f.queda == null ? a : a.plus(f.queda)), CERO);
-    grupos.push({ grupo: g, filas, presupuesto: tp.toString(), real: tr.toString(), viene: tv.toString(), queda: queda.toString() });
-  }
-  return grupos;
 }

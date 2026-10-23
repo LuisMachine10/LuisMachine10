@@ -154,10 +154,10 @@ export function armarPanel(datos: DatosCaja, sim: Simulacion, f: Fecha): PanelDi
 }
 
 /** Catálogos mínimos para los formularios del cliente. */
-export function catalogos(datos: DatosCaja): { cuentas: Pick<Cuenta, "id" | "nombre" | "tipo">[]; categorias: Pick<Categoria, "id" | "nombre" | "grupo">[] } {
+export function catalogos(datos: DatosCaja): { cuentas: Pick<Cuenta, "id" | "nombre" | "tipo">[]; categorias: Pick<Categoria, "id" | "nombre" | "tipo">[] } {
   return {
     cuentas: [...datos.cuentas].sort((a, b) => a.orden - b.orden).map(({ id, nombre, tipo }) => ({ id, nombre, tipo })),
-    categorias: datos.categorias.map(({ id, nombre, grupo }) => ({ id, nombre, grupo })),
+    categorias: datos.categorias.map(({ id, nombre, tipo }) => ({ id, nombre, tipo })),
   };
 }
 
