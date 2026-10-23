@@ -1,6 +1,6 @@
 "use client";
 
-// Ventana «+ Gasto / + Ingreso / Transferir»: anota un movimiento en el día elegido (o el que se
+// Ventana «+ Ingreso / + Gasto / Mover entre mis cuentas»: anota un movimiento en el día elegido (o el que se
 // escriba). Usa <dialog> nativo: Escape la cierra, el foco queda dentro y vuelve al botón al cerrar.
 
 import { useEffect, useRef } from "react";
@@ -12,9 +12,9 @@ import { FormAccion } from "./FormAccion";
 import { Icono } from "./Iconos";
 
 const TEXTO: Record<TipoMovimiento, { titulo: string; sub: string; boton: string }> = {
-  gasto: { titulo: "Anotar un gasto", sub: "Lo que pagaste o vas a pagar ese día. Baja tu dinero disponible.", boton: "Guardar gasto" },
-  ingreso: { titulo: "Anotar un ingreso", sub: "Dinero que te entró o te va a entrar ese día.", boton: "Guardar ingreso" },
-  transferencia: { titulo: "Pasar dinero entre tus cuentas", sub: "Por ejemplo, del banco a la cartera o al ahorro. No es gasto: solo cambia de lugar.", boton: "Guardar transferencia" },
+  ingreso: { titulo: "Anotar un ingreso", sub: "Dinero que te entró ese día. Cae en su categoría del estado de resultados.", boton: "Guardar ingreso" },
+  gasto: { titulo: "Anotar un gasto", sub: "Lo que pagaste ese día. Baja tu disponible y cae en su categoría del estado de resultados.", boton: "Guardar gasto" },
+  transferencia: { titulo: "Mover entre mis cuentas", sub: "Pasar dinero de una cuenta tuya a otra (del banco a la cartera o al ahorro). No es ingreso ni gasto: solo cambia de lugar.", boton: "Guardar" },
   pago_tarjeta: { titulo: "Pagar una tarjeta", sub: "Sale de tu banco y baja lo que debes en la tarjeta.", boton: "Guardar pago" },
 };
 
@@ -65,7 +65,7 @@ export function NuevoMovimiento({
               <CamposMovimiento key={tipo} v={{ tipo, cuenta: cuentas.find((c) => c.tipo === "banco")?.id ?? cuentas.find((c) => c.tipo !== "tarjeta")?.id ?? null }} cuentas={cuentas} categorias={categorias} />
             </FormAccion>
           ) : (
-            <p className="vacio">Primero agrega una cuenta en Ajustes.</p>
+            <p className="vacio">Primero agrega una cuenta en Configuración.</p>
           )}
         </div>
       ) : null}

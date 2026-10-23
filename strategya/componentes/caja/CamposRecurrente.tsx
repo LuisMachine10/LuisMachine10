@@ -1,6 +1,8 @@
 "use client";
 
-// Campos de un recurrente: la frecuencia decide si se piden días del mes, cada N días o una fecha.
+// Campos de un pago o cobro fijo (recurrente). La categoría es la misma lista de Configuración y es
+// obligatoria en ingresos y gastos: el monto del mes suma a lo presupuestado de esa categoría. La
+// frecuencia decide si se piden días del mes, cada N días o una fecha.
 
 import { useState } from "react";
 import {
@@ -14,19 +16,31 @@ import {
   TIPOS_MOVIMIENTO,
   type TipoMovimiento,
 } from "@/lib/caja/tipos";
-import { type OpcionCategoria, type OpcionCuenta, SelectCategoria, SelectCuenta } from "./CamposMovimiento";
+import { AYUDA_MOVER, type OpcionCategoria, type OpcionCuenta, SelectCategoria, SelectCuenta } from "./CamposMovimiento";
 
-export function CamposRecurrente({ r, cuentas, categorias }: { r?: Recurrente; cuentas: OpcionCuenta[]; categorias: OpcionCategoria[] }) {
-  const [tipo, setTipo] = useState<TipoMovimiento>(r?.tipo ?? "gasto");
+export function CamposRecurrente({
+  r,
+  inicial,
+  cuentas,
+  categorias,
+}: {
+  r?: Recurrente;
+  /** Valores de arranque de uno nuevo (p. ej., la categoría desde la que se agrega). */
+  inicial?: Partial<Pick<Recurrente, "tipo" | "categoria">>;
+  cuentas: OpcionCuenta[];
+  categorias: OpcionCategoria[];
+}) {
+  const [tipo, setTipo] = useState<TipoMovimiento>(r?.tipo ?? inicial?.tipo ?? "gasto");
   const [frecuencia, setFrecuencia] = useState<Frecuencia>(r?.frecuencia ?? "mensual");
   const [moneda, setMoneda] = useState<Moneda>(r?.moneda ?? "DOP");
   const [pagoTotal, setPagoTotal] = useState<boolean>(r?.pagoTotal ?? false);
   const conDestino = tipo === "transferencia" || tipo === "pago_tarjeta";
+  const categoria = r?.categoria ?? inicial?.categoria ?? null;
   return (
     <div className="caja-campos">
       <label className="ancho">
         Nombre
-        <input name="nombre" required maxLength={120} defaultValue={r?.nombre ?? ""} autoComplete="off" />
+        <input name="nombre" required maxLength={120} defaultValue={r?.nombre ?? ""} autoComplete="off" placeholder={tipo === "ingreso" ? "Ej.: Quincena" : "Ej.: Alquiler"} />
       </label>
       <label>
         Tipo
@@ -42,9 +56,14 @@ export function CamposRecurrente({ r, cuentas, categorias }: { r?: Recurrente; c
         Estado
         <select name="activo" defaultValue={r?.activo === false ? "false" : "true"}>
           <option value="true">Activo</option>
-          <option value="false">Inactivo</option>
+          <option value="false">En pausa</option>
         </select>
       </label>
+      {tipo === "transferencia" ? (
+        <p className="ancho caja-campo-ayuda" style={{ margin: 0 }}>
+          {AYUDA_MOVER}
+        </p>
+      ) : null}
       {tipo === "pago_tarjeta" ? (
         <label className="casilla ancho">
           <input type="checkbox" name="pagoTotal" checked={pagoTotal} onChange={(e) => setPagoTotal(e.target.checked)} />
@@ -53,33 +72,42 @@ export function CamposRecurrente({ r, cuentas, categorias }: { r?: Recurrente; c
       ) : null}
       {tipo === "pago_tarjeta" && pagoTotal ? null : (
         <>
-          <label>
-            Monto
-            <input name="monto" inputMode="decimal" required autoComplete="off" defaultValue={r && r.monto !== "0" ? r.monto : ""} />
-          </label>
+          <div className="caja-campo">
+            <label htmlFor={`rec-monto-${r?.id ?? "nuevo"}`}>Monto cada vez</label>
+            <div className="caja-monto">
+              <span aria-hidden="true">{moneda === "USD" ? "US$" : "RD$"}</span>
+              <input id={`rec-monto-${r?.id ?? "nuevo"}`} name="monto" inputMode="decimal" required autoComplete="off" defaultValue={r && r.monto !== "0" ? r.monto : ""} placeholder="Ej.: 15,000" />
+            </div>
+          </div>
           <label>
             Moneda
             <select name="moneda" value={moneda} onChange={(e) => setMoneda(e.target.value as Moneda)}>
               {MONEDAS.map((m) => (
                 <option key={m} value={m}>
-                  {m === "DOP" ? "RD$" : "US$ (tasa general)"}
+                  {m === "DOP" ? "Pesos (RD$)" : "Dólares (US$, tasa general)"}
                 </option>
               ))}
             </select>
           </label>
         </>
       )}
-      <SelectCuenta nombre="cuenta" valor={r?.cuenta} cuentas={cuentas} etiqueta={conDestino ? "Desde la cuenta" : "Cuenta"} />
+      <SelectCuenta
+        nombre="cuenta"
+        valor={r?.cuenta}
+        cuentas={cuentas}
+        className={conDestino ? undefined : "ancho"}
+        etiqueta={conDestino ? "Sale de" : tipo === "ingreso" ? "¿En qué cuenta te cae?" : "¿Con qué lo pagas?"}
+      />
       {conDestino ? (
-        <SelectCuenta key={tipo} nombre="destino" valor={r?.destino} cuentas={cuentas} soloTarjetas={tipo === "pago_tarjeta"} etiqueta={tipo === "pago_tarjeta" ? "Tarjeta" : "Hacia la cuenta"} />
-      ) : (
-        <span aria-hidden="true" />
+        <SelectCuenta key={tipo} nombre="destino" valor={r?.destino} cuentas={cuentas} soloTarjetas={tipo === "pago_tarjeta"} etiqueta={tipo === "pago_tarjeta" ? "Tarjeta que pagas" : "Entra a"} />
+      ) : null}
+      {tipo === "pago_tarjeta" ? null : (
+        <div className="ancho">
+          <SelectCategoria key={tipo} valor={categoria} categorias={categorias} tipo={tipo} />
+        </div>
       )}
-      <div className="ancho">
-        <SelectCategoria valor={r?.categoria} categorias={categorias} />
-      </div>
       <label>
-        Frecuencia
+        ¿Cada cuánto?
         <select name="frecuencia" value={frecuencia} onChange={(e) => setFrecuencia(e.target.value as Frecuencia)}>
           {FRECUENCIAS.map((f) => (
             <option key={f} value={f}>
@@ -91,12 +119,12 @@ export function CamposRecurrente({ r, cuentas, categorias }: { r?: Recurrente; c
       {frecuencia === "mensual" ? (
         <label>
           Días del mes
-          <input name="dias" required defaultValue={r?.dias ?? ""} placeholder="15, 30" autoComplete="off" aria-describedby="ayuda-dias" />
+          <input name="dias" required defaultValue={r?.dias ?? ""} placeholder="Ej.: 15, 30" autoComplete="off" title="El 31 (o el 29 y 30) cae el último día en los meses más cortos." />
         </label>
       ) : frecuencia === "cada_n" ? (
         <label>
           Cada cuántos días
-          <input name="cadaN" inputMode="numeric" required defaultValue={r?.cadaN ?? ""} placeholder="14" autoComplete="off" />
+          <input name="cadaN" inputMode="numeric" required defaultValue={r?.cadaN ?? ""} placeholder="Ej.: 14" autoComplete="off" title="Se cuenta desde «Desde» (o desde la fecha de inicio)." />
         </label>
       ) : (
         <label>
@@ -104,23 +132,14 @@ export function CamposRecurrente({ r, cuentas, categorias }: { r?: Recurrente; c
           <input type="date" name="fecha" required defaultValue={r?.fecha ?? ""} />
         </label>
       )}
-      {frecuencia === "mensual" ? (
-        <p id="ayuda-dias" className="ancho chico tenue" style={{ margin: 0 }}>
-          El 31 (o el 29 y 30) cae el último día en los meses más cortos.
-        </p>
-      ) : frecuencia === "cada_n" ? (
-        <p className="ancho chico tenue" style={{ margin: 0 }}>
-          Se cuenta desde «Desde» (o desde la fecha de inicio).
-        </p>
-      ) : null}
       {frecuencia !== "unica" ? (
         <>
           <label>
-            Desde
+            Desde <span className="tenue">(opcional)</span>
             <input type="date" name="desde" defaultValue={r?.desde ?? ""} />
           </label>
           <label>
-            Hasta
+            Hasta <span className="tenue">(opcional)</span>
             <input type="date" name="hasta" defaultValue={r?.hasta ?? ""} />
           </label>
         </>

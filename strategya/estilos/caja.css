@@ -1,4 +1,4 @@
-/* Calendario de Caja · primero celular. Usa los tokens de app/globals.css (no define colores nuevos). */
+/* Presupuesto · primero celular. Usa los tokens de app/globals.css (no define colores nuevos). */
 
 .caja {
   --caja-holgado: var(--sube);
@@ -82,7 +82,7 @@
   border-color: var(--borde-fuerte);
 }
 .caja-pestanas a[aria-current="page"] {
-  color: #fff;
+  color: var(--texto);
   background: var(--acento-suave);
   border-color: color-mix(in srgb, var(--acento) 55%, transparent);
 }
@@ -108,8 +108,12 @@
 }
 .caja-botones-nuevo {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+/* «Mover entre mis cuentas» es largo: en el celular va en su propia fila */
+.caja-botones-nuevo > :nth-child(3) {
+  grid-column: 1 / -1;
 }
 .caja-botones-nuevo .boton {
   padding: 10px 8px;
@@ -133,14 +137,14 @@
   font: inherit;
   font-size: 14px;
   font-weight: 600;
-  background: var(--acento);
-  color: #fff;
+  background: var(--primario, var(--acento));
+  color: var(--sobre-primario, var(--texto));
   border: 1px solid transparent;
   border-radius: var(--radio-chico);
   cursor: pointer;
 }
 .caja-boton:hover {
-  background: #1e53e5;
+  background: var(--primario-hover, color-mix(in srgb, var(--acento) 86%, var(--fondo)));
 }
 .caja-boton.secundario {
   background: var(--panel-alto);
@@ -153,7 +157,7 @@
 }
 .caja-boton.peligro {
   background: var(--baja-suave);
-  color: #ff8a94;
+  color: color-mix(in srgb, var(--baja) 72%, var(--texto));
   border-color: color-mix(in srgb, var(--baja) 45%, transparent);
 }
 .caja-boton:disabled,
@@ -214,7 +218,7 @@
 }
 .caja-ayuda > summary:hover,
 .caja-ayuda[open] > summary {
-  color: #fff;
+  color: var(--texto);
   border-color: var(--acento);
   background: var(--acento-suave);
 }
@@ -369,7 +373,7 @@
   color: var(--caja-cerca);
 }
 .caja-estado.bajo {
-  color: #ff6b77;
+  color: color-mix(in srgb, var(--baja) 82%, var(--texto));
 }
 
 .caja-aviso,
@@ -535,8 +539,8 @@ button.caja-dia.bajo:hover {
   line-height: 1;
 }
 .caja-dia.hoy .caja-dia-num {
-  background: var(--acento);
-  color: #fff;
+  background: var(--primario, var(--acento));
+  color: var(--sobre-primario, var(--texto));
 }
 .caja-dia-saldo {
   max-width: 100%;
@@ -550,7 +554,7 @@ button.caja-dia.bajo:hover {
   min-height: 13px;
 }
 .caja-dia.bajo .caja-dia-saldo {
-  color: #ff8a94;
+  color: color-mix(in srgb, var(--baja) 72%, var(--texto));
   font-weight: 600;
 }
 .caja-dia-puntos {
@@ -616,7 +620,7 @@ button.caja-dia.bajo:hover {
   align-items: center;
   min-height: 40px;
   font-size: 13.5px;
-  color: #7aa2ff;
+  color: color-mix(in srgb, var(--acento) 50%, var(--texto));
 }
 .caja-leyenda-caja p {
   margin: 4px 0 8px;
@@ -915,12 +919,12 @@ button.caja-dia.bajo:hover {
 }
 .caja-item-icono.gasto {
   background: var(--baja-suave);
-  color: #ff8a94;
+  color: color-mix(in srgb, var(--baja) 72%, var(--texto));
 }
 .caja-item-icono.transferencia,
 .caja-item-icono.pago_tarjeta {
   background: var(--acento-suave);
-  color: #7aa2ff;
+  color: color-mix(in srgb, var(--acento) 50%, var(--texto));
 }
 .caja-item-texto {
   display: grid;
@@ -1125,7 +1129,7 @@ button.caja-dia.bajo:hover {
 }
 .caja-mensaje.error,
 .caja-error {
-  color: #ff8a94;
+  color: color-mix(in srgb, var(--baja) 72%, var(--texto));
 }
 .caja-error,
 .caja-exito {
@@ -1265,91 +1269,7 @@ button.caja-dia.bajo:hover {
   height: 52px;
   border-radius: 14px;
   background: var(--acento-suave);
-  color: #7aa2ff;
-}
-
-/* ───────────── Presupuesto ───────────── */
-.caja-pres-cabeza .caja-pres-ayuda {
-  margin: 8px 0 0;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.caja-pres-total {
-  margin-left: auto;
-}
-.caja-pres-lista {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 18px;
-}
-.caja-pres-fila {
-  display: grid;
-  gap: 6px;
-}
-.caja-pres-linea {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.caja-pres-nombre {
-  font-weight: 600;
-}
-.caja-pres-linea .mono {
-  font-size: 13.5px;
-  white-space: nowrap;
-}
-.caja-pres-nota {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--texto-2);
-}
-.caja-pres-pie {
-  margin: 18px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--borde);
-  font-weight: 600;
-}
-.caja-barra {
-  position: relative;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--panel-alto);
-  overflow: hidden;
-}
-.caja-barra > span {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-}
-.caja-barra > .real {
-  left: 0;
-  background: var(--sube);
-  border-radius: 999px 0 0 999px;
-}
-.caja-barra > .viene {
-  background: color-mix(in srgb, var(--sube) 40%, transparent);
-}
-.caja-barra.cerca > .real {
-  background: var(--ambar);
-}
-.caja-barra.cerca > .viene {
-  background: color-mix(in srgb, var(--ambar) 40%, transparent);
-}
-.caja-barra.pasado > .real {
-  background: var(--baja);
-}
-.caja-barra.pasado > .viene {
-  background: color-mix(in srgb, var(--baja) 40%, transparent);
-}
-.caja-barra.sin-dato {
-  height: 6px;
-  background: none;
-  border: 1px dashed var(--borde-fuerte);
+  color: color-mix(in srgb, var(--acento) 50%, var(--texto));
 }
 
 /* ───────────── Ajustes ───────────── */
@@ -1466,8 +1386,8 @@ button.caja-dia.bajo:hover {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--acento);
-  color: #fff;
+  background: var(--primario, var(--acento));
+  color: var(--sobre-primario, var(--texto));
   font-size: 13px;
   font-weight: 700;
 }
@@ -1575,7 +1495,7 @@ button.caja-dia.bajo:hover {
   height: 36px;
   border-radius: 10px;
   background: var(--acento-suave);
-  color: #7aa2ff;
+  color: color-mix(in srgb, var(--acento) 50%, var(--texto));
 }
 .caja-fila-icono.ingreso,
 .caja-fila-icono.ahorro {
@@ -1585,7 +1505,7 @@ button.caja-dia.bajo:hover {
 .caja-fila-icono.gasto,
 .caja-fila-icono.tarjeta {
   background: var(--baja-suave);
-  color: #ff8a94;
+  color: color-mix(in srgb, var(--baja) 72%, var(--texto));
 }
 .caja-fila-icono.efectivo {
   background: color-mix(in srgb, var(--ambar) 14%, transparent);
@@ -1736,6 +1656,605 @@ button.caja-dia.bajo:hover {
   }
 }
 
-.caja-pres-grupo {
-  align-self: start;
+/* ═════════════ Presupuesto como estado de resultados (oct. 2026) · solo variables de app/globals.css ═════════════ */
+
+/* Línea de qué hace cada pestaña, debajo de las pestañas */
+.caja-para-pestana {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 6px 20px 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--texto-3);
+}
+.caja-para-pestana + .caja-terminal {
+  padding-top: 14px;
+}
+@media (max-width: 899px) {
+  .caja-para-pestana {
+    padding: 4px 16px 0;
+  }
+  .caja-para-pestana + .caja-terminal {
+    padding-top: 10px;
+  }
+}
+
+/* «¿Ya se hizo?»: una línea que explica, y el selector de categoría en línea */
+.caja-explica-fijos {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.caja-asignar-linea {
+  display: block;
+  flex-basis: 100%;
+}
+.caja-asignar-linea select {
+  width: 100%;
+  min-height: 44px;
+}
+.caja-asignar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.caja-asignar > select {
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: 44px;
+}
+.caja-asignar > .caja-acciones .caja-boton {
+  min-height: 44px;
+}
+
+/* ───────────── Estado de resultados ───────────── */
+.caja-er-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+.caja-er-cabeza .caja-mes-nav {
+  flex: 1 1 260px;
+}
+
+.caja-er-resumen {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+}
+.caja-er-heroe {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 20px;
+  border-right: 1px solid var(--borde);
+}
+.caja-er-heroe h2 {
+  margin: 0;
+}
+.caja-er-heroe .cifra-grande {
+  margin: 0;
+}
+.caja-er-heroe .caja-er-barra {
+  max-width: 360px;
+}
+.caja-er-heroe-nota {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 13px;
+}
+.caja-er-claves {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.caja-er-claves > div {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 14px 16px;
+  min-width: 0;
+  border-left: 1px solid var(--borde);
+  border-top: 1px solid var(--borde);
+}
+.caja-er-claves > div:nth-child(-n + 2) {
+  border-top: 0;
+}
+.caja-er-claves > div:nth-child(odd) {
+  border-left: 0;
+}
+.caja-er-claves dt {
+  font-size: 12.5px;
+  color: var(--texto-2);
+}
+.caja-er-claves dd {
+  margin: 0;
+}
+.caja-er-claves dt + dd {
+  font-size: 17px;
+  font-weight: 650;
+}
+@media (max-width: 699px) {
+  .caja-er-resumen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .caja-er-heroe {
+    padding: 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--borde);
+  }
+  .caja-er-claves > div {
+    padding: 12px 14px;
+  }
+  .caja-er-claves dt + dd {
+    font-size: 15px;
+  }
+}
+
+.caja-er-avisos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.caja-er-avisos li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  background: color-mix(in srgb, var(--ambar) 7%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--ambar) 35%, var(--borde));
+}
+.caja-er-avisos svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ambar);
+}
+.caja-er-cambiar {
+  margin-left: auto;
+}
+
+/* Barra: lo real contra lo presupuestado; en claro, lo programado que falta */
+.caja-er-barra {
+  display: block;
+  position: relative;
+  height: 6px;
+  margin-top: 6px;
+  max-width: 280px;
+  border-radius: 999px;
+  background: var(--panel-alto);
+  overflow: hidden;
+}
+.caja-er-barra > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.caja-er-barra > .real {
+  left: 0;
+  background: var(--acento);
+}
+.caja-er-barra > .viene {
+  background: color-mix(in srgb, var(--acento) 35%, transparent);
+}
+.caja-er-barra.favor > .real {
+  background: var(--sube);
+}
+.caja-er-barra.contra > .real {
+  background: var(--baja);
+}
+.caja-er-barra.sin-dato {
+  background: none;
+  border: 1px dashed var(--borde-fuerte);
+}
+
+/* La tabla */
+.caja-er-marco {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.caja-er {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+}
+/* Las dos tablas (estado y destino de la utilidad) con las mismas columnas */
+.caja-er col.n {
+  width: 34%;
+}
+.caja-er col.d {
+  width: 22%;
+}
+.caja-er thead th {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--texto-3);
+  text-align: left;
+  border-bottom: 1px solid var(--borde);
+}
+.caja-er .num {
+  text-align: right;
+}
+.caja-er.tabla tbody th[scope="row"] {
+  padding: 10px;
+  text-align: left;
+  font-weight: 400;
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.caja-er td {
+  padding: 10px;
+  white-space: nowrap;
+  vertical-align: top;
+}
+.caja-er-nombre {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.caja-er-op {
+  display: inline-block;
+  min-width: 0.9em;
+  color: var(--texto-3);
+  font-weight: 600;
+}
+.caja-er-seccion > * {
+  background: var(--panel-alto);
+  font-weight: 600;
+}
+.caja-er.tabla .caja-er-seccion > th[scope="row"] {
+  font-weight: 600;
+}
+.caja-er.tabla .caja-er-linea > th[scope="row"] {
+  padding-left: 30px;
+}
+@media (max-width: 759px) {
+  .caja-er.tabla .caja-er-linea > th[scope="row"] {
+    padding-left: 0;
+  }
+}
+.caja-er-linea.especial .caja-er-nombre {
+  color: var(--texto-2);
+}
+.caja-er.tabla .caja-er-linea.vacia > th[scope="row"] {
+  padding-top: 6px;
+  padding-bottom: 10px;
+}
+.caja-er-pendiente {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--texto-3);
+}
+.caja-er-subtotal > * {
+  border-top: 1px solid var(--borde-fuerte);
+  font-weight: 650;
+}
+.caja-er.tabla .caja-er-subtotal > th[scope="row"] {
+  font-weight: 650;
+}
+.caja-er-subtotal.neta > * {
+  background: var(--acento-suave);
+  font-size: 15px;
+  border-top-color: color-mix(in srgb, var(--acento) 45%, var(--borde));
+}
+.caja-er .pastilla {
+  font-size: 12px;
+}
+.caja-er-destino-titulo {
+  margin: 12px 0 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+.caja-er-ayuda {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+.caja-er + .caja-leyenda-caja,
+.caja-er-marco + .caja-leyenda-caja {
+  margin-top: 12px;
+}
+
+/* Celular: cada fila es una tarjeta corta (nombre y real arriba; barra; lo demás pequeño) */
+@media (max-width: 759px) {
+  .caja-er thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .caja-er,
+  .caja-er tbody {
+    display: block;
+  }
+  .caja-er tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "n r"
+      "n p"
+      "d c";
+    column-gap: 10px;
+    row-gap: 2px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--borde);
+  }
+  .caja-er.tabla tbody tr > * {
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+  .caja-er tr.caja-er-seccion,
+  .caja-er tr.caja-er-subtotal {
+    background: var(--panel-alto);
+    border-radius: 8px;
+    border-bottom: 0;
+    margin-top: 6px;
+  }
+  .caja-er tr.caja-er-subtotal.neta {
+    background: var(--acento-suave);
+  }
+  .caja-er tr.caja-er-linea.vacia {
+    display: block;
+  }
+  .caja-er.tabla tbody th[scope="row"] {
+    grid-area: n;
+    padding: 0;
+  }
+  .caja-er .caja-er-r {
+    grid-area: r;
+    font-weight: 650;
+  }
+  .caja-er .caja-er-p {
+    grid-area: p;
+    font-size: 12px;
+    color: var(--texto-3);
+  }
+  .caja-er .caja-er-p::before {
+    content: "de ";
+  }
+  .caja-er .caja-er-d {
+    grid-area: d;
+    text-align: left;
+    padding-top: 4px;
+  }
+  .caja-er .caja-er-c {
+    grid-area: c;
+    padding-top: 4px;
+    font-size: 12.5px;
+    color: var(--texto-2);
+  }
+  .caja-er-barra {
+    max-width: none;
+  }
+}
+
+/* ───────────── Configuración ───────────── */
+.caja-enlace-flecha {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+}
+.caja-conf-cadena {
+  list-style: none;
+  margin: 0;
+  padding: 12px 16px 16px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.caja-conf-cadena li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  min-width: 0;
+  border-radius: 10px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde);
+}
+.caja-conf-cadena li > span {
+  font-size: 12.5px;
+  color: var(--texto-2);
+}
+.caja-conf-cadena li > strong {
+  font-size: 16px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.caja-conf-cadena li.total {
+  border-color: color-mix(in srgb, var(--acento) 40%, var(--borde));
+  background: color-mix(in srgb, var(--acento) 7%, var(--panel-alto));
+}
+@media (max-width: 899px) {
+  .caja-conf-cadena {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+  }
+  .caja-conf-cadena li:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.caja-conf-sin {
+  border-color: color-mix(in srgb, var(--ambar) 40%, var(--borde));
+}
+.caja-conf-sin .panel-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.caja-conf-sin .panel-titulo svg {
+  color: var(--ambar);
+}
+
+/* Categorías por tipo: un panel por línea del estado; adentro, tarjetas en rejilla (sin huecos) */
+.caja-conf-tipos {
+  display: grid;
+  gap: 16px;
+}
+@media (max-width: 899px) {
+  .caja-conf-tipos {
+    gap: 12px;
+  }
+}
+.caja-conf-rejilla,
+.caja-conf-cuentas .caja-lista {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+.caja-conf-cats {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  align-items: start;
+}
+.caja-conf-cuentas .caja-subtitulo {
+  margin-top: 18px;
+}
+@media (min-width: 900px) {
+  .caja-conf-general .caja-campos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.caja-conf-tipo .panel-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.caja-conf-total {
+  margin-left: auto;
+  color: var(--texto-2);
+}
+.caja-conf-cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.caja-conf-cat {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  min-width: 0;
+  border-radius: 10px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde);
+}
+.caja-conf-fijos {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 12px;
+  display: grid;
+  gap: 10px;
+  border-left: 2px solid var(--borde-fuerte);
+}
+.caja-conf-fijos.sueltos {
+  padding-left: 0;
+  border-left: 0;
+  margin-bottom: 10px;
+}
+.caja-conf-fijo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.caja-conf-fijo.omitido {
+  opacity: 0.7;
+}
+.caja-conf-fijo .caja-desplegable > summary {
+  min-height: 36px;
+  font-size: 13px;
+}
+.caja-conf-acciones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.caja-conf-acciones > details[open] {
+  grid-column: 1 / -1;
+}
+.caja-conf-vacio {
+  margin: 0 0 10px;
+}
+.caja-conf-nueva {
+  margin-top: 10px;
+}
+
+/* Asistente: los tipos en palabras simples y el repaso con totales */
+.caja-tipos-explica {
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+  font-size: 13.5px;
+  color: var(--texto-2);
+  border-radius: 10px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde);
+}
+.caja-tipos-explica strong {
+  color: var(--texto);
+}
+.caja-cuentas-fijos {
+  padding-top: 4px;
+}
+.caja-repaso dl > div.total {
+  font-weight: 650;
+}
+.caja-repaso dl > div.total dt {
+  color: var(--texto);
+}
+
+/* Resumen del Dashboard («Rendimiento del presupuesto») */
+.caja-rt-neta {
+  display: grid;
+  gap: 4px;
+}
+.caja-rt-neta .cifra-grande {
+  margin: 0;
+}
+.caja-rt-claves {
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.caja-rt-claves > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  min-width: 0;
+  border-radius: 10px;
+  background: var(--panel-alto);
+  border: 1px solid var(--borde);
+}
+.caja-rt-claves dt {
+  font-size: 12px;
+  color: var(--texto-2);
+}
+.caja-rt-claves dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.caja-rt-claves dt + dd {
+  font-size: 15px;
+  font-weight: 650;
 }

@@ -6,6 +6,7 @@
 import Big from "big.js";
 import { jsonExacto } from "../../supabase/functions/_shared/json";
 import { esFecha, type Fecha } from "./fechas";
+import { adicionalDesdeV1 } from "./resultados";
 import { montoDeTexto } from "./validar";
 import {
   type Categoria,
@@ -14,13 +15,15 @@ import {
   type DatosCaja,
   esUno,
   FRECUENCIAS,
-  GRUPOS,
+  GRUPOS_V1,
   MONEDAS,
   type Movimiento,
   type NotaDia,
   type Omitido,
   type Recurrente,
   type SaldoReal,
+  TIPO_DESDE_GRUPO,
+  TIPOS_CATEGORIA,
   TIPOS_CUENTA,
   TIPOS_MOVIMIENTO,
 } from "./tipos";
@@ -144,15 +147,22 @@ export function parsearImportacion(texto: string): ResultadoImportacion {
   const idsCuenta = new Set(cuentas.map((x) => x.id));
 
   // ── categorías ──
+  // Formato nuevo: { tipo, adicional }. Formato del artefacto (v1): { grupo, presupuesto }: el grupo se
+  // convierte igual que en la migración y el presupuesto pasa a «adicional» descontando sus fijos.
   const categorias: Categoria[] = [];
+  const presupuestoV1 = new Map<string, string | null>();
   for (const [id, x] of coleccion("categorias")) {
+    const tipo = txt(x.tipo);
     const grupo = txt(x.grupo);
-    if (!esUno(GRUPOS, grupo)) {
-      errores.push(`categorias.${id}.grupo: «${grupo ?? ""}» no es ingreso, fijo, variable, ahorro ni deuda.`);
-      continue;
+    if (esUno(TIPOS_CATEGORIA, tipo)) {
+      const a = monto(x.adicional, `categorias.${id}.adicional`, null);
+      categorias.push({ id, nombre: txt(x.nombre) ?? id, tipo, adicional: a && new Big(a).gt(0) ? a : null });
+    } else if (esUno(GRUPOS_V1, grupo)) {
+      presupuestoV1.set(id, monto(x.presupuesto, `categorias.${id}.presupuesto`, null));
+      categorias.push({ id, nombre: txt(x.nombre) ?? id, tipo: TIPO_DESDE_GRUPO[grupo], adicional: null });
+    } else {
+      errores.push(`categorias.${id}.grupo: «${grupo ?? tipo ?? ""}» no es ingreso, fijo, variable, ahorro ni deuda.`);
     }
-    const p = monto(x.presupuesto, `categorias.${id}.presupuesto`, null);
-    categorias.push({ id, nombre: txt(x.nombre) ?? id, grupo, presupuesto: p });
   }
   const idsCategoria = new Set(categorias.map((x) => x.id));
 
@@ -221,6 +231,10 @@ export function parsearImportacion(texto: string): ResultadoImportacion {
     });
   }
   const idsRecurrente = new Set(recurrentes.map((x) => x.id));
+  for (const cat of categorias) {
+    if (!presupuestoV1.has(cat.id)) continue;
+    cat.adicional = adicionalDesdeV1(presupuestoV1.get(cat.id) ?? null, recurrentes.filter((r) => r.categoria === cat.id));
+  }
 
   // ── días ──
   const movimientos: Movimiento[] = [];
@@ -324,7 +338,7 @@ export function aJsonSQL(d: DatosCaja & { config: ConfigCaja }) {
   return {
     config: { inicio: d.config.inicio, colchon: d.config.colchon, margen: d.config.margen, tasa_usd: d.config.tasaUSD },
     cuentas: d.cuentas.map((c) => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, saldo_inicial: c.saldoInicial, limite: c.limite, orden: c.orden })),
-    categorias: d.categorias.map((c) => ({ id: c.id, nombre: c.nombre, grupo: c.grupo, presupuesto: c.presupuesto })),
+    categorias: d.categorias.map((c) => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, adicional: c.adicional })),
     recurrentes: d.recurrentes.map((r) => ({
       id: r.id, nombre: r.nombre, tipo: r.tipo, monto: r.monto, moneda: r.moneda, pago_total: r.pagoTotal,
       cuenta: r.cuenta, destino: r.destino, categoria: r.categoria, frecuencia: r.frecuencia, dias: r.dias,

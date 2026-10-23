@@ -6,8 +6,31 @@ import type { Fecha } from "./fechas";
 export const TIPOS_CUENTA = ["banco", "efectivo", "ahorro", "tarjeta"] as const;
 export type TipoCuenta = (typeof TIPOS_CUENTA)[number];
 
-export const GRUPOS = ["ingreso", "fijo", "variable", "ahorro", "deuda"] as const;
-export type Grupo = (typeof GRUPOS)[number];
+/**
+ * Tipo de cada categoría = la línea del estado de resultados donde cae. El orden es el del estado:
+ * Ingresos − Costos = Utilidad bruta − Gastos = Utilidad operativa − Gastos financieros + Otros ingresos
+ * − Otros gastos = Utilidad neta → destino: Ahorro e inversión (va al Portafolio).
+ */
+export const TIPOS_CATEGORIA = ["ingreso", "costo", "gasto", "gasto_financiero", "otro_ingreso", "otro_gasto", "ahorro_inversion"] as const;
+export type TipoCategoria = (typeof TIPOS_CATEGORIA)[number];
+
+/** Grupos de la versión anterior (hasta oct. 2026). Solo para convertir datos e importar el artefacto. */
+export const GRUPOS_V1 = ["ingreso", "fijo", "variable", "ahorro", "deuda"] as const;
+export type GrupoV1 = (typeof GRUPOS_V1)[number];
+
+/** Conversión de los grupos viejos (la misma que hace la migración 20261021000400_presupuesto.sql). */
+export const TIPO_DESDE_GRUPO: Record<GrupoV1, TipoCategoria> = {
+  ingreso: "ingreso",
+  fijo: "gasto",
+  variable: "gasto",
+  ahorro: "ahorro_inversion",
+  deuda: "gasto_financiero",
+};
+
+/** Las categorías de entrada suman en el estado; las demás restan (o, en ahorro, son destino de la utilidad). */
+export function esEntrada(t: TipoCategoria): boolean {
+  return t === "ingreso" || t === "otro_ingreso";
+}
 
 export const TIPOS_MOVIMIENTO = ["ingreso", "gasto", "transferencia", "pago_tarjeta"] as const;
 export type TipoMovimiento = (typeof TIPOS_MOVIMIENTO)[number];
@@ -25,18 +48,42 @@ export const NOMBRE_TIPO_CUENTA: Record<TipoCuenta, string> = {
   tarjeta: "Tarjeta de crédito",
 };
 
-export const NOMBRE_GRUPO: Record<Grupo, string> = {
+export const NOMBRE_TIPO_CATEGORIA: Record<TipoCategoria, string> = {
   ingreso: "Ingresos",
-  fijo: "Gastos fijos",
-  variable: "Gastos variables",
-  ahorro: "Ahorro e inversión",
-  deuda: "Deudas",
+  costo: "Costos",
+  gasto: "Gastos",
+  gasto_financiero: "Gastos financieros",
+  otro_ingreso: "Otros ingresos",
+  otro_gasto: "Otros gastos",
+  ahorro_inversion: "Ahorro e inversión",
+};
+
+/** Singular, para selectores («Tipo: Gasto»). */
+export const NOMBRE_TIPO_CATEGORIA_UNO: Record<TipoCategoria, string> = {
+  ingreso: "Ingreso",
+  costo: "Costo",
+  gasto: "Gasto",
+  gasto_financiero: "Gasto financiero",
+  otro_ingreso: "Otro ingreso",
+  otro_gasto: "Otro gasto",
+  ahorro_inversion: "Ahorro e inversión",
+};
+
+/** Qué es cada tipo, en palabras de la calle y con ejemplos. */
+export const AYUDA_TIPO_CATEGORIA: Record<TipoCategoria, string> = {
+  ingreso: "El dinero que te entra por tu trabajo o tu negocio. Ej.: sueldo, quincena, ventas.",
+  costo: "Lo que gastas para poder generar ese ingreso. Ej.: mercancía que revendes, materiales, transporte del trabajo.",
+  gasto: "El día a día de tu casa y tu vida. Ej.: alquiler, comida, luz, internet, colegio.",
+  gasto_financiero: "Lo que pagas por deber dinero. Ej.: intereses de la tarjeta o del préstamo, comisiones del banco.",
+  otro_ingreso: "Entradas que no son de tu trabajo. Ej.: un regalo, la venta de algo usado, un reembolso.",
+  otro_gasto: "Salidas que no son del día a día. Ej.: una multa, un arreglo inesperado, una donación.",
+  ahorro_inversion: "Lo que apartas cada mes de lo que te sobra para tu Portafolio. Ej.: ahorro, certificado, fondo, acciones.",
 };
 
 export const NOMBRE_TIPO: Record<TipoMovimiento, string> = {
   ingreso: "Ingreso",
   gasto: "Gasto",
-  transferencia: "Transferencia",
+  transferencia: "Mover entre mis cuentas",
   pago_tarjeta: "Pago de tarjeta",
 };
 
@@ -67,9 +114,13 @@ export interface Cuenta {
 export interface Categoria {
   id: string;
   nombre: string;
-  grupo: Grupo;
-  /** Presupuesto mensual en RD$. null = sin presupuesto. */
-  presupuesto: string | null;
+  /** Línea del estado de resultados. */
+  tipo: TipoCategoria;
+  /**
+   * Monto adicional al mes (RD$) que Mena escribe a mano. Lo presupuestado de la categoría es la suma
+   * de sus fijos del mes + este adicional. null = nada adicional.
+   */
+  adicional: string | null;
 }
 
 export interface Recurrente {

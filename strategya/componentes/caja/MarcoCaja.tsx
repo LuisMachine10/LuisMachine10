@@ -1,15 +1,16 @@
-// Marco común de las páginas de /caja: encabezado de la app, título de la pantalla con una línea
-// en palabras simples, pestañas del módulo y contenido.
+// Marco común de las páginas de /caja: encabezado de la app, título «Presupuesto» con su línea del menú
+// (SECCIONES), pestañas del módulo, una línea de qué hace la pestaña y el contenido.
 
 import "@/estilos/caja.css";
-import { Encabezado } from "@/componentes/Encabezado";
+import { Encabezado, SECCIONES } from "@/componentes/Encabezado";
 import { PestanasCaja, type PestanaCaja } from "./PestanasCaja";
+
+const SECCION = SECCIONES.find((s) => s.clave === "caja")!;
 
 export function MarcoCaja({
   actual,
   mes,
   editadoEn,
-  titulo,
   sub,
   acciones,
   sinPestanas = false,
@@ -18,8 +19,7 @@ export function MarcoCaja({
   actual: PestanaCaja;
   mes?: string;
   editadoEn: string | null;
-  titulo: string;
-  /** Para qué sirve la pantalla, en una línea («Aquí ves…»). */
+  /** Qué haces en esta pestaña, en una línea («Aquí ves…»). */
   sub: string;
   /** Acción principal (y secundarias) de la pantalla. */
   acciones?: React.ReactNode;
@@ -32,17 +32,18 @@ export function MarcoCaja({
       <Encabezado actual="caja" ultimaActualizacion={editadoEn} />
       <div className="caja-cabeza">
         <div className="caja-cabeza-texto">
-          <h1>{titulo}</h1>
-          <p>{sub}</p>
+          <h1>{SECCION.nombre}</h1>
+          <p>{SECCION.para}</p>
         </div>
         {acciones ? <div className="caja-cabeza-acciones">{acciones}</div> : null}
       </div>
       {sinPestanas ? null : <PestanasCaja actual={actual} mes={mes} />}
+      <p className="caja-para-pestana">{sub}</p>
       <main className="terminal caja-terminal">{children}</main>
       <footer className="pie">
         <p>
-          Calendario de caja: las cifras salen de lo que tú anotas (saldos de hoy, movimientos, pagos fijos y cuadres con tu banco). Lo
-          programado es lo que tú programaste, no un pronóstico. No es asesoría de inversión.
+          Presupuesto: las cifras salen de lo que tú anotas (categorías, pagos fijos, movimientos, saldos de hoy y cuadres con tu banco).
+          Lo presupuestado es lo que tú planificaste, no un pronóstico. No es asesoría de inversión.
         </p>
       </footer>
     </div>

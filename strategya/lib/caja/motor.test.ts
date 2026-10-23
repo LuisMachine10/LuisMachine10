@@ -7,7 +7,6 @@ import {
   horizonte,
   movimientosDelMes,
   ocurreEn,
-  presupuestoDelMes,
   resumir,
   simular,
 } from "./motor";
@@ -372,13 +371,13 @@ describe("resumen", () => {
   });
 });
 
-describe("movimientos del mes y presupuesto", () => {
+describe("movimientos del mes", () => {
   const datos = base({
     categorias: [
-      { id: "sal", nombre: "Salario", grupo: "ingreso", presupuesto: "80000" },
-      { id: "com", nombre: "Comida", grupo: "variable", presupuesto: "12000" },
-      { id: "luz", nombre: "Luz", grupo: "fijo", presupuesto: null },
-      { id: "inv", nombre: "Inversión", grupo: "ahorro", presupuesto: "10000" },
+      { id: "sal", nombre: "Salario", tipo: "ingreso", adicional: "80000" },
+      { id: "com", nombre: "Comida", tipo: "gasto", adicional: "12000" },
+      { id: "luz", nombre: "Luz", tipo: "gasto", adicional: null },
+      { id: "inv", nombre: "Inversión", tipo: "ahorro_inversion", adicional: "10000" },
     ],
     recurrentes: [rec({ id: "super", dias: "25", monto: "4000", categoria: "com" })],
     movimientos: [
@@ -399,17 +398,6 @@ describe("movimientos del mes y presupuesto", () => {
     expect(t.neto).toBe("34474.5");
     expect(t.tasaAhorro).toBe("20.0");
     expect(movimientosDelMes(datos, "2026-08").tasaAhorro).toBeNull();
-  });
-
-  it("presupuesto por grupo: real, viene (planificado desde hoy) y queda", () => {
-    const sim = simular(datos, { hoy: "2026-10-10", hasta: "2026-10-31" });
-    const g = presupuestoDelMes(datos, sim, "2026-10");
-    expect(g.map((x) => x.grupo)).toEqual(["ingreso", "fijo", "variable", "ahorro"]);
-    const variable = g.find((x) => x.grupo === "variable")!;
-    expect(variable.filas[0]).toMatchObject({ real: "5525.5", viene: "4000", queda: "2474.5", usado: 79 });
-    const fijo = g.find((x) => x.grupo === "fijo")!;
-    expect(fijo.filas[0]).toMatchObject({ presupuesto: null, queda: null, usado: null });
-    expect(g.find((x) => x.grupo === "ahorro")!.filas[0]).toMatchObject({ real: "8000", queda: "2000" });
   });
 });
 

@@ -12,11 +12,10 @@ import { esFecha, esMes, hoyRD, mesDe, nombreMes, primerDia } from "@/lib/caja/f
 import { horizonte, resumir, simular } from "@/lib/caja/motor";
 import { armarVistaMes, catalogos, ultimoCuadre } from "@/lib/caja/vista";
 
-export const metadata: Metadata = { title: "Caja · Strategya" };
+export const metadata: Metadata = { title: "Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
 
-const TITULO = "Mi presupuesto";
-const SUB = "Aquí ves cuánto dinero tendrás cada día y cuánto puedes gastar sin bajar de tu mínimo.";
+const SUB = "Aquí ves, día por día, cuánto dinero tendrás y cuánto puedes gastar sin bajar de tu mínimo. Toca un día para responder «¿Ya se hizo?».";
 
 export default async function PaginaCaja({ searchParams }: { searchParams: Promise<{ mes?: string; dia?: string }> }) {
   const ahora = new Date();
@@ -30,15 +29,15 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
     lectura = await leerCaja();
   } catch (e) {
     return (
-      <MarcoCaja actual="calendario" editadoEn={null} titulo={TITULO} sub={SUB}>
-        <PanelError titulo="Mi presupuesto" mensaje={(e as Error).message} />
+      <MarcoCaja actual="calendario" editadoEn={null} sub={SUB}>
+        <PanelError titulo="Presupuesto" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
   }
   const { datos, editadoEn } = lectura;
   if (!datos.config) {
     return (
-      <MarcoCaja actual="calendario" editadoEn={editadoEn} titulo={TITULO} sub="Aquí anotas tu dinero una sola vez y el calendario hace las cuentas por ti." sinPestanas>
+      <MarcoCaja actual="calendario" editadoEn={editadoEn} sub="Aquí anotas una sola vez lo que te entra, lo que gastas y dónde tienes tu dinero; lo demás se calcula solo." sinPestanas>
         <AsistenteCaja />
       </MarcoCaja>
     );
@@ -51,7 +50,7 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
   const { cuentas, categorias } = catalogos(datos);
 
   return (
-    <MarcoCaja actual="calendario" mes={mes} editadoEn={editadoEn} titulo={TITULO} sub={SUB} acciones={<BotonesNuevo />}>
+    <MarcoCaja actual="calendario" mes={mes} editadoEn={editadoEn} sub={SUB} acciones={<BotonesNuevo />}>
       <section className="panel panel-ancho caja-resumen" aria-labelledby="t-resumen">
         <h2 className="sr-solo" id="t-resumen">
           Tu caja hoy

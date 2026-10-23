@@ -1,4 +1,4 @@
-// Íconos de trazo del Calendario de Caja (24×24, currentColor) y la ayuda «?» con 1–2 frases.
+// Íconos de trazo del Presupuesto (24×24, currentColor) y la ayuda «?» con 1–2 frases.
 
 const TRAZOS = {
   banco: "M3 10h18M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18M12 3l9 5H3z",
@@ -18,6 +18,9 @@ const TRAZOS = {
   escudo: "M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z",
   lista: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
   nota: "M5 4h10l4 4v12H5zM15 4v4h4M8 13h8M8 17h5",
+  ajustes: "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4",
+  aviso: "M12 4l9 16H3zM12 10v4M12 17h.01",
+  portafolio: "M4 8h16v11H4zM9 8V5h6v3M4 13h16",
   balanza: "M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a3 3 0 0 0 5 0zM19 8l-2.5 6a3 3 0 0 0 5 0z",
 } as const;
 

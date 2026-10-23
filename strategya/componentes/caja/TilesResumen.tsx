@@ -1,4 +1,4 @@
-// Mosaicos de arriba del Calendario de Caja (y de la sección Caja de la terminal): la cifra que
+// Mosaicos de arriba del Calendario del Presupuesto: la cifra que
 // importa grande, lo demás pequeño. Cada término tiene su «?» con una explicación corta.
 
 import Big from "big.js";
@@ -68,10 +68,10 @@ export function TilesResumen({ r, colchon }: { r: ResumenCalculado; colchon: str
 
       <div className="caja-mosaico">
         <div className="caja-mosaico-titulo">
-          Por confirmar
-          <Ayuda que="«por confirmar»">
-            Pagos o cobros fijos de días que ya pasaron y que no has marcado como hechos. No se cuentan hasta que los confirmes: toca el día
-            con punto ámbar.
+          ¿Ya se hizo?
+          <Ayuda que="«¿ya se hizo?»">
+            Tus fijos se planifican solos. Estos son de días que ya pasaron y aún no dices si de verdad ocurrieron: no se cuentan hasta que
+            toques el día con punto ámbar y digas «Sí, ya se hizo» o «Este mes no».
           </Ayuda>
         </div>
         <p className={`caja-mosaico-cifra chica ${pc.cantidad ? "alerta" : "tenue"}`}>{pc.cantidad}</p>
@@ -84,7 +84,7 @@ export function TilesResumen({ r, colchon }: { r: ResumenCalculado; colchon: str
                 pc.sinTasa ? `${pc.sinTasa} en US$ sin tasa` : null,
               ]
                 .filter(Boolean)
-                .join(" · ") || "fijos pasados sin confirmar"
+                .join(" · ") || "fijos pasados sin responder"
             : "Todo al día"}
         </p>
       </div>

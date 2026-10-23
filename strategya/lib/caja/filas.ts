@@ -7,7 +7,7 @@ import type { Categoria, ConfigCaja, Cuenta, DatosCaja, Movimiento, NotaDia, Omi
 export const COLUMNAS = {
   caja_config: "inicio, colchon::text, margen::text, tasa_usd::text, actualizado_en",
   caja_cuentas: "id, nombre, tipo, saldo_inicial::text, limite::text, orden",
-  caja_categorias: "id, nombre, grupo, presupuesto::text",
+  caja_categorias: "id, nombre, tipo, adicional::text",
   caja_recurrentes:
     "id, nombre, tipo, monto::text, moneda, pago_total, cuenta, destino, categoria, frecuencia, dias, cada_n, fecha, desde, hasta, activo",
   caja_movimientos: "id, fecha, tipo, monto::text, moneda, tasa::text, cuenta, destino, categoria, nota, recurrente_id, actualizado_en",
@@ -60,7 +60,7 @@ export function filasADatos(f: FilasCaja): DatosCaja {
       }),
     ),
     categorias: f.categorias.map(
-      (c): Categoria => ({ id: String(c.id), nombre: String(c.nombre), grupo: c.grupo as Categoria["grupo"], presupuesto: s(c.presupuesto) }),
+      (c): Categoria => ({ id: String(c.id), nombre: String(c.nombre), tipo: c.tipo as Categoria["tipo"], adicional: s(c.adicional) }),
     ),
     recurrentes: f.recurrentes.map(
       (r): Recurrente => ({

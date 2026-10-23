@@ -9,10 +9,10 @@ import {
   type Cuenta,
   esUno,
   FRECUENCIAS,
-  GRUPOS,
   MONEDAS,
   type Movimiento,
   type Recurrente,
+  TIPOS_CATEGORIA,
   TIPOS_CUENTA,
   TIPOS_MOVIMIENTO,
 } from "./tipos";
@@ -81,11 +81,28 @@ export function validarCuenta(c: Campos): Resultado<Omit<Cuenta, "id">> {
 
 export function validarCategoria(c: Campos): Resultado<Omit<Categoria, "id">> {
   const nombre = texto(c.nombre);
-  if (!nombre) return mal("La categoría necesita un nombre.");
-  if (!esUno(GRUPOS, c.grupo)) return mal("Grupo inválido.");
-  const p = leerMonto(c.presupuesto, "Presupuesto mensual");
-  if (!p.ok) return p;
-  return ok({ nombre, grupo: c.grupo, presupuesto: p.valor });
+  if (!nombre) return mal("La categoría necesita un nombre. Ej.: Sueldo, Comida o Intereses de la tarjeta.");
+  if (!esUno(TIPOS_CATEGORIA, c.tipo)) return mal("Elige el tipo: ingreso, costo, gasto, gasto financiero, otro ingreso, otro gasto o ahorro e inversión.");
+  const p = leerMonto(c.adicional, "Monto adicional al mes");
+  if (!p.ok) return { ok: false, error: `${p.error} Escribe solo la cifra, por ejemplo 12,000, o déjalo vacío.` };
+  return ok({ nombre, tipo: c.tipo, adicional: p.valor && new Big(p.valor).eq(0) ? null : p.valor });
+}
+
+/**
+ * Todo ingreso o gasto lleva su categoría: así cae solo en el estado de resultados. Mover entre mis
+ * cuentas y pagar la tarjeta no la necesitan (no son ingreso ni gasto).
+ */
+export function pideCategoria(tipo: string): boolean {
+  return tipo === "ingreso" || tipo === "gasto";
+}
+
+function revisarCategoria(tipo: string, categoria: string | null): string | null {
+  if (pideCategoria(tipo) && !categoria) {
+    return tipo === "ingreso"
+      ? "Elige la categoría del ingreso (por ejemplo «Sueldo»). Si no está, créala en Configuración."
+      : "Elige la categoría del gasto (por ejemplo «Comida»). Si no está, créala en Configuración.";
+  }
+  return null;
 }
 
 function revisarCuentas(tipo: string, cuenta: string | null, destino: string | null): string | null {
@@ -107,7 +124,7 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
   if (!tasa.ok) return tasa;
   const cuenta = opcional(c.cuenta);
   const destino = c.tipo === "transferencia" || c.tipo === "pago_tarjeta" ? opcional(c.destino) : null;
-  const e = revisarCuentas(c.tipo, cuenta, destino);
+  const e = revisarCuentas(c.tipo, cuenta, destino) ?? revisarCategoria(c.tipo, opcional(c.categoria));
   if (e) return mal(e);
   return ok({
     fecha,
@@ -125,7 +142,7 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
 
 export function validarRecurrente(c: Campos): Resultado<Omit<Recurrente, "id">> {
   const nombre = texto(c.nombre);
-  if (!nombre) return mal("El recurrente necesita un nombre.");
+  if (!nombre) return mal("El pago o cobro fijo necesita un nombre. Ej.: Alquiler o Quincena.");
   if (!esUno(TIPOS_MOVIMIENTO, c.tipo)) return mal("Tipo inválido.");
   const frecuencia = c.frecuencia || "mensual";
   if (!esUno(FRECUENCIAS, frecuencia)) return mal("Frecuencia inválida.");
@@ -136,7 +153,7 @@ export function validarRecurrente(c: Campos): Resultado<Omit<Recurrente, "id">> 
   if (!monto.ok) return monto;
   const cuenta = opcional(c.cuenta);
   const destino = c.tipo === "transferencia" || c.tipo === "pago_tarjeta" ? opcional(c.destino) : null;
-  const e = revisarCuentas(c.tipo, cuenta, destino);
+  const e = revisarCuentas(c.tipo, cuenta, destino) ?? revisarCategoria(c.tipo, opcional(c.categoria));
   if (e) return mal(e);
   const dias = texto(c.dias);
   let cadaN: number | null = null;

@@ -123,7 +123,7 @@ export function ImportarCaja({ hayDatos }: { hayDatos: boolean }) {
                 <button type="button" className="caja-boton peligro" disabled={pendiente} onClick={() => mandar(true)}>
                   {pendiente ? "Importando…" : hayDatos ? "Reemplazar todo con este archivo" : "Importar"}
                 </button>
-                {hayDatos ? <span className="chico baja">Borra todo lo que hay hoy en el Calendario de Caja y pone esto.</span> : null}
+                {hayDatos ? <span className="chico baja">Borra todo lo que hay hoy en tu Presupuesto y pone esto.</span> : null}
               </div>
             ) : (
               <p className="caja-mensaje ok" role="status">

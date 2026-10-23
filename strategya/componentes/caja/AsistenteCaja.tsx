@@ -1,15 +1,17 @@
 "use client";
 
-// Asistente de bienvenida: cuando la caja está vacía, guía en 4 pasos (cuentas, ingresos fijos,
-// gastos fijos y colchón) y al final guarda todo de una vez. El borrador se recuerda en este
+// Asistente de bienvenida del Presupuesto: cuando no hay nada, guía en 4 pasos en el orden de un estado
+// de resultados (1 lo que te entra, 2 costos y gastos, 3 cuentas y saldos de hoy, 4 ahorro e inversión y
+// colchón) y al final guarda todo de una vez. Cada ingreso o gasto queda como categoría (y, si tiene día,
+// también como pago fijo enlazado): no hay que anotar dos veces. El borrador se recuerda en este
 // navegador mientras se llena (si el navegador lo permite).
 
 import Big from "big.js";
 import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react";
 import { crearCajaDesdeAsistente, type EstadoAccion } from "@/app/caja/acciones";
-import { totalMensual } from "@/lib/caja/asistente";
+import { alMes } from "@/lib/caja/asistente";
 import { rd } from "@/lib/caja/formato";
-import { NOMBRE_TIPO_CUENTA, type TipoCuenta } from "@/lib/caja/tipos";
+import { AYUDA_TIPO_CATEGORIA, NOMBRE_TIPO_CATEGORIA_UNO, NOMBRE_TIPO_CUENTA, type TipoCategoria, type TipoCuenta } from "@/lib/caja/tipos";
 import { montoDeTexto } from "@/lib/caja/validar";
 import { Ayuda, Icono, type NombreIcono } from "./Iconos";
 
@@ -21,39 +23,40 @@ interface FilaCuenta {
   limite: string;
   diaPago: string;
 }
-interface FilaIngreso {
+interface FilaConcepto {
+  k: string;
+  tipo: TipoCategoria;
   nombre: string;
   monto: string;
   dias: string;
-  cuenta: string; // k de la cuenta
-}
-interface FilaGasto {
-  nombre: string;
-  monto: string;
-  dia: string;
-  cuenta: string;
 }
 interface Borrador {
   paso: number;
   sig: number;
+  ingresos: FilaConcepto[];
+  gastos: FilaConcepto[];
   cuentas: FilaCuenta[];
-  ingresos: FilaIngreso[];
-  gastos: FilaGasto[];
+  cuentaIngresos: string;
+  cuentaGastos: string;
+  ahorro: string;
   colchon: string;
 }
 
-const CLAVE = "strategya-caja-asistente-v1";
+const CLAVE = "strategya-presupuesto-asistente-v2";
 const INICIAL: EstadoAccion = { ok: false, mensaje: null, vez: 0 };
 const NUEVO: Borrador = {
   paso: 0,
   sig: 2,
-  cuentas: [{ k: "a1", tipo: "banco", nombre: "", saldo: "", limite: "", diaPago: "" }],
   ingresos: [],
   gastos: [],
+  cuentas: [{ k: "a1", tipo: "banco", nombre: "", saldo: "", limite: "", diaPago: "" }],
+  cuentaIngresos: "",
+  cuentaGastos: "",
+  ahorro: "",
   colchon: "",
 };
 
-const PASOS = ["Tus cuentas", "Lo que te entra", "Lo que pagas fijo", "Tu colchón"] as const;
+const PASOS = ["Lo que te entra", "Costos y gastos", "Tus cuentas hoy", "Ahorro y colchón"] as const;
 const ICONO_TIPO: Record<TipoCuenta, NombreIcono> = { banco: "banco", efectivo: "efectivo", ahorro: "ahorro", tarjeta: "tarjeta" };
 const EJEMPLO_NOMBRE: Record<TipoCuenta, string> = { banco: "Ej.: Banco Popular", efectivo: "Ej.: Cartera", ahorro: "Ej.: Ahorro APAP", tarjeta: "Ej.: Visa" };
 const AGREGAR_CUENTA: { tipo: TipoCuenta; texto: string }[] = [
@@ -62,12 +65,25 @@ const AGREGAR_CUENTA: { tipo: TipoCuenta; texto: string }[] = [
   { tipo: "ahorro", texto: "Ahorro" },
   { tipo: "tarjeta", texto: "Tarjeta de crédito" },
 ];
-const EJEMPLOS_INGRESO: { texto: string; nombre: string; dias: string }[] = [
-  { texto: "Quincena (15 y 30)", nombre: "Quincena", dias: "15, 30" },
-  { texto: "Sueldo mensual", nombre: "Sueldo", dias: "30" },
-  { texto: "Otro ingreso", nombre: "", dias: "" },
+const EJEMPLOS_INGRESO: { texto: string; nombre: string; dias: string; tipo: TipoCategoria }[] = [
+  { texto: "Quincena (15 y 30)", nombre: "Quincena", dias: "15, 30", tipo: "ingreso" },
+  { texto: "Sueldo mensual", nombre: "Sueldo", dias: "30", tipo: "ingreso" },
+  { texto: "Ventas o trabajos", nombre: "Ventas", dias: "", tipo: "ingreso" },
+  { texto: "Otro ingreso", nombre: "", dias: "", tipo: "otro_ingreso" },
 ];
-const EJEMPLOS_GASTO = ["Alquiler", "Préstamo", "Luz", "Agua", "Internet", "Teléfono", "Colegio", "Seguro"];
+const EJEMPLOS_GASTO: { nombre: string; tipo: TipoCategoria; dias: string }[] = [
+  { nombre: "Alquiler", tipo: "gasto", dias: "1" },
+  { nombre: "Comida", tipo: "gasto", dias: "" },
+  { nombre: "Luz", tipo: "gasto", dias: "" },
+  { nombre: "Internet", tipo: "gasto", dias: "" },
+  { nombre: "Colegio", tipo: "gasto", dias: "" },
+  { nombre: "Gasolina", tipo: "gasto", dias: "" },
+  { nombre: "Mercancía", tipo: "costo", dias: "" },
+  { nombre: "Intereses de la tarjeta", tipo: "gasto_financiero", dias: "" },
+  { nombre: "Intereses del préstamo", tipo: "gasto_financiero", dias: "" },
+];
+const TIPOS_DE_INGRESO: TipoCategoria[] = ["ingreso", "otro_ingreso"];
+const TIPOS_DE_GASTO: TipoCategoria[] = ["gasto", "costo", "gasto_financiero", "otro_gasto"];
 
 function leerBorrador(): Borrador | null {
   try {
@@ -89,7 +105,7 @@ function guardarBorrador(b: Borrador | null) {
 }
 
 /** Suma exacta de montos escritos (ignora los que todavía no son número). */
-function sumar(montos: (string | null)[]): string {
+function sumar(montos: (string | null)[]): Big {
   let s = new Big(0);
   for (const m of montos) {
     try {
@@ -99,7 +115,7 @@ function sumar(montos: (string | null)[]): string {
       // aún no es un número: no suma
     }
   }
-  return s.toString();
+  return s;
 }
 
 function Monto({ id, valor, cambiar, etiqueta, ejemplo, requerido, ayuda }: { id: string; valor: string; cambiar: (v: string) => void; etiqueta: string; ejemplo: string; requerido?: boolean; ayuda?: React.ReactNode }) {
@@ -158,15 +174,19 @@ export function AsistenteCaja() {
   const cambiar = <K extends "cuentas" | "ingresos" | "gastos">(lista: K, i: number, cambio: Partial<Borrador[K][number]>) =>
     setB((x) => ({ ...x, [lista]: (x[lista] as Borrador[K][number][]).map((f, j) => (j === i ? { ...f, ...cambio } : f)) }));
   const quitar = (lista: "cuentas" | "ingresos" | "gastos", i: number) => setB((x) => ({ ...x, [lista]: (x[lista] as unknown[]).filter((_, j) => j !== i) }));
+  const agregar = (lista: "ingresos" | "gastos", f: Omit<FilaConcepto, "k">) => setB((x) => ({ ...x, sig: x.sig + 1, [lista]: [...x[lista], { ...f, k: `c${x.sig}` }] }));
 
-  const noTarjetas = b.cuentas.filter((c) => c.tipo !== "tarjeta");
-  const cuentaPorDefecto = noTarjetas[0]?.k ?? b.cuentas[0]?.k ?? "";
   const nombreCuenta = (c: FilaCuenta) => c.nombre || `${NOMBRE_TIPO_CUENTA[c.tipo]} sin nombre`;
-  const totalIngresos = sumar(b.ingresos.map((g) => totalMensual(g.monto, g.dias)));
-  const totalGastos = sumar(b.gastos.map((g) => g.monto));
+  const totalIngresos = sumar(b.ingresos.map((g) => alMes(g.monto, g.dias)));
+  const totalGastos = sumar(b.gastos.map((g) => alMes(g.monto, g.dias)));
+  const fijosGasto = sumar(b.gastos.filter((g) => g.dias.trim()).map((g) => alMes(g.monto, g.dias)));
+  const utilidad = totalIngresos.minus(totalGastos);
+  const ahorro = sumar([b.ahorro]);
+  const hayFijos = b.ingresos.some((g) => g.dias.trim()) || b.gastos.some((g) => g.dias.trim());
+  const noTarjeta = b.cuentas.find((c) => c.tipo !== "tarjeta")?.k ?? "";
 
   const siguiente = () => {
-    if (b.paso === 1) {
+    if (b.paso === 3) {
       const falta = b.cuentas.findIndex((c) => !c.nombre.trim() || !c.saldo.trim());
       if (!b.cuentas.length) return setAviso("Agrega al menos una cuenta: toca «Banco» o «Efectivo» arriba.");
       if (falta >= 0) {
@@ -178,11 +198,15 @@ export function AsistenteCaja() {
   };
 
   const terminar = () => {
-    const indice = (k: string) => String(Math.max(0, b.cuentas.findIndex((c) => c.k === k)));
+    const indice = (k: string) => String(b.cuentas.findIndex((c) => c.k === k));
+    const concepto = ({ tipo, nombre, monto, dias }: FilaConcepto) => ({ tipo, nombre, monto, dias });
     const datos = {
+      ingresos: b.ingresos.map(concepto),
+      gastos: b.gastos.map(concepto),
       cuentas: b.cuentas.map(({ tipo, nombre, saldo, limite, diaPago }) => ({ tipo, nombre, saldo, limite, diaPago })),
-      ingresos: b.ingresos.map((g) => ({ ...g, cuenta: indice(g.cuenta) })),
-      gastos: b.gastos.map((g) => ({ ...g, cuenta: indice(g.cuenta) })),
+      cuentaIngresos: indice(b.cuentaIngresos || noTarjeta),
+      cuentaGastos: indice(b.cuentaGastos || noTarjeta),
+      ahorro: b.ahorro,
       colchon: b.colchon,
     };
     const f = new FormData();
@@ -191,46 +215,102 @@ export function AsistenteCaja() {
   };
 
   if (b.paso === 0) {
+    const empezado = b.ingresos.length > 0 || b.gastos.length > 0 || b.cuentas.some((c) => c.nombre);
     return (
       <section className="panel panel-ancho caja-asistente caja-bienvenida" aria-labelledby={`${uid}-t`}>
         <div className="caja-bienvenida-icono" aria-hidden="true">
-          <Icono n="calendario" tam={28} />
+          <Icono n="balanza" tam={28} />
         </div>
         <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1}>
-          Bienvenido a tu calendario de caja
+          Bienvenido a tu presupuesto
         </h2>
-        <p className="caja-bienvenida-sub">Aquí ves, día por día, cuánto dinero vas a tener y cuánto puedes gastar sin quedarte corto.</p>
+        <p className="caja-bienvenida-sub">Anotas una sola vez lo que te entra y lo que gastas; Strategya arma tu mes como un estado de resultados y tu calendario de cada día.</p>
         <ol className="caja-como">
           <li>
             <span className="caja-como-num">1</span>
             <span>
-              <strong>Anotas tus cuentas</strong> y lo que tienen hoy.
+              <strong>Lo que te entra:</strong> tu sueldo, la quincena, tus ventas.
             </span>
           </li>
           <li>
             <span className="caja-como-num">2</span>
             <span>
-              <strong>Anotas lo fijo:</strong> tu sueldo y lo que pagas cada mes.
+              <strong>Lo que gastas:</strong> alquiler, comida, luz, intereses… cada uno con su tipo.
             </span>
           </li>
           <li>
             <span className="caja-como-num">3</span>
             <span>
-              <strong>El calendario hace la cuenta</strong> de cada día y te avisa en rojo si vas a bajar de tu mínimo.
+              <strong>Tus cuentas hoy</strong> y, al final, cuánto quieres ahorrar al mes y tu colchón.
             </span>
           </li>
         </ol>
         <button type="button" className="boton caja-boton-grande" onClick={() => ir(1)}>
-          {b.cuentas.some((c) => c.nombre) ? "Seguir donde lo dejé" : "Empezar"}
+          {empezado ? "Seguir donde lo dejé" : "Empezar"}
           <Icono n="derecha" tam={18} />
         </button>
         <p className="caja-privado">
           <Icono n="escudo" tam={16} /> No te pedimos números de cuenta, de tarjeta ni cédula: basta un nombre que reconozcas.
         </p>
-        <p className="chico tenue">Toma unos 3 minutos. Todo se puede cambiar después en Ajustes.</p>
+        <p className="chico tenue">Toma unos 3 minutos. Todo se puede cambiar después en Configuración.</p>
       </section>
     );
   }
+
+  const filaConcepto = (lista: "ingresos" | "gastos", g: FilaConcepto, i: number) => {
+    const ingreso = lista === "ingresos";
+    const mes = alMes(g.monto, g.dias);
+    const tipos = ingreso ? TIPOS_DE_INGRESO : TIPOS_DE_GASTO;
+    const id = `as-${lista}-${g.k}`;
+    return (
+      <li key={g.k} className="caja-fila">
+        <div className="caja-fila-cabeza">
+          <span className={`caja-fila-icono ${ingreso ? "ingreso" : "gasto"}`} aria-hidden="true">
+            <Icono n={ingreso ? "ingreso" : "gasto"} />
+          </span>
+          <span className="caja-fila-titulo">{g.nombre || `${ingreso ? "Ingreso" : "Gasto"} ${i + 1}`}</span>
+          <button type="button" className="caja-quitar" onClick={() => quitar(lista, i)} aria-label={`Quitar ${g.nombre || `${ingreso ? "ingreso" : "gasto"} ${i + 1}`}`}>
+            <Icono n="cerrar" tam={18} />
+          </button>
+        </div>
+        <div className="caja-fila-campos">
+          <div className="caja-campo">
+            <label htmlFor={`${id}-n`}>Nombre</label>
+            <input id={`${id}-n`} value={g.nombre} maxLength={120} placeholder={ingreso ? "Ej.: Sueldo" : "Ej.: Alquiler"} autoComplete="off" onChange={(e) => cambiar(lista, i, { nombre: e.target.value })} />
+          </div>
+          <div className="caja-campo">
+            <label htmlFor={`${id}-t`}>Tipo</label>
+            <select id={`${id}-t`} value={g.tipo} onChange={(e) => cambiar(lista, i, { tipo: e.target.value as TipoCategoria })} title={AYUDA_TIPO_CATEGORIA[g.tipo]}>
+              {tipos.map((t) => (
+                <option key={t} value={t}>
+                  {NOMBRE_TIPO_CATEGORIA_UNO[t]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Monto
+            id={`${id}-m`}
+            valor={g.monto}
+            cambiar={(v) => cambiar(lista, i, { monto: v })}
+            etiqueta={g.dias.trim() ? "¿Cuánto cada vez?" : "¿Cuánto al mes?"}
+            ejemplo={ingreso ? "Ej.: 35,000" : "Ej.: 15,000"}
+            requerido
+          />
+          <div className="caja-campo">
+            <label htmlFor={`${id}-d`}>
+              {ingreso ? "¿Qué días?" : "¿Qué día?"} <span className="tenue">(opcional)</span>
+            </label>
+            <input id={`${id}-d`} value={g.dias} placeholder={ingreso ? "Ej.: 15, 30" : "Ej.: 5"} autoComplete="off" onChange={(e) => cambiar(lista, i, { dias: e.target.value })} title="Con día, el calendario lo pone solo cada mes. Vacío = sin fecha fija." />
+          </div>
+        </div>
+        {mes ? (
+          <p className="caja-fila-total">
+            Al mes: <strong className={`mono ${ingreso ? "sube" : ""}`}>{rd(mes)}</strong>
+          </p>
+        ) : null}
+      </li>
+    );
+  };
 
   return (
     <section className="panel panel-ancho caja-asistente" aria-labelledby={`${uid}-t`} onInput={() => setVezOculta(estado.vez)}>
@@ -249,6 +329,66 @@ export function AsistenteCaja() {
       </div>
 
       {b.paso === 1 ? (
+        <>
+          <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
+            ¿Qué dinero te entra cada mes?
+          </h2>
+          <p className="caja-asistente-sub">Tu sueldo, la quincena, tus ventas. Si llega siempre los mismos días, ponlos y el calendario lo anota solo; si no, deja el día vacío.</p>
+          <div className="caja-agregar" role="group" aria-label="Agregar un ingreso">
+            {EJEMPLOS_INGRESO.map((e) => (
+              <button key={e.texto} type="button" className="caja-chip" onClick={() => agregar("ingresos", { nombre: e.nombre, dias: e.dias, monto: "", tipo: e.tipo })}>
+                <Icono n="mas" tam={16} />
+                {e.texto}
+              </button>
+            ))}
+          </div>
+          {b.ingresos.length ? <ul className="caja-filas">{b.ingresos.map((g, i) => filaConcepto("ingresos", g, i))}</ul> : <p className="caja-vacio-paso">Toca uno de los botones de arriba para anotar tu primer ingreso.</p>}
+          {totalIngresos.gt(0) ? (
+            <p className="caja-fila-total">
+              Te entra al mes: <strong className="mono sube">{rd(totalIngresos.toString())}</strong>
+            </p>
+          ) : null}
+        </>
+      ) : null}
+
+      {b.paso === 2 ? (
+        <>
+          <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
+            ¿En qué se te va el dinero cada mes?
+          </h2>
+          <p className="caja-asistente-sub">Toca para agregar y elige su tipo. Si no sabes el monto exacto, pon lo que calculas al mes. Con día fijo, el calendario lo pone solo.</p>
+          <ul className="caja-tipos-explica" aria-label="Los tipos, en palabras simples">
+            <li>
+              <strong>Costo:</strong> lo que gastas para generar tu ingreso (mercancía, materiales).
+            </li>
+            <li>
+              <strong>Gasto:</strong> el día a día (alquiler, comida, luz, colegio).
+            </li>
+            <li>
+              <strong>Gasto financiero:</strong> intereses y comisiones de préstamos y tarjetas.
+            </li>
+          </ul>
+          <div className="caja-agregar" role="group" aria-label="Agregar un costo o gasto">
+            {EJEMPLOS_GASTO.map((g) => (
+              <button key={g.nombre} type="button" className="caja-chip" onClick={() => agregar("gastos", { nombre: g.nombre, tipo: g.tipo, dias: g.dias, monto: "" })}>
+                {g.nombre}
+              </button>
+            ))}
+            <button type="button" className="caja-chip" onClick={() => agregar("gastos", { nombre: "", tipo: "gasto", dias: "", monto: "" })}>
+              <Icono n="mas" tam={16} />
+              Otro
+            </button>
+          </div>
+          {b.gastos.length ? <ul className="caja-filas">{b.gastos.map((g, i) => filaConcepto("gastos", g, i))}</ul> : <p className="caja-vacio-paso">Toca «Alquiler», «Comida» o lo que pagues para anotarlo.</p>}
+          {totalGastos.gt(0) ? (
+            <p className="caja-fila-total">
+              Gastas al mes: <strong className="mono">{rd(totalGastos.toString())}</strong>
+            </p>
+          ) : null}
+        </>
+      ) : null}
+
+      {b.paso === 3 ? (
         <>
           <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
             ¿Dónde tienes tu dinero hoy?
@@ -320,138 +460,29 @@ export function AsistenteCaja() {
               </button>
             ))}
           </div>
-        </>
-      ) : null}
-
-      {b.paso === 2 ? (
-        <>
-          <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
-            ¿Qué dinero te entra fijo cada mes?
-          </h2>
-          <p className="caja-asistente-sub">Tu sueldo, la quincena o cualquier pago que llega siempre los mismos días. Si no tienes, sigue al próximo paso.</p>
-          <div className="caja-agregar" role="group" aria-label="Agregar un ingreso">
-            {EJEMPLOS_INGRESO.map((e) => (
-              <button key={e.texto} type="button" className="caja-chip" onClick={() => setB((x) => ({ ...x, ingresos: [...x.ingresos, { nombre: e.nombre, dias: e.dias, monto: "", cuenta: cuentaPorDefecto }] }))}>
-                <Icono n="mas" tam={16} />
-                {e.texto}
-              </button>
-            ))}
-          </div>
-          {b.ingresos.length ? (
-            <ul className="caja-filas">
-              {b.ingresos.map((g, i) => {
-                const mes = totalMensual(g.monto, g.dias);
-                return (
-                  <li key={i} className="caja-fila">
-                    <div className="caja-fila-cabeza">
-                      <span className="caja-fila-icono ingreso" aria-hidden="true">
-                        <Icono n="ingreso" />
-                      </span>
-                      <span className="caja-fila-titulo">{g.nombre || `Ingreso ${i + 1}`}</span>
-                      <button type="button" className="caja-quitar" onClick={() => quitar("ingresos", i)} aria-label={`Quitar ${g.nombre || `ingreso ${i + 1}`}`}>
-                        <Icono n="cerrar" tam={18} />
-                      </button>
-                    </div>
-                    <div className="caja-fila-campos">
-                      <div className="caja-campo">
-                        <label htmlFor={`as-ingreso-${i}-n`}>Nombre</label>
-                        <input id={`as-ingreso-${i}-n`} value={g.nombre} maxLength={120} placeholder="Ej.: Sueldo" autoComplete="off" onChange={(e) => cambiar("ingresos", i, { nombre: e.target.value })} />
-                      </div>
-                      <Monto id={`as-ingreso-${i}-m`} valor={g.monto} cambiar={(v) => cambiar("ingresos", i, { monto: v })} etiqueta="¿Cuánto recibes cada vez?" ejemplo="Ej.: 35,000" requerido />
-                      <div className="caja-campo">
-                        <label htmlFor={`as-ingreso-${i}-d`}>¿Qué días del mes?</label>
-                        <input id={`as-ingreso-${i}-d`} value={g.dias} placeholder="Ej.: 15, 30" autoComplete="off" onChange={(e) => cambiar("ingresos", i, { dias: e.target.value })} aria-describedby={`as-ingreso-${i}-d-ayuda`} />
-                        <p id={`as-ingreso-${i}-d-ayuda`} className="caja-campo-ayuda">
-                          Separa con coma. El 30 o 31 cae el último día en febrero.
-                        </p>
-                      </div>
-                      <div className="caja-campo">
-                        <label htmlFor={`as-ingreso-${i}-c`}>¿En qué cuenta te cae?</label>
-                        <select id={`as-ingreso-${i}-c`} value={g.cuenta} onChange={(e) => cambiar("ingresos", i, { cuenta: e.target.value })}>
-                          {b.cuentas.map((c) => (
-                            <option key={c.k} value={c.k}>
-                              {nombreCuenta(c)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    {mes ? (
-                      <p className="caja-fila-total">
-                        Al mes: <strong className="mono sube">{rd(mes)}</strong>
-                      </p>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="caja-vacio-paso">Toca uno de los botones de arriba para anotar tu primer ingreso.</p>
-          )}
-        </>
-      ) : null}
-
-      {b.paso === 3 ? (
-        <>
-          <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
-            ¿Qué pagas fijo cada mes?
-          </h2>
-          <p className="caja-asistente-sub">Alquiler, préstamo, luz, internet… Lo que pagas siempre más o menos el mismo día. Toca para agregar.</p>
-          <div className="caja-agregar" role="group" aria-label="Agregar un gasto fijo">
-            {EJEMPLOS_GASTO.map((n) => (
-              <button key={n} type="button" className="caja-chip" onClick={() => setB((x) => ({ ...x, gastos: [...x.gastos, { nombre: n, monto: "", dia: "", cuenta: cuentaPorDefecto }] }))}>
-                {n}
-              </button>
-            ))}
-            <button type="button" className="caja-chip" onClick={() => setB((x) => ({ ...x, gastos: [...x.gastos, { nombre: "", monto: "", dia: "", cuenta: cuentaPorDefecto }] }))}>
-              <Icono n="mas" tam={16} />
-              Otro
-            </button>
-          </div>
-          {b.gastos.length ? (
-            <ul className="caja-filas">
-              {b.gastos.map((g, i) => (
-                <li key={i} className="caja-fila">
-                  <div className="caja-fila-cabeza">
-                    <span className="caja-fila-icono gasto" aria-hidden="true">
-                      <Icono n="gasto" />
-                    </span>
-                    <span className="caja-fila-titulo">{g.nombre || `Gasto ${i + 1}`}</span>
-                    <button type="button" className="caja-quitar" onClick={() => quitar("gastos", i)} aria-label={`Quitar ${g.nombre || `gasto ${i + 1}`}`}>
-                      <Icono n="cerrar" tam={18} />
-                    </button>
-                  </div>
-                  <div className="caja-fila-campos">
-                    <div className="caja-campo">
-                      <label htmlFor={`as-gasto-${i}-n`}>Nombre</label>
-                      <input id={`as-gasto-${i}-n`} value={g.nombre} maxLength={120} placeholder="Ej.: Alquiler" autoComplete="off" onChange={(e) => cambiar("gastos", i, { nombre: e.target.value })} />
-                    </div>
-                    <Monto id={`as-gasto-${i}-m`} valor={g.monto} cambiar={(v) => cambiar("gastos", i, { monto: v })} etiqueta="¿Cuánto pagas al mes?" ejemplo="Ej.: 15,000" requerido />
-                    <div className="caja-campo">
-                      <label htmlFor={`as-gasto-${i}-d`}>¿Qué día del mes?</label>
-                      <input id={`as-gasto-${i}-d`} inputMode="numeric" maxLength={2} value={g.dia} placeholder="Ej.: 5" autoComplete="off" onChange={(e) => cambiar("gastos", i, { dia: e.target.value })} />
-                    </div>
-                    <div className="caja-campo">
-                      <label htmlFor={`as-gasto-${i}-c`}>¿Con qué lo pagas?</label>
-                      <select id={`as-gasto-${i}-c`} value={g.cuenta} onChange={(e) => cambiar("gastos", i, { cuenta: e.target.value })}>
-                        {b.cuentas.map((c) => (
-                          <option key={c.k} value={c.k}>
-                            {nombreCuenta(c)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="caja-vacio-paso">Toca «Alquiler», «Luz» o lo que pagues para anotarlo.</p>
-          )}
-          {new Big(totalGastos).gt(0) ? (
-            <p className="caja-fila-total">
-              Total fijo al mes: <strong className="mono baja">{rd(totalGastos)}</strong>
-            </p>
+          {hayFijos && b.cuentas.length ? (
+            <div className="caja-fila-campos caja-cuentas-fijos">
+              <div className="caja-campo">
+                <label htmlFor="as-cuenta-ingresos">Tus ingresos con día fijo caen en</label>
+                <select id="as-cuenta-ingresos" value={b.cuentaIngresos || noTarjeta} onChange={(e) => setB((x) => ({ ...x, cuentaIngresos: e.target.value }))}>
+                  {b.cuentas.map((c) => (
+                    <option key={c.k} value={c.k}>
+                      {nombreCuenta(c)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="caja-campo">
+                <label htmlFor="as-cuenta-gastos">Tus gastos con día fijo los pagas con</label>
+                <select id="as-cuenta-gastos" value={b.cuentaGastos || noTarjeta} onChange={(e) => setB((x) => ({ ...x, cuentaGastos: e.target.value }))}>
+                  {b.cuentas.map((c) => (
+                    <option key={c.k} value={c.k}>
+                      {nombreCuenta(c)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           ) : null}
         </>
       ) : null}
@@ -459,35 +490,69 @@ export function AsistenteCaja() {
       {b.paso === 4 ? (
         <>
           <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
-            ¿Cuál es el mínimo que nunca quieres bajar?
-            <Ayuda que="el colchón">
-              Es tu «colchón»: un dinero de reserva que no tocas. Si algún día tu banco más tu efectivo quedan por debajo, ese día se
-              pinta de rojo para que lo veas venir.
-            </Ayuda>
+            ¿Cuánto quieres apartar y cuál es tu mínimo?
           </h2>
-          <p className="caja-asistente-sub">Muchas personas usan un mes de gastos fijos. Si no quieres colchón, escribe 0.</p>
+          <p className="caja-asistente-sub">Lo que apartas al mes va a tu Portafolio Financiero. El colchón es el dinero que nunca quieres bajar.</p>
           <div className="caja-colchon">
-            <Monto id="as-colchon" valor={b.colchon} cambiar={(v) => setB((x) => ({ ...x, colchon: v }))} etiqueta="Tu colchón mínimo" ejemplo="Ej.: 10,000" requerido />
-            {new Big(totalGastos).gt(0) ? (
-              <button type="button" className="caja-chip" onClick={() => setB((x) => ({ ...x, colchon: new Big(totalGastos).toFixed(2) }))}>
-                Usar mis gastos fijos de un mes: {rd(totalGastos)}
+            <Monto
+              id="as-ahorro"
+              valor={b.ahorro}
+              cambiar={(v) => setB((x) => ({ ...x, ahorro: v }))}
+              etiqueta="Ahorro e inversión al mes"
+              ejemplo="Ej.: 5,000"
+              ayuda="Sale de lo que te sobra (tu utilidad) y es lo que el Portafolio espera recibir cada mes."
+            />
+            {utilidad.gt(0) && !ahorro.gt(0) ? (
+              <button type="button" className="caja-chip" onClick={() => setB((x) => ({ ...x, ahorro: utilidad.div(10).round(0, Big.roundDown).toString() }))}>
+                Apartar el 10 % de lo que te sobra: {rd(utilidad.div(10).round(0, Big.roundDown).toString())}
+              </button>
+            ) : null}
+            <Monto
+              id="as-colchon"
+              valor={b.colchon}
+              cambiar={(v) => setB((x) => ({ ...x, colchon: v }))}
+              etiqueta="Tu colchón mínimo"
+              ejemplo="Ej.: 10,000"
+              requerido
+              ayuda={
+                <>
+                  Si algún día tu banco más tu efectivo quedan por debajo, ese día se pinta de rojo.{" "}
+                  <Ayuda que="el colchón">Es un dinero de reserva que no tocas. Muchas personas usan un mes de gastos fijos. Si no quieres colchón, escribe 0.</Ayuda>
+                </>
+              }
+            />
+            {fijosGasto.gt(0) ? (
+              <button type="button" className="caja-chip" onClick={() => setB((x) => ({ ...x, colchon: fijosGasto.toFixed(2) }))}>
+                Usar mis gastos fijos de un mes: {rd(fijosGasto.toString())}
               </button>
             ) : null}
           </div>
-          <div className="caja-repaso" aria-label="Repaso antes de crear">
-            <h3>Repaso</h3>
+          <div className="caja-repaso" aria-label="Así queda tu mes">
+            <h3>Así queda tu mes</h3>
             <dl>
+              <div>
+                <dt>Te entra</dt>
+                <dd className="mono sube">{totalIngresos.gt(0) ? rd(totalIngresos.toString()) : "nada anotado"}</dd>
+              </div>
+              <div>
+                <dt>− Costos y gastos</dt>
+                <dd className="mono">{totalGastos.gt(0) ? rd(totalGastos.toString()) : "nada anotado"}</dd>
+              </div>
+              <div className="total">
+                <dt>= Utilidad neta</dt>
+                <dd className={`mono ${utilidad.lt(0) ? "baja" : ""}`}>{rd(utilidad.toString())}</dd>
+              </div>
+              <div>
+                <dt>− Ahorro e inversión</dt>
+                <dd className="mono">{rd(ahorro.toString())}</dd>
+              </div>
+              <div className="total">
+                <dt>= Te queda disponible</dt>
+                <dd className={`mono ${utilidad.minus(ahorro).lt(0) ? "baja" : ""}`}>{rd(utilidad.minus(ahorro).toString())}</dd>
+              </div>
               <div>
                 <dt>Cuentas</dt>
                 <dd>{b.cuentas.length ? b.cuentas.map(nombreCuenta).join(", ") : "ninguna"}</dd>
-              </div>
-              <div>
-                <dt>Te entra al mes</dt>
-                <dd className="mono">{new Big(totalIngresos).gt(0) ? rd(totalIngresos) : "nada fijo"}</dd>
-              </div>
-              <div>
-                <dt>Pagas fijo al mes</dt>
-                <dd className="mono">{new Big(totalGastos).gt(0) ? rd(totalGastos) : "nada fijo"}</dd>
               </div>
             </dl>
           </div>
@@ -514,12 +579,12 @@ export function AsistenteCaja() {
         </button>
         {b.paso < 4 ? (
           <button type="button" className="boton caja-boton-grande" onClick={siguiente}>
-            {b.paso === 2 && !b.ingresos.length ? "Saltar este paso" : b.paso === 3 && !b.gastos.length ? "Saltar este paso" : "Siguiente"}
+            {(b.paso === 1 && !b.ingresos.length) || (b.paso === 2 && !b.gastos.length) ? "Saltar este paso" : "Siguiente"}
             <Icono n="derecha" tam={18} />
           </button>
         ) : (
           <button type="button" className="boton caja-boton-grande" onClick={terminar} disabled={pendiente}>
-            {pendiente ? "Creando…" : "Crear mi calendario"}
+            {pendiente ? "Creando…" : "Crear mi presupuesto"}
             {pendiente ? null : <Icono n="check" tam={18} />}
           </button>
         )}
