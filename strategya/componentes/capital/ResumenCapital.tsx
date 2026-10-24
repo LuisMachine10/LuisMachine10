@@ -5,13 +5,13 @@
 
 import Link from "next/link";
 import "@/estilos/capital.css";
-import { hallazgos, ordenar } from "@/lib/capital/alertas";
 import { cambioDelMes, fotoHasta, indicadores } from "@/lib/capital/cierres";
 import { n } from "@/lib/capital/decimal";
 import { mesCorto, mesLargo } from "@/lib/capital/fechas";
 import { num, rd, tono } from "@/lib/capital/formato";
 import { datosCapital, type DatosCapital } from "@/lib/datos-capital";
-import { ConSigno, Estado, Kpi, ListaHallazgos, Pastilla, SinDatos } from "./Piezas";
+import { MatrizRiesgo } from "./Matriz";
+import { ConSigno, Estado, Kpi, Pastilla, SinDatos } from "./Piezas";
 import { SelloFx, SelloRegistros } from "./Sellos";
 
 async function cargar(): Promise<{ datos: DatosCapital } | { error: string }> {
@@ -47,7 +47,7 @@ function PanelFalla({ titulo, mensaje }: { titulo: string; mensaje: string }) {
 
 export async function ResumenCapital() {
   const r = await cargar();
-  if ("error" in r) return <PanelFalla titulo="Mena Capital" mensaje={r.error} />;
+  if ("error" in r) return <PanelFalla titulo="Portafolio Financiero" mensaje={r.error} />;
   const { datos } = r;
   const { ctx } = datos;
   const mes = ctx.hoy.slice(0, 7);
@@ -59,7 +59,7 @@ export async function ResumenCapital() {
     <section className="panel cap-resumen-terminal" aria-labelledby="cap-term-resumen">
       <div className="panel-cabecera">
         <h2 className="panel-titulo" id="cap-term-resumen">
-          <Link href="/capital">Mena Capital</Link>
+          <Link href="/capital">Portafolio Financiero</Link>
         </h2>
         <SelloRegistros foto={ind.foto} mesCierre={mesFoto ? mesLargo(mesFoto) : null} />
       </div>
@@ -104,29 +104,24 @@ export async function ResumenCapital() {
   );
 }
 
-export async function HallazgosCapital({ maximo = 5 }: { maximo?: number }) {
+export async function HallazgosCapital(_: { maximo?: number } = {}) {
   const r = await cargar();
-  if ("error" in r) return <PanelFalla titulo="Mena Capital · hallazgos" mensaje={r.error} />;
+  if ("error" in r) return <PanelFalla titulo="Portafolio · riesgos" mensaje={r.error} />;
   const { ctx } = r.datos;
   const mes = ctx.hoy.slice(0, 7);
-  const lista = ordenar(hallazgos(ctx, mes));
-  const visibles = lista.slice(0, maximo);
   return (
     <section className="panel" aria-labelledby="cap-term-hallazgos">
       <div className="panel-cabecera">
         <h2 className="panel-titulo" id="cap-term-hallazgos">
-          Mena Capital · hallazgos
+          Portafolio · riesgos
         </h2>
-        <span className="tenue chico">
-          {mesLargo(mes)} · {lista.filter((h) => h.n !== "ok").length} para revisar
-        </span>
+        <Link href="/capital/analisis" className="chico">
+          Ver cada riesgo →
+        </Link>
       </div>
-      <ListaHallazgos lista={visibles} />
-      {lista.length > visibles.length ? (
-        <p className="cap-nota" style={{ padding: "0 16px 14px" }}>
-          <Link href="/capital">Ver los {lista.length} hallazgos</Link>
-        </p>
-      ) : null}
+      <div className="panel-cuerpo">
+        <MatrizRiesgo ctx={ctx} detalle={false} mes={mes} />
+      </div>
     </section>
   );
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { VistaCierre } from "@/componentes/capital/Cierre";
 import { PaginaCapital, type ParametrosBusqueda } from "@/componentes/capital/Pagina";
 
-export const metadata: Metadata = { title: "Cierre · Mena Capital" };
+export const metadata: Metadata = { title: "Cierre · Portafolio Financiero" };
 export const dynamic = "force-dynamic";
 
 export default async function CapitalCierre({ searchParams }: { searchParams: Promise<ParametrosBusqueda> }) {

@@ -70,7 +70,7 @@ export function SelloPrecio({ p, ahora }: { p: PrecioMercado | null; ahora: Date
 export function SelloRegistros({ foto, mesCierre }: { foto: FotoCalculada; mesCierre?: string | null }) {
   return (
     <div className="sello">
-      <span>Tus registros (Mena Capital)</span>
+      <span>Tus registros</span>
       {foto.vivo ? (
         <span>· cartera de hoy, en vivo</span>
       ) : (

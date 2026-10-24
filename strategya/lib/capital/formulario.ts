@@ -62,7 +62,7 @@ export function filas(c: Campos, lista: string): Record<string, string>[] {
     .map((i) => out[i]);
 }
 
-export const SECCIONES_PARAMETROS = ["fx", "asignacion", "tarjetas", "presupuesto", "escenarios", "generales"] as const;
+export const SECCIONES_PARAMETROS = ["fx", "asignacion", "tarjetas", "presupuesto", "escenarios", "generales", "umbrales", "planClases"] as const;
 export type SeccionParametros = (typeof SECCIONES_PARAMETROS)[number];
 
 /**
@@ -101,6 +101,19 @@ export function mezclarParametros(actual: Parametros, seccion: SeccionParametros
         deprecFX: pctForm(f.deprecFX) || "0",
         aporte: numeroForm(f.aporte) || "0",
       }));
+  } else if (seccion === "umbrales") {
+    // Meses en número; los demás se escriben en %.
+    p.umbrales = {
+      colchonMeses: numeroForm(c["u.colchonMeses"]) || "6",
+      maxInstrumento: pctForm(c["u.maxInstrumento"]) || "0.25",
+      maxEmisor: pctForm(c["u.maxEmisor"]) || "0.4",
+      dolarMin: pctForm(c["u.dolarMin"]) || "0",
+      dolarMax: pctForm(c["u.dolarMax"]) || "1",
+      sobreGasto: pctForm(c["u.sobreGasto"]) || "0.1",
+      deudaTarjetas: pctForm(c["u.deudaTarjetas"]) || "0.3",
+    };
+  } else if (seccion === "planClases") {
+    p.planClases = c.planClases === "meta" ? null : Object.fromEntries(IDS_CLASE.map((k) => [k, pctForm(c[`plan.${k}`]) || "0"]));
   } else if (seccion === "generales") {
     p.horizonte = numeroForm(c.horizonte) || "0";
     p.incrAporteAnual = pctForm(c.incrAporteAnual) || "0";
@@ -227,5 +240,5 @@ export function mesDeParametro(v: string | string[] | undefined, hoy: string): s
 
 /** Ruta de vuelta segura (solo dentro de /capital). */
 export function rutaSegura(v: string | undefined): string {
-  return v && /^\/capital(\/(cierre|cartera|analisis|futuro|ips|importar))?$/.test(v) ? v : "/capital";
+  return v && /^\/capital(\/(cierre|cartera|analisis|futuro|ips|importar|cuentas|ajustes))?$/.test(v) ? v : "/capital";
 }

@@ -15,8 +15,15 @@ import type { DatosCapital } from "@/lib/datos-capital";
 import { fechaCorta } from "@/lib/formato";
 import { PanelAsignacion } from "./Asignacion";
 import { GraficoSerie, type PuntoSerie } from "./GraficoSerie";
-import { ConSigno, Dato, Kpi, ListaHallazgos, Mas, Mosaicos, Panel, Pastilla, SinDatos } from "./Piezas";
+import { ConSigno, Dato, EXPLICA, Kpi, ListaHallazgos, Mas, Mosaicos, Panel, Pastilla, Que, SinDatos } from "./Piezas";
 import { SelloFx, SelloRegistros } from "./Sellos";
+import Link from "next/link";
+import { Rejilla } from "@/componentes/dashboard/Rejilla";
+import { type Disposicion, visibles } from "@/lib/dashboard/disposicion";
+import { WIDGETS_PORTAFOLIO } from "@/lib/dashboard/widgets";
+import type { PrefRegistro } from "@/lib/capital/preferencias";
+import { PanelUnir } from "./Cuentas";
+import { RENDER_PORTAFOLIO } from "./WidgetsPortafolio";
 
 type Props = { datos: DatosCapital; mes: string };
 
@@ -167,10 +174,10 @@ export function PanelTipoCambio({ datos }: { datos: DatosCapital }) {
   const { ctx, ahora } = datos;
   const pos = posicion(ctx);
   return (
-    <Panel titulo="Tipo de cambio usado" id="cap-t-fx">
+    <Panel titulo="Cuánto dependes del dólar" id="cap-t-fx" extra={<Que titulo="Cuánto dependes del dólar">{EXPLICA.dolar}</Que>}>
       <div className="cap-dos">
         <Dato rotulo="US$ → RD$">{ctx.mercado.fx.USD.valor ? num(ctx.mercado.fx.USD.valor, 2) : "—"}</Dato>
-        <Dato rotulo="Fuera del peso">
+        <Dato rotulo="Cuánto dependes del dólar">
           {pct(pos.total.gt(0) ? pos.extranjero.div(pos.total) : null, 1)}
         </Dato>
       </div>
@@ -179,7 +186,7 @@ export function PanelTipoCambio({ datos }: { datos: DatosCapital }) {
         {ctx.activos.some((a) => a.moneda === "EUR") || ctx.mercado.fx.EUR.valor ? <SelloFx fx={ctx.mercado.fx.EUR} moneda="EUR" ahora={ahora} hoy={ctx.hoy} /> : null}
       </div>
       <p className="cap-nota">
-        Tienes <strong>{rd(pos.extranjero)}</strong> fuera del peso: cada punto de depreciación del peso los sube {rd(pos.extranjero.times("0.01"))} sin que
+        Tienes <strong>{rd(pos.extranjero)}</strong> en dólares o euros: cada punto que se deprecie el peso los sube {rd(pos.extranjero.times("0.01"))} sin que
         ninguna posición gane nada.
       </p>
     </Panel>
@@ -306,31 +313,60 @@ export function PanelHallazgos({ datos, mes }: Props) {
   );
 }
 
-export function VistaResumen({ datos, mes }: Props) {
-  if (!datos.configurado && !datos.ctx.activos.length) {
+export function VistaResumen({ datos, mes, disposicion, avisoDisposicion, prefRegistro }: Props & { disposicion: Disposicion; avisoDisposicion: string | null; prefRegistro: PrefRegistro }) {
+  if (!datos.configurado && !datos.ctx.activos.length && !(datos.ctx.registro ?? []).length) {
     return (
       <section className="panel cap-ancho" aria-labelledby="cap-t-bienvenida">
-        <div className="panel-cuerpo">
-          <h2 className="sr-solo" id="cap-t-bienvenida">
-            Empieza con Mena Capital
-          </h2>
-          <SinDatos centro icono="cartera" accion={{ href: "/capital/cartera", texto: "Agregar mi primer instrumento" }}>
-            Todavía no hay datos. Agrega tus instrumentos en Cartera (o importa tu archivo del artefacto con «Importar», arriba) y aquí verás tu
-            patrimonio, tu asignación y tus metas.
-          </SinDatos>
+        <div className="panel-cuerpo cap-bienvenida">
+          <h2 id="cap-t-bienvenida">Empieza por lo que tienes y lo que debes</h2>
+          <p>
+            Anota una sola vez tus cuentas de banco, tu efectivo, tus inversiones y tus tarjetas o préstamos. Con eso verás aquí tu patrimonio, cómo está repartido y cuánto
+            podría crecer con lo que ahorras. El Presupuesto usa esas mismas cuentas: no tendrás que escribirlas dos veces.
+          </p>
+          <ul className="cap-bienvenida-ejemplos" aria-label="Ejemplos de qué anotar">
+            <li>Popular nómina · cuenta corriente</li>
+            <li>Efectivo de la casa</li>
+            <li>Certificado APAP · renta fija</li>
+            <li>Visa BHD · tarjeta</li>
+          </ul>
+          <div className="cap-botones">
+            <Link href="/capital/cuentas" className="boton boton-grande">
+              Anotar mis cuentas
+            </Link>
+            <Link href="/capital/importar" className="boton secundario">
+              Importar mi archivo
+            </Link>
+          </div>
         </div>
       </section>
     );
   }
+  const fichas = new Map(WIDGETS_PORTAFOLIO.map((w) => [w.id, w]));
+  const nodos: Record<string, React.ReactNode> = {};
+  for (const w of visibles(disposicion)) {
+    const ficha = fichas.get(w.id);
+    const Render = RENDER_PORTAFOLIO[w.id];
+    if (ficha && Render) nodos[w.id] = <Render ficha={ficha} datos={datos} mes={mes} />;
+  }
   return (
     <>
-      <PanelPatrimonio datos={datos} mes={mes} />
-      <MosaicosResumen datos={datos} mes={mes} />
-      <PanelAsignacion datos={datos} />
-      <PanelImpactoDia datos={datos} />
-      <PanelPuenteResumen datos={datos} mes={mes} />
-      <PanelTipoCambio datos={datos} />
-      <PanelHallazgos datos={datos} mes={mes} />
+      {!prefRegistro.revisado ? <PanelUnir datos={datos} mes={mes} pref={prefRegistro} compacto /> : null}
+      <div className="cap-ancho pf-tablero">
+        <Rejilla
+          clave="portafolio"
+          nombre="tu resumen"
+          inicial={disposicion}
+          fichas={[...WIDGETS_PORTAFOLIO]}
+          nodos={nodos}
+          aviso={avisoDisposicion}
+          intro={
+            <header className="pf-intro">
+              <h2>Resumen de {mesLargo(mes)}</h2>
+              <p>Mueve, agranda u oculta cada tarjeta con «Editar mi resumen».</p>
+            </header>
+          }
+        />
+      </div>
     </>
   );
 }

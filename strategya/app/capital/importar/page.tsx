@@ -4,7 +4,7 @@ import { Importador } from "@/componentes/capital/Importador";
 import { PaginaCapital, type ParametrosBusqueda } from "@/componentes/capital/Pagina";
 import { Panel } from "@/componentes/capital/Piezas";
 
-export const metadata: Metadata = { title: "Importar · Mena Capital" };
+export const metadata: Metadata = { title: "Importar · Portafolio Financiero" };
 export const dynamic = "force-dynamic";
 
 export default async function CapitalImportar({ searchParams }: { searchParams: Promise<ParametrosBusqueda> }) {

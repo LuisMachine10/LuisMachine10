@@ -35,6 +35,8 @@ export interface DatosCapital {
   actualizado: string | null;
   /** Registro único completo, también las filas unidas (archivadas). ctx.registro trae solo las vigentes. */
   registroCompleto: ItemRegistro[];
+  /** Aportes del plan ya confirmados («Sí, lo hice»): transacciones con su mes del plan. */
+  aportesConfirmados: { id: string; activoId: string; mes: string; fecha: string | null; monto: string; movimientoId: string | null }[];
   /** El Presupuesto: sus datos (para elegir de qué cuenta sale un aporte) o el motivo si no se pudo leer. */
   caja: { datos: DatosCaja | null; error: string | null };
 }
@@ -52,7 +54,7 @@ export async function datosCapital(): Promise<DatosCapital> {
     db.from("activos").select(COLUMNAS_REGISTRO).order("orden").order("id"),
     db
       .from("transacciones")
-      .select("id, activo_id, simbolo, tipo, fecha, cantidad::text, precio::text, comision::text, moneda")
+      .select("id, activo_id, simbolo, tipo, fecha, cantidad::text, precio::text, comision::text, moneda, aporte_mes, movimiento_id")
       .order("fecha", { ascending: true, nullsFirst: true })
       .order("id"),
     db.from("cierres").select("mes, datos, actualizado_en").order("mes"),
@@ -108,7 +110,11 @@ export async function datosCapital(): Promise<DatosCapital> {
     resultado && cajaLeida.datos?.config && resultado.presupuestado && resultado.real
       ? { mes: resultado.mes, presupuestado: resultado.presupuestado, real: resultado.real, ahorroMensual: resultado.presupuestado.ahorro ?? null }
       : null;
-  const tx = (exigir(tRes, "las transacciones") as unknown as FilaTransaccion[]).map(filaATransaccion);
+  const filasTx = exigir(tRes, "las transacciones") as unknown as (FilaTransaccion & { aporte_mes: string | null; movimiento_id: string | null })[];
+  const tx = filasTx.map(filaATransaccion);
+  const aportesConfirmados = filasTx
+    .filter((f) => f.aporte_mes)
+    .map((f) => ({ id: f.id, activoId: f.activo_id, mes: f.aporte_mes!, fecha: f.fecha, monto: new Big(f.cantidad).times(f.precio).toFixed(), movimientoId: f.movimiento_id }));
   const filasC = exigir(cRes, "los cierres") as { mes: string; datos: unknown; actualizado_en: string }[];
   const cierres: Cierres = {};
   for (const f of filasC) cierres[f.mes] = leerCierre(f.mes, f.datos);
@@ -162,6 +168,7 @@ export async function datosCapital(): Promise<DatosCapital> {
     ahora,
     actualizado: fechas.at(-1) ?? null,
     registroCompleto,
+    aportesConfirmados,
     caja: cajaLeida,
   };
 }

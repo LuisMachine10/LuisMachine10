@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { normalizar, porDefecto } from "@/lib/dashboard/disposicion";
 import { normalizarPref, partirPalabras } from "@/lib/dashboard/noticias";
+import { type FichaWidget, WIDGETS, WIDGETS_PORTAFOLIO } from "@/lib/dashboard/widgets";
 import { personal } from "@/lib/supabase/servidor";
 
 export interface Resultado {
@@ -13,7 +14,12 @@ export interface Resultado {
   mensaje: string;
 }
 
-async function guardar(clave: "dashboard" | "noticias", valor: unknown): Promise<Resultado> {
+/** Tableros con widgets: el Dashboard y el Resumen del Portafolio (cada uno con su preferencia). */
+export type ClaveTablero = "dashboard" | "portafolio";
+const CATALOGO: Record<ClaveTablero, readonly FichaWidget[]> = { dashboard: WIDGETS, portafolio: WIDGETS_PORTAFOLIO };
+const RUTA: Record<ClaveTablero, string> = { dashboard: "/", portafolio: "/capital" };
+
+async function guardar(clave: "dashboard" | "noticias" | "portafolio", valor: unknown): Promise<Resultado> {
   try {
     const db = await personal();
     const { error } = await db.rpc("guardar_preferencia", { p_clave: clave, p_valor: valor });
@@ -21,18 +27,21 @@ async function guardar(clave: "dashboard" | "noticias", valor: unknown): Promise
   } catch (e) {
     return { ok: false, mensaje: `No se pudo guardar (${(e as Error).message}). Vuelve a iniciar sesión e inténtalo otra vez.` };
   }
-  revalidatePath("/");
+  revalidatePath(clave === "portafolio" ? "/capital" : "/");
   return { ok: true, mensaje: "Guardado." };
 }
 
-export async function guardarDisposicion(valor: unknown): Promise<Resultado> {
-  const r = await guardar("dashboard", normalizar(valor));
-  return r.ok ? { ok: true, mensaje: "Tu dashboard quedó guardado." } : r;
+export async function guardarDisposicion(valor: unknown, clave: ClaveTablero = "dashboard"): Promise<Resultado> {
+  const k = clave === "portafolio" ? "portafolio" : "dashboard";
+  const r = await guardar(k, normalizar(valor, CATALOGO[k]));
+  if (r.ok) revalidatePath(RUTA[k]);
+  return r.ok ? { ok: true, mensaje: k === "portafolio" ? "Tu resumen quedó guardado." : "Tu dashboard quedó guardado." } : r;
 }
 
-export async function restablecerDisposicion(): Promise<Resultado> {
-  const r = await guardar("dashboard", porDefecto());
-  return r.ok ? { ok: true, mensaje: "Volviste al dashboard de fábrica." } : r;
+export async function restablecerDisposicion(clave: ClaveTablero = "dashboard"): Promise<Resultado> {
+  const k = clave === "portafolio" ? "portafolio" : "dashboard";
+  const r = await guardar(k, porDefecto(CATALOGO[k]));
+  return r.ok ? { ok: true, mensaje: k === "portafolio" ? "Volviste al resumen de fábrica." : "Volviste al dashboard de fábrica." } : r;
 }
 
 export interface EstadoNoticias {

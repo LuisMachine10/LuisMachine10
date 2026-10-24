@@ -11,7 +11,7 @@ import { type EstadoBanda, rebalanceo } from "@/lib/capital/riesgo";
 import type { Clase } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
 import { Barra, Donut } from "./Graficos";
-import { Estado, Mas, Panel, SinDatos } from "./Piezas";
+import { Estado, EXPLICA, Mas, Panel, Que, SinDatos } from "./Piezas";
 import { SelloFx } from "./Sellos";
 
 export const COLOR_CLASE: Record<Clase, string> = {
@@ -31,7 +31,10 @@ export function PanelAsignacion({ datos, titulo = "Asignación contra tu meta", 
   const banda = n(ctx.p.bandaRebalanceo).gt(0) ? n(ctx.p.bandaRebalanceo) : null;
   const fuera = filas.filter((f) => f.estado !== "en banda" && hayMeta).length;
   const extra = hayMeta ? (
-    <Estado tono={fuera ? "alerta" : "ok"}>{fuera ? `${fuera} fuera de banda` : "todo en banda"}</Estado>
+    <span className="cap-extra-que">
+      <Estado tono={fuera ? "alerta" : "ok"}>{fuera ? `${fuera} fuera de lo planeado` : "todo como lo planeaste"}</Estado>
+      <Que titulo="Más o menos de lo planeado">{EXPLICA.plan}</Que>
+    </span>
   ) : (
     <Estado tono="neutra">sin meta escrita</Estado>
   );
@@ -72,7 +75,7 @@ export function PanelAsignacion({ datos, titulo = "Asignación contra tu meta", 
                 {hayMeta ? (
                   <>
                     <Estado tono={TONO_BANDA[f.estado]}>
-                      {f.estado === "en banda" ? "en banda" : `${f.estado} ${pp(f.dpp, 1)}`}
+                      {f.estado === "en banda" ? "como lo planeaste" : `${f.estado === "sobre meta" ? "más" : "menos"} de lo planeado (${pp(f.dpp, 1)})`}
                     </Estado>
                     {detalle && !f.dif.eq(0) ? <span className="mono">{sg(f.dif)} para la meta</span> : null}
                   </>
@@ -87,7 +90,7 @@ export function PanelAsignacion({ datos, titulo = "Asignación contra tu meta", 
       </div>
       <Mas titulo="Cómo leerlo">
         <p className="cap-nota">
-          La marca blanca en cada barra es tu meta de la política; la banda es ±{banda ? pp(banda, 0) : `${pp(new Big("0.02"), 0)} (sin banda escrita)`}.
+          La marca en cada barra es tu meta de la Política; tu margen es ±{banda ? pp(banda, 0) : `${pp(new Big("0.02"), 0)} (sin banda escrita)`}.
           {detalle ? " «Para la meta» es la diferencia en RD$ entre la meta y lo que hay hoy (+ falta, − sobra)." : ""} Es aritmética sobre tu política, no
           una recomendación. {hayMeta ? "" : <Link href="/capital/ips">Escribe tus metas por clase en Política.</Link>}
         </p>

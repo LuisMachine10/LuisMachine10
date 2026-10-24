@@ -39,10 +39,13 @@ export function Panel({
 const NOMBRE_TONO: Record<Tono, string> = { ok: "en meta", alerta: "vigilar", error: "fuera de meta", neutra: "" };
 
 /** Mosaico de KPI: rótulo, cifra grande y una línea tenue con la meta (el punto de color lleva texto oculto). */
-export function Kpi({ rotulo, valor, meta, tono, unidad, ayuda }: { rotulo: string; valor: React.ReactNode; meta: string; tono: Tono; unidad?: string; ayuda?: string }) {
+export function Kpi({ rotulo, valor, meta, tono, unidad, ayuda, que }: { rotulo: string; valor: React.ReactNode; meta: string; tono: Tono; unidad?: string; ayuda?: string; que?: string }) {
   return (
-    <div className="cap-kpi" title={ayuda}>
-      <div className="rotulo">{rotulo}</div>
+    <div className="cap-kpi" title={que ? undefined : ayuda}>
+      <div className="rotulo">
+        {rotulo}
+        {que ? <Que titulo={rotulo}>{que}</Que> : null}
+      </div>
       <div className="valor">
         {unidad === "RD$" ? <small className="antes">RD$</small> : null}
         {valor}
@@ -155,6 +158,26 @@ export function EtiquetaTono({ tono, texto }: { tono: Tono; texto?: string }) {
   const t = texto ?? (tono === "ok" ? "✓ en meta" : tono === "alerta" ? "! vigilar" : "✕ bajo");
   return <Estado tono={tono}>{t}</Estado>;
 }
+
+/** Botón «?» que despliega 1–2 frases en palabras simples (funciona sin JavaScript). */
+export function Que({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <details className="cap-que">
+      <summary aria-label={`¿Qué es «${titulo}»?`} title={`¿Qué es «${titulo}»?`}>
+        ?
+      </summary>
+      <div className="cap-que-texto" role="note">
+        {children}
+      </div>
+    </details>
+  );
+}
+
+export const EXPLICA = {
+  dolar: "Qué parte de lo que tienes está en dólares (o euros). Si el peso se deprecia, esa parte sube en pesos sin que hayas ganado nada; si el peso se fortalece, baja.",
+  interes: "Lo que tus cuentas e inversiones te pagan este mes según sus tasas (ingreso pasivo). Es lo que prometen pagar, no una ganancia ya cobrada.",
+  plan: "Compara cuánto tienes hoy en cada categoría con el % que te pusiste como meta en tu Política. «Más de lo planeado» o «menos de lo planeado» es cuando se sale de tu margen.",
+} as const;
 
 /** Texto explicativo plegado: lo secundario no compite con las cifras. */
 export function Mas({ titulo = "Cómo se calcula", children }: { titulo?: string; children: React.ReactNode }) {

@@ -30,7 +30,7 @@ import {
   type WidgetColocado,
 } from "@/lib/dashboard/disposicion";
 import { type FichaWidget, NOMBRE_GRUPO, type GrupoWidget, type Tamano } from "@/lib/dashboard/widgets";
-import { guardarDisposicion, restablecerDisposicion } from "./acciones";
+import { type ClaveTablero, guardarDisposicion, restablecerDisposicion } from "./acciones";
 
 const TAMANOS: { t: Tamano; nombre: string; corto: string }[] = [
   { t: 1, nombre: "Chico (un tercio)", corto: "S" },
@@ -63,9 +63,13 @@ interface Props {
   /** Si la disposición guardada no se pudo leer (se usa la de fábrica). */
   aviso: string | null;
   intro: React.ReactNode;
+  /** Qué tablero es: el Dashboard (por defecto) o el Resumen del Portafolio. Cada uno guarda su preferencia. */
+  clave?: ClaveTablero;
+  /** «tu dashboard» / «tu resumen»: para los textos de los botones. */
+  nombre?: string;
 }
 
-export function Rejilla({ inicial, fichas, nodos, aviso, intro }: Props) {
+export function Rejilla({ inicial, fichas, nodos, aviso, intro, clave = "dashboard", nombre = "tu dashboard" }: Props) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [borrador, setBorrador] = useState<Disposicion>(inicial);
@@ -100,7 +104,7 @@ export function Rejilla({ inicial, fichas, nodos, aviso, intro }: Props) {
   function listo() {
     if (!cambios) return salir();
     iniciar(async () => {
-      const r = await guardarDisposicion(borrador);
+      const r = await guardarDisposicion(borrador, clave);
       setMensaje({ ok: r.ok, texto: r.mensaje });
       if (r.ok) {
         setRecien(borrador);
@@ -111,7 +115,7 @@ export function Rejilla({ inicial, fichas, nodos, aviso, intro }: Props) {
   }
   function deFabrica() {
     iniciar(async () => {
-      const r = await restablecerDisposicion();
+      const r = await restablecerDisposicion(clave);
       setMensaje({ ok: r.ok, texto: r.mensaje });
       if (r.ok) {
         salir();
@@ -178,7 +182,7 @@ export function Rejilla({ inicial, fichas, nodos, aviso, intro }: Props) {
           <div className="dash-cabecera-acciones">
             <button ref={botonEditar} type="button" className="boton dash-boton-grande" onClick={entrar}>
               <Svg d={I.editar} />
-              Editar mi dashboard
+              Editar {nombre.replace(/^tu /, "mi ")}
             </button>
           </div>
         ) : null}
@@ -196,9 +200,9 @@ export function Rejilla({ inicial, fichas, nodos, aviso, intro }: Props) {
       ) : null}
 
       {editando ? (
-        <div className="dash-barra-edicion" role="region" aria-label="Edición del dashboard">
+        <div className="dash-barra-edicion" role="region" aria-label={`Edición de ${nombre}`}>
           <div className="dash-barra-texto">
-            <strong>Editando tu dashboard</strong>
+            <strong>Editando {nombre}</strong>
             <span>Arrastra cada tarjeta por el asa ⋮⋮ (o usa ↑ ↓), elige su tamaño y oculta lo que no uses.</span>
           </div>
           <div className="dash-barra-botones">
@@ -218,8 +222,8 @@ export function Rejilla({ inicial, fichas, nodos, aviso, intro }: Props) {
 
       {lista.length === 0 ? (
         <div className="dash-vacio-total">
-          <p className="dash-guia-titulo">Tu dashboard está vacío</p>
-          <p className="dash-guia-texto">Agrega las tarjetas que quieras ver: cifras del día, tus noticias, tu presupuesto o tu portafolio.</p>
+          <p className="dash-guia-titulo">{nombre.charAt(0).toUpperCase() + nombre.slice(1)} está vacío</p>
+          <p className="dash-guia-texto">Agrega las tarjetas que quieras ver con «Agregar tarjetas».</p>
           {!editando ? (
             <button type="button" className="boton dash-boton-grande" onClick={entrar}>
               Agregar tarjetas
@@ -229,13 +233,13 @@ export function Rejilla({ inicial, fichas, nodos, aviso, intro }: Props) {
       ) : editando ? (
         <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={alSoltar} accessibility={{ announcements: anunciar }}>
           <SortableContext items={lista.map((w) => w.id)} strategy={rectSortingStrategy}>
-            <ol className="dash-rejilla editando" aria-label="Tarjetas del dashboard, en orden">
+            <ol className="dash-rejilla editando" aria-label={`Tarjetas de ${nombre}, en orden`}>
               {items}
             </ol>
           </SortableContext>
         </DndContext>
       ) : (
-        <ol className="dash-rejilla" aria-label="Tarjetas del dashboard">
+        <ol className="dash-rejilla" aria-label={`Tarjetas de ${nombre}`}>
           {items}
         </ol>
       )}

@@ -6,7 +6,10 @@
 import { guardarIps, guardarParametros } from "@/app/capital/acciones";
 import { Big, n } from "@/lib/capital/decimal";
 import { aPct } from "@/lib/capital/formulario";
-import { pct } from "@/lib/capital/formato";
+import { indicadores } from "@/lib/capital/cierres";
+import { num, pct } from "@/lib/capital/formato";
+import { posicion } from "@/lib/capital/posicion";
+import { riesgo } from "@/lib/capital/riesgo";
 import { CLASES, ipsVacia, SECCIONES_IPS, type SeccionIps } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
 import { fechaCorta } from "@/lib/formato";
@@ -34,9 +37,9 @@ function Explicacion() {
         <div>
           <h2 id="cap-t-que-es-ips">¿Para qué sirve la política de inversión (IPS)?</h2>
           <p>
-            Son <strong>tus reglas de inversión escritas en frío</strong>, antes de que el mercado se mueva: tu objetivo, tu horizonte, cuánta caída
+            Son <strong>tus reglas de inversión escritas en frío</strong> (por ejemplo: «nunca más de 30 % en acciones», «siempre 6 meses de gastos en efectivo»), antes de que el mercado se mueva: tu objetivo, tu horizonte, cuánta caída
             toleras, qué % quieres en cada clase, la banda para rebalancear y cuántos meses de gastos guardas en efectivo. Capital las usa para
-            comparar tu cartera con tu meta y marcar lo que está <strong>fuera de banda</strong> (en Resumen, Análisis y los hallazgos). No es una
+            comparar tu cartera con tu meta y marcar lo que tienes <strong>más o menos de lo planeado</strong> (en Resumen, Análisis y los hallazgos). No es una
             recomendación: las reglas son tuyas.
           </p>
           <ul aria-label="Lo que incluye">
@@ -107,12 +110,72 @@ function Metas({ datos, mes }: { datos: DatosCapital; mes: string }) {
   );
 }
 
+/** Tus reglas con ejemplos concretos, contra tu cartera real (cumple / no cumple / sin escribir). */
+function ContraCartera({ datos, mes }: { datos: DatosCapital; mes: string }) {
+  const { ctx } = datos;
+  const pos = posicion(ctx);
+  const ind = indicadores(ctx, mes);
+  const rk = riesgo(ctx);
+  const total = pos.total;
+  const banda = n(ctx.p.bandaRebalanceo);
+  const metaRV = n(ctx.p.metaAsignacion.rentavariable);
+  const maxRV = metaRV.gt(0) ? metaRV.plus(banda) : null;
+  const pRV = total.gt(0) ? pos.porClase.rentavariable.div(total) : null;
+  const metaFondo = n(ctx.p.metaFondo);
+  const maxE = n(ctx.p.maxEmisor);
+  const filas: { regla: string; ejemplo: string; real: string; cumple: boolean | null }[] = [
+    {
+      regla: maxRV ? `Nunca más de ${pct(maxRV, 0)} en acciones (renta variable)` : "Un máximo en acciones",
+      ejemplo: "Ej.: «nunca más de 30 % en acciones»",
+      real: pRV === null ? "sin inversiones" : `hoy: ${pct(pRV, 0)}`,
+      cumple: maxRV && pRV ? pRV.lte(maxRV) : null,
+    },
+    {
+      regla: metaFondo.gt(0) ? `Siempre ${num(metaFondo, 0)} meses de gastos en efectivo y ahorro` : "Meses de gastos guardados",
+      ejemplo: "Ej.: «siempre 6 meses de gastos en efectivo»",
+      real: ind.fondoMeses ? `hoy: ${num(ind.fondoMeses, 1)} meses` : "falta tu gasto del mes",
+      cumple: metaFondo.gt(0) && ind.fondoMeses ? ind.fondoMeses.gte(metaFondo) : null,
+    },
+    {
+      regla: maxE.gt(0) ? `Máximo ${pct(maxE, 0)} en un mismo banco o emisor` : "Un máximo por emisor",
+      ejemplo: "Ej.: «máximo 25 % en un mismo emisor»",
+      real: rk.maxEmisor?.pct ? `hoy: ${pct(rk.maxEmisor.pct, 0)} en ${rk.maxEmisor.nombre}` : "sin inversiones",
+      cumple: maxE.gt(0) && rk.maxEmisor?.pct ? rk.maxEmisor.pct.lte(maxE) : null,
+    },
+  ];
+  return (
+    <Panel titulo="Tu política contra tu cartera real" id="cap-t-ips-real" ancho>
+      <ul className="ips-reglas">
+        {filas.map((f) => (
+          <li key={f.ejemplo} className={f.cumple === null ? "sin" : f.cumple ? "si" : "no"}>
+            <span className="ips-marca" aria-hidden="true">
+              {f.cumple === null ? "·" : f.cumple ? "✓" : "!"}
+            </span>
+            <span>
+              <strong>{f.regla}</strong>
+              <span className="tenue chico">
+                {f.cumple === null ? `${f.ejemplo} · escríbela abajo` : f.ejemplo}
+              </span>
+            </span>
+            <span className="ips-real">
+              {f.real}
+              <span className={`etiqueta ${f.cumple === null ? "neutra" : f.cumple ? "sube" : "baja"}`}>{f.cumple === null ? "sin regla" : f.cumple ? "cumple" : "no cumple"}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <span className="sello">Tus registros · cartera de hoy contra las metas que escribiste</span>
+    </Panel>
+  );
+}
+
 export function VistaIps({ datos, mes }: { datos: DatosCapital; mes: string }) {
   const ips = datos.ips ?? ipsVacia();
   const escritas = SECCIONES_IPS.filter(([k]) => ips[k]).length;
   return (
     <>
       <Explicacion />
+      <ContraCartera datos={datos} mes={mes} />
       <Metas datos={datos} mes={mes} />
       <Panel
         titulo="Tu política por escrito"

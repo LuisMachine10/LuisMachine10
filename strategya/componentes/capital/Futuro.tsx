@@ -13,6 +13,7 @@ import { sumarMeses } from "@/lib/capital/fechas";
 import { Tornado } from "./Graficos";
 import { GraficoSerie, type SerieGrafico } from "./GraficoSerie";
 import { Dato, Kpi, Mas, Mosaicos, Panel, SinDatos } from "./Piezas";
+import { PanelAportesMes, PanelPlan, PanelProyeccion } from "./Proyecciones";
 
 type Props = { datos: DatosCapital; mes: string };
 
@@ -330,15 +331,26 @@ function FormularioGenerales({ datos, mes }: Props) {
   );
 }
 
-export function VistaFuturo({ datos, mes }: Props) {
+export function VistaFuturo({ datos, mes, anios }: Props & { anios?: string | null }) {
   return (
     <>
-      <MosaicosFuturo datos={datos} mes={mes} />
-      <PanelEscenarios datos={datos} mes={mes} />
-      <PanelSensibilidad datos={datos} />
+      <PanelProyeccion datos={datos} mes={mes} anios={anios} />
+      <PanelAportesMes datos={datos} mes={mes} />
       <PanelIndependencia datos={datos} mes={mes} />
-      <FormularioSupuestos datos={datos} mes={mes} />
-      <FormularioGenerales datos={datos} mes={mes} />
+      <PanelPlan datos={datos} mes={mes} />
+      <details className="cap-grupo cap-ancho">
+        <summary>Escenarios: ¿y si el retorno o el dólar cambian?</summary>
+        <div className="cuerpo cap-escenarios">
+          <p className="cap-nota" style={{ marginTop: 0 }}>
+            Otra forma de mirar el futuro: un retorno promedio para todo el portafolio, con inflación y depreciación del peso, en varios escenarios.
+          </p>
+          <MosaicosFuturo datos={datos} mes={mes} />
+          <PanelEscenarios datos={datos} mes={mes} />
+          <PanelSensibilidad datos={datos} />
+          <FormularioSupuestos datos={datos} mes={mes} />
+          <FormularioGenerales datos={datos} mes={mes} />
+        </div>
+      </details>
     </>
   );
 }

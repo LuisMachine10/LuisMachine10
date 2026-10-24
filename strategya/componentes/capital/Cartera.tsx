@@ -3,7 +3,7 @@
 // (tipo de cambio manual y tarjetas). Importar queda como opción secundaria en la cabecera.
 
 import Link from "next/link";
-import { agregarInstrumento, eliminarActivo, eliminarTransaccion, guardarActivo, guardarParametros, registrarTransaccion } from "@/app/capital/acciones";
+import { agregarInstrumento, eliminarActivo, eliminarTransaccion, guardarActivo, registrarTransaccion } from "@/app/capital/acciones";
 import { CERO, desdeFlotante, n } from "@/lib/capital/decimal";
 import { aPct } from "@/lib/capital/formulario";
 import { num, pct, pctSg } from "@/lib/capital/formato";
@@ -15,7 +15,7 @@ import type { DatosCapital } from "@/lib/datos-capital";
 import { fechaCorta } from "@/lib/formato";
 import { PanelAsignacion } from "./Asignacion";
 import { Icono } from "./Iconos";
-import { ConSigno, Dato, Kpi, Mas, Mosaicos, Panel, SinDatos } from "./Piezas";
+import { ConSigno, Dato, EXPLICA, Kpi, Mas, Mosaicos, Panel, SinDatos } from "./Piezas";
 import { SelloFx, SelloPrecio } from "./Sellos";
 
 type Props = { datos: DatosCapital; mes: string };
@@ -37,7 +37,7 @@ function MosaicosCartera({ datos }: { datos: DatosCapital }) {
           ayuda="Lo que tus instrumentos prometen pagar al año según su tasa; no es lo que ganaste."
         />
         <Kpi rotulo="Líquidos" valor={num(pos.liquidos)} unidad="RD$" meta="efectivo + cuentas de ahorro" tono="neutra" />
-        <Kpi rotulo="Fuera del peso" valor={pct(ext, 1)} meta={`RD$ ${num(pos.extranjero)} en US$ y €`} tono="neutra" />
+        <Kpi rotulo="Cuánto dependes del dólar" valor={pct(ext, 1)} meta={`RD$ ${num(pos.extranjero)} en US$ y €`} tono="neutra" que={EXPLICA.dolar} />
       </Mosaicos>
       <div className="cap-ancho cap-pie-mosaicos">
         <SelloFx fx={ctx.mercado.fx.USD} moneda="USD" ahora={ahora} hoy={ctx.hoy} />
@@ -198,6 +198,7 @@ function CamposActivo({ a }: { a: Activo }) {
       </label>
       <label className="cap-campo">
         Cantidad (monto o unidades)
+        <input type="hidden" name="cantidadMostrada" value={a.cantidad} />
         <input name="cantidad" defaultValue={a.cantidad} inputMode="decimal" required />
       </label>
       <label className="cap-campo">
@@ -598,98 +599,6 @@ function Transacciones({ datos, mes }: Props) {
   );
 }
 
-function Ajustes({ datos, mes }: Props) {
-  const { p } = datos.ctx;
-  const comun = (seccion: string) => (
-    <>
-      <input type="hidden" name="seccion" value={seccion} />
-      <input type="hidden" name="volver" value="/capital/cartera" />
-      <input type="hidden" name="mes" value={mes} />
-    </>
-  );
-  const tarjetas = [...p.tarjetas, { id: "", nombre: "", limite: "" }];
-  return (
-    <details className="cap-grupo cap-ancho" key={JSON.stringify([p.fx, p.fxUpdated, p.tarjetas])}>
-      <summary>Ajustes: tipo de cambio y tarjetas</summary>
-      <div className="cuerpo cap-form">
-        <form action={guardarParametros} className="cap-form">
-          {comun("fx")}
-          <h3 className="cap-rotulo">Tipo de cambio manual (RD$ por unidad)</h3>
-          <p className="tenue chico" style={{ margin: 0 }}>
-            Para US$ se usa el dólar de venta del BCRD cuando está guardado; el manual queda de respaldo. Para € siempre es el manual.
-          </p>
-          <div className="cap-campos">
-            <label className="cap-campo">
-              US$ → RD$
-              <input name="fx.USD" defaultValue={p.fx.USD ?? ""} inputMode="decimal" />
-            </label>
-            <label className="cap-campo">
-              € → RD$
-              <input name="fx.EUR" defaultValue={p.fx.EUR ?? ""} inputMode="decimal" />
-            </label>
-            <label className="cap-campo">
-              Actualizado el
-              <input type="date" name="fxUpdated" defaultValue={p.fxUpdated ?? ""} />
-            </label>
-          </div>
-          <div className="cap-botones">
-            <button className="boton secundario chico" type="submit">
-              Guardar tipo de cambio
-            </button>
-          </div>
-        </form>
-        <form action={guardarParametros} className="cap-form">
-          {comun("tarjetas")}
-          <h3 className="cap-rotulo">Tarjetas de crédito</h3>
-          <div className="desplazable">
-            <table className="tabla cap-tabla-form">
-              <thead>
-                <tr>
-                  <th scope="col">Nombre</th>
-                  <th scope="col" className="num">
-                    Límite RD$
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {tarjetas.map((t, i) => (
-                  <tr key={`tc-${i}`}>
-                    <td>
-                      <input type="hidden" name={`tarjetas.${i}.id`} value={t.id} />
-                      <input
-                        name={`tarjetas.${i}.nombre`}
-                        defaultValue={t.nombre}
-                        placeholder={t.id ? "" : "Nueva tarjeta"}
-                        aria-label={`Nombre de la tarjeta ${i + 1}`}
-                        maxLength={200}
-                      />
-                    </td>
-                    <td>
-                      <input name={`tarjetas.${i}.limite`} defaultValue={t.limite} inputMode="decimal" aria-label={`Límite de la tarjeta ${i + 1}`} style={{ textAlign: "right" }} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="tenue chico" style={{ margin: 0 }}>
-            Deja el nombre vacío para quitar una tarjeta.
-          </p>
-          <div className="cap-botones">
-            <button className="boton secundario chico" type="submit">
-              Guardar tarjetas
-            </button>
-          </div>
-        </form>
-        <p className="cap-nota">
-          Las metas por clase, la banda de rebalanceo y el límite por emisor están en <Link href="/capital/ips">Política</Link>.{" "}
-          <a href="/capital/exportar" download>Descargar mis datos (JSON, mismo formato que se importa)</a>.
-        </p>
-      </div>
-    </details>
-  );
-}
-
 export function VistaCartera({ datos, mes }: Props) {
   return (
     <>
@@ -701,7 +610,10 @@ export function VistaCartera({ datos, mes }: Props) {
       <PanelPrecios datos={datos} />
       <PanelPL datos={datos} />
       <Transacciones datos={datos} mes={mes} />
-      <Ajustes datos={datos} mes={mes} />
+      <p className="cap-nota cap-ancho">
+        Tus cuentas de banco, tarjetas y deudas se anotan en <Link href={`/capital/cuentas?mes=${mes}`}>Mis cuentas</Link>; el tipo de cambio manual y tus datos, en{" "}
+        <Link href={`/capital/ajustes?mes=${mes}`}>Ajustes</Link>.
+      </p>
     </>
   );
 }

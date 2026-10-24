@@ -14,7 +14,9 @@ import type { DatosCapital } from "@/lib/datos-capital";
 import { frescura } from "@/lib/frescura";
 import { PanelAsignacion } from "./Asignacion";
 import { Barra } from "./Graficos";
-import { ConSigno, Dato, EtiquetaTono, Kpi, Mas, Mosaicos, Panel, SinDatos } from "./Piezas";
+import { hallazgos, ordenar } from "@/lib/capital/alertas";
+import { MatrizRiesgo } from "./Matriz";
+import { ConSigno, Dato, EtiquetaTono, EXPLICA, Kpi, ListaHallazgos, Mas, Mosaicos, Panel, Que, SinDatos } from "./Piezas";
 import { SelloFx, SelloRegistros } from "./Sellos";
 
 type Props = { datos: DatosCapital; mes: string };
@@ -43,16 +45,19 @@ function MosaicosAnalisis({ datos, mes }: Props) {
           tono={max.gt(0) && rk.maxEmisor?.pct ? (rk.maxEmisor.pct.gt(max) ? "alerta" : "ok") : "neutra"}
         />
         <Kpi
-          rotulo="Fuera del peso"
+          rotulo="Cuánto dependes del dólar"
           valor={pct(pos.total.gt(0) ? pos.extranjero.div(pos.total) : null, 1)}
-          meta={`peso −10%: ${sg(pos.extranjero.times("0.10"))}`}
+          meta={`si el peso sube 10 %: ${sg(pos.extranjero.times("0.10").neg())}`}
           tono="neutra"
+          que={EXPLICA.dolar}
         />
         <Kpi
-          rotulo="Yield devengado"
-          valor={pct(ind.yieldPort, 2)}
-          meta="lo que prometen pagar, no lo ganado"
-          tono={ind.yieldPort ? tono(ind.yieldPort, "0.08", "0.05") : "neutra"}
+          rotulo="Interés ganado este mes"
+          valor={num(ind.ingPasivoMes)}
+          unidad="RD$"
+          meta={ind.yieldPort ? `${pct(ind.yieldPort, 2)} al año sobre lo que tienes` : "sin tasas escritas"}
+          tono="neutra"
+          que={EXPLICA.interes}
         />
       </Mosaicos>
       <div className="cap-ancho cap-pie-mosaicos">
@@ -215,7 +220,7 @@ function PanelCambiaria({ datos }: { datos: DatosCapital }) {
   const rk = riesgo(datos.ctx);
   const monedas = (Object.keys(pos.porMoneda) as (keyof typeof pos.porMoneda)[]).sort((a, b) => pos.porMoneda[b]!.cmp(pos.porMoneda[a]!));
   return (
-    <Panel titulo="Exposición cambiaria" id="cap-t-cambiaria">
+    <Panel titulo="Cuánto dependes del dólar" id="cap-t-cambiaria" extra={<Que titulo="Cuánto dependes del dólar">{EXPLICA.dolar}</Que>}>
       <div className="desplazable">
         <table className="tabla">
           <thead>
@@ -263,7 +268,7 @@ function PanelCambiaria({ datos }: { datos: DatosCapital }) {
   );
 }
 
-function PanelPuente({ datos, mes }: Props) {
+export function PanelPuente({ datos, mes }: Props) {
   const pu = puente(datos.ctx, mes);
   if (!pu) {
     return (
@@ -313,7 +318,7 @@ function PanelPuente({ datos, mes }: Props) {
   );
 }
 
-function PanelIndicadores({ datos, mes }: Props) {
+export function PanelIndicadores({ datos, mes }: Props) {
   const ind = indicadores(datos.ctx, mes);
   const p = datos.ctx.p;
   const filas: [string, string, ReturnType<typeof tono>][] = [
@@ -326,7 +331,8 @@ function PanelIndicadores({ datos, mes }: Props) {
     ["Ratio de gasto operativo", pct(ind.ratioGasto, 1), ind.ratioGasto ? tonoInverso(ind.ratioGasto, "0.70", "0.85") : "neutra"],
     ["Ingreso pasivo mensual", rd(ind.ingPasivoMes), "neutra"],
     ["Cobertura pasiva del gasto", pct(ind.coberturaPasiva, 1), ind.coberturaPasiva ? tono(ind.coberturaPasiva, 1, "0.25") : "neutra"],
-    ["Yield devengado del portafolio", pct(ind.yieldPort, 2), ind.yieldPort ? tono(ind.yieldPort, "0.08", "0.05") : "neutra"],
+    ["Interés ganado este mes", rd(ind.ingPasivoMes), "neutra"],
+    ["Tasa promedio de lo que tienes (al año)", pct(ind.yieldPort, 2), ind.yieldPort ? tono(ind.yieldPort, "0.08", "0.05") : "neutra"],
     ["Deuda / ingreso anual", pct(ind.deudaIngreso, 1), ind.deudaIngreso ? tonoInverso(ind.deudaIngreso, "0.30", "0.45") : "neutra"],
     ["Patrimonio para independencia", ind.patLibertad ? rd(ind.patLibertad) : "—", "neutra"],
   ];
@@ -351,7 +357,7 @@ function PanelIndicadores({ datos, mes }: Props) {
       </div>
       <Mas>
         <p className="cap-nota">
-          El <strong>yield devengado</strong> es lo que tus instrumentos prometen pagar, no lo que ganaste; el retorno realizado está en Cartera. El
+          El <strong>interés ganado este mes</strong> es lo que tus instrumentos prometen pagar según sus tasas, no una ganancia ya cobrada; el retorno realizado está en Cartera. El
           patrimonio para independencia usa tu tasa de retiro ({pct(p.tasaRetiro, 1)}).
         </p>
       </Mas>
@@ -452,9 +458,25 @@ function PanelDiferenciales({ datos }: { datos: DatosCapital }) {
   );
 }
 
+/** Los avisos puntuales del mes (vencimientos, tipo de cambio viejo, mes sin cerrar…), plegados bajo la matriz. */
+function OtrosAvisos({ datos, mes }: Props) {
+  const lista = ordenar(hallazgos(datos.ctx, mes)).filter((h) => h.n !== "ok");
+  if (!lista.length) return null;
+  return (
+    <details className="cap-mas" style={{ marginTop: 14 }}>
+      <summary>Otros avisos del mes ({lista.length})</summary>
+      <ListaHallazgos lista={lista} />
+    </details>
+  );
+}
+
 export function VistaAnalisis({ datos, mes }: Props) {
   return (
     <>
+      <Panel titulo="Matriz de riesgos" id="cap-t-matriz" ancho extra={<span className="tenue chico">impacto × probabilidad · {mesLargo(mes)}</span>}>
+        <MatrizRiesgo ctx={datos.ctx} mes={mes} />
+        <OtrosAvisos datos={datos} mes={mes} />
+      </Panel>
       <MosaicosAnalisis datos={datos} mes={mes} />
       <PanelAsignacion datos={datos} detalle />
       <PanelPuente datos={datos} mes={mes} />
