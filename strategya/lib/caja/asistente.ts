@@ -13,6 +13,7 @@ import {
   type ConfigCaja,
   type Cuenta,
   type DatosCaja,
+  esDeuda,
   esUno,
   type Recurrente,
   TIPOS_CATEGORIA,
@@ -31,6 +32,19 @@ export interface CuentaAsistente {
   limite?: string;
   /** Solo tarjeta, opcional: día del mes en que la pagas completa. */
   diaPago?: string;
+  /** Si es una cuenta que ya está en el Portafolio (registro único): su id. Nombre, tipo y saldo salen de allí. */
+  registroId?: string;
+}
+
+/** Una cuenta del registro único del Portafolio que el Presupuesto puede usar. */
+export interface CuentaDelRegistro {
+  id: string;
+  nombre: string;
+  tipo: TipoCuenta;
+  /** Saldo de hoy (en una deuda, lo que debes). */
+  saldo: string;
+  limite: string | null;
+  diaPago: number | null;
 }
 
 /** Un ingreso, costo o gasto: es una categoría; con días, también un fijo. */
@@ -84,7 +98,8 @@ export function leerAsistente(json: string): Resultado<Asistente> {
   for (const c of lista(raiz.cuentas)) {
     const tipo = t(c.tipo);
     if (!esUno(TIPOS_CUENTA, tipo)) return { ok: false, error: "Tipo de cuenta desconocido. Elige banco, efectivo, ahorro o tarjeta." };
-    cuentas.push({ nombre: t(c.nombre), tipo, saldo: t(c.saldo), limite: t(c.limite), diaPago: t(c.diaPago) });
+    const registroId = t(c.registroId);
+    cuentas.push({ nombre: t(c.nombre), tipo, saldo: t(c.saldo), limite: t(c.limite), diaPago: t(c.diaPago), ...(registroId ? { registroId } : {}) });
   }
   const conceptos = (v: unknown, permitidos: readonly TipoCategoria[], porDefecto: TipoCategoria): ConceptoAsistente[] | null => {
     const r: ConceptoAsistente[] = [];
@@ -137,6 +152,7 @@ export function armarDesdeAsistente(
   hoy: Fecha,
   existentes: DatosCaja,
   nuevoId: () => string,
+  registro: readonly CuentaDelRegistro[] = [],
 ): Resultado<DatosCaja & { config: ConfigCaja }> {
   const mal = (error: string): Resultado<DatosCaja & { config: ConfigCaja }> => ({ ok: false, error });
 
@@ -190,6 +206,14 @@ export function armarDesdeAsistente(
   const ordenBase = existentes.cuentas.reduce((m, c) => Math.max(m, c.orden), -1) + 1;
   const cuentas: Cuenta[] = [];
   for (const [i, c] of a.cuentas.entries()) {
+    if (c.registroId) {
+      // Ya está en el Portafolio: se usa tal cual (una sola verdad), sin pedir de nuevo nombre ni saldo.
+      const r = registro.find((x) => x.id === c.registroId);
+      if (!r) return mal(`Paso 3: una de las cuentas elegidas ya no está en tu Portafolio. Vuelve a elegirla.`);
+      if (c.diaPago && !diaValido(c.diaPago)) return mal(`Paso 3, «${r.nombre}»: el día de pago debe ser un número del 1 al 31.`);
+      cuentas.push({ id: nuevoId(), nombre: r.nombre, tipo: r.tipo, saldoInicial: r.saldo, limite: r.limite, orden: ordenBase + i, registroId: r.id });
+      continue;
+    }
     const quien = nombreDe(c.nombre, i, "Cuenta");
     if (!c.nombre) return mal(`Paso 3, cuenta ${i + 1}: ponle un nombre que reconozcas, por ejemplo «Banco Popular» o «Cartera».`);
     if (!c.saldo) {
@@ -207,7 +231,7 @@ export function armarDesdeAsistente(
   }
   const pagadora = cuentas.find((c) => c.tipo === "banco") ?? cuentas.find((c) => c.tipo === "efectivo") ?? null;
   const elegida = (k: number) => (k >= 0 && k < cuentas.length ? cuentas[k] : null);
-  const noTarjeta = cuentas.find((c) => c.tipo !== "tarjeta") ?? null;
+  const noTarjeta = cuentas.find((c) => !esDeuda(c.tipo)) ?? null;
   const cuentaIngresos = elegida(a.cuentaIngresos) ?? noTarjeta;
   const cuentaGastos = elegida(a.cuentaGastos) ?? noTarjeta ?? cuentas[0];
 
@@ -223,10 +247,10 @@ export function armarDesdeAsistente(
 
   // Pago de cada tarjeta con día de pago: paga el total adeudado desde el banco (o el efectivo).
   for (const [i, c] of a.cuentas.entries()) {
-    if (c.tipo !== "tarjeta" || !c.diaPago) continue;
-    if (!pagadora) return mal(`Paso 3, «${c.nombre}»: para programar el pago de la tarjeta agrega también una cuenta de banco o efectivo.`);
+    if (cuentas[i].tipo !== "tarjeta" || !c.diaPago) continue;
+    if (!pagadora) return mal(`Paso 3, «${cuentas[i].nombre}»: para programar el pago de la tarjeta agrega también una cuenta de banco o efectivo.`);
     recurrentes.push({
-      id: nuevoId(), nombre: `Pago ${c.nombre}`, tipo: "pago_tarjeta", monto: "0", moneda: "DOP", pagoTotal: true,
+      id: nuevoId(), nombre: `Pago ${cuentas[i].nombre}`, tipo: "pago_tarjeta", monto: "0", moneda: "DOP", pagoTotal: true,
       cuenta: pagadora.id, destino: cuentas[i].id, categoria: null, frecuencia: "mensual", dias: String(Number(c.diaPago)),
       cadaN: null, fecha: null, desde: null, hasta: null, activo: true,
     });

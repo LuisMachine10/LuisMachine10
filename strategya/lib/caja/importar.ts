@@ -337,7 +337,7 @@ export function parsearImportacion(texto: string): ResultadoImportacion {
 export function aJsonSQL(d: DatosCaja & { config: ConfigCaja }) {
   return {
     config: { inicio: d.config.inicio, colchon: d.config.colchon, margen: d.config.margen, tasa_usd: d.config.tasaUSD },
-    cuentas: d.cuentas.map((c) => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, saldo_inicial: c.saldoInicial, limite: c.limite, orden: c.orden })),
+    cuentas: d.cuentas.map((c) => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, saldo_inicial: c.saldoInicial, limite: c.limite, orden: c.orden, ...(c.registroId ? { registro_id: c.registroId } : {}) })),
     categorias: d.categorias.map((c) => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, adicional: c.adicional })),
     recurrentes: d.recurrentes.map((r) => ({
       id: r.id, nombre: r.nombre, tipo: r.tipo, monto: r.monto, moneda: r.moneda, pago_total: r.pagoTotal,

@@ -9,10 +9,11 @@
 import Big from "big.js";
 import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react";
 import { crearCajaDesdeAsistente, type EstadoAccion } from "@/app/caja/acciones";
-import { alMes } from "@/lib/caja/asistente";
+import { alMes, type CuentaDelRegistro } from "@/lib/caja/asistente";
 import { rd } from "@/lib/caja/formato";
 import { AYUDA_TIPO_CATEGORIA, NOMBRE_TIPO_CATEGORIA_UNO, NOMBRE_TIPO_CUENTA, type TipoCategoria, type TipoCuenta } from "@/lib/caja/tipos";
 import { montoDeTexto } from "@/lib/caja/validar";
+import "@/estilos/capital.css";
 import { Ayuda, Icono, type NombreIcono } from "./Iconos";
 
 interface FilaCuenta {
@@ -22,6 +23,8 @@ interface FilaCuenta {
   saldo: string;
   limite: string;
   diaPago: string;
+  /** Cuenta que ya está en el Portafolio (registro único): solo se elige, no se vuelve a escribir. */
+  reg?: string;
 }
 interface FilaConcepto {
   k: string;
@@ -64,6 +67,7 @@ const AGREGAR_CUENTA: { tipo: TipoCuenta; texto: string }[] = [
   { tipo: "efectivo", texto: "Efectivo" },
   { tipo: "ahorro", texto: "Ahorro" },
   { tipo: "tarjeta", texto: "Tarjeta de crédito" },
+  { tipo: "prestamo", texto: "Préstamo" },
 ];
 const EJEMPLOS_INGRESO: { texto: string; nombre: string; dias: string; tipo: TipoCategoria }[] = [
   { texto: "Quincena (15 y 30)", nombre: "Quincena", dias: "15, 30", tipo: "ingreso" },
@@ -138,7 +142,10 @@ function Monto({ id, valor, cambiar, etiqueta, ejemplo, requerido, ayuda }: { id
   );
 }
 
-export function AsistenteCaja() {
+const deRegistro = (r: CuentaDelRegistro): FilaCuenta => ({ k: `r-${r.id}`, reg: r.id, tipo: r.tipo, nombre: r.nombre, saldo: r.saldo, limite: r.limite ?? "", diaPago: r.diaPago ? String(r.diaPago) : "" });
+const esDeudaTipo = (t: TipoCuenta) => t === "tarjeta" || t === "prestamo";
+
+export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[] }) {
   const [b, setB] = useState<Borrador>(NUEVO);
   const [listo, setListo] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -150,8 +157,12 @@ export function AsistenteCaja() {
 
   useEffect(() => {
     const previo = leerBorrador();
-    if (previo) setB(previo);
+    const vigentes = new Set(registro.map((r) => r.id));
+    // Las cuentas del Portafolio vienen ya elegidas; un borrador viejo pierde las que ya no existen.
+    if (previo) setB({ ...previo, cuentas: previo.cuentas.filter((c) => !c.reg || vigentes.has(c.reg)) });
+    else if (registro.length) setB((x) => ({ ...x, cuentas: registro.map(deRegistro) }));
     setListo(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (listo) guardarBorrador(b);
@@ -183,15 +194,15 @@ export function AsistenteCaja() {
   const utilidad = totalIngresos.minus(totalGastos);
   const ahorro = sumar([b.ahorro]);
   const hayFijos = b.ingresos.some((g) => g.dias.trim()) || b.gastos.some((g) => g.dias.trim());
-  const noTarjeta = b.cuentas.find((c) => c.tipo !== "tarjeta")?.k ?? "";
+  const noTarjeta = b.cuentas.find((c) => !esDeudaTipo(c.tipo))?.k ?? "";
 
   const siguiente = () => {
     if (b.paso === 3) {
-      const falta = b.cuentas.findIndex((c) => !c.nombre.trim() || !c.saldo.trim());
-      if (!b.cuentas.length) return setAviso("Agrega al menos una cuenta: toca «Banco» o «Efectivo» arriba.");
+      const falta = b.cuentas.findIndex((c) => !c.reg && (!c.nombre.trim() || !c.saldo.trim()));
+      if (!b.cuentas.length) return setAviso(registro.length ? "Elige al menos una cuenta de tu Portafolio o agrega una nueva." : "Agrega al menos una cuenta: toca «Banco» o «Efectivo» abajo.");
       if (falta >= 0) {
         const c = b.cuentas[falta];
-        return setAviso(!c.nombre.trim() ? `A la cuenta ${falta + 1} le falta un nombre que reconozcas.` : `Escribe cuánto ${c.tipo === "tarjeta" ? "debes hoy en" : "tiene hoy"} «${c.nombre}» (si es nada, escribe 0).`);
+        return setAviso(!c.nombre.trim() ? `A la cuenta ${falta + 1} le falta un nombre que reconozcas.` : `Escribe cuánto ${esDeudaTipo(c.tipo) ? "debes hoy en" : "tiene hoy"} «${c.nombre}» (si es nada, escribe 0).`);
       }
     }
     ir(b.paso + 1);
@@ -203,7 +214,7 @@ export function AsistenteCaja() {
     const datos = {
       ingresos: b.ingresos.map(concepto),
       gastos: b.gastos.map(concepto),
-      cuentas: b.cuentas.map(({ tipo, nombre, saldo, limite, diaPago }) => ({ tipo, nombre, saldo, limite, diaPago })),
+      cuentas: b.cuentas.map(({ tipo, nombre, saldo, limite, diaPago, reg }) => (reg ? { tipo, nombre: "", saldo: "", limite: "", diaPago, registroId: reg } : { tipo, nombre, saldo, limite, diaPago })),
       cuentaIngresos: indice(b.cuentaIngresos || noTarjeta),
       cuentaGastos: indice(b.cuentaGastos || noTarjeta),
       ahorro: b.ahorro,
@@ -393,9 +404,61 @@ export function AsistenteCaja() {
           <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
             ¿Dónde tienes tu dinero hoy?
           </h2>
-          <p className="caja-asistente-sub">Anota cada cuenta con lo que tiene ahora mismo. Si usas tarjeta de crédito, anota lo que debes.</p>
+          <p className="caja-asistente-sub">
+            {registro.length
+              ? "Tus cuentas salen de tu Portafolio Financiero: elige las que mueven tu dinero del mes. Si falta alguna, agrégala abajo y queda guardada en el Portafolio."
+              : "Anota cada cuenta con lo que tiene hoy (en una tarjeta, lo que debes). Quedan guardadas en tu Portafolio Financiero, en «Mis cuentas, activos y deudas»: no tendrás que escribirlas otra vez."}
+          </p>
+          {registro.length ? (
+            <section className="caja-registro" aria-labelledby={`${uid}-reg`}>
+              <h3 id={`${uid}-reg`} className="caja-registro-titulo">
+                De tu Portafolio Financiero
+              </h3>
+              <ul className="caja-registro-lista">
+                {registro.map((r) => {
+                  const i = b.cuentas.findIndex((c) => c.reg === r.id);
+                  const elegida = i >= 0;
+                  const c = elegida ? b.cuentas[i] : null;
+                  return (
+                    <li key={r.id} className={`caja-registro-item${elegida ? " elegida" : ""}`}>
+                      <label className="caja-registro-elegir">
+                        <input
+                          type="checkbox"
+                          checked={elegida}
+                          onChange={(e) =>
+                            setB((x) => ({ ...x, cuentas: e.target.checked ? [...x.cuentas, deRegistro(r)] : x.cuentas.filter((y) => y.reg !== r.id) }))
+                          }
+                        />
+                        <span className={`caja-fila-icono ${r.tipo}`} aria-hidden="true">
+                          <Icono n={ICONO_TIPO[r.tipo]} />
+                        </span>
+                        <span className="caja-registro-nombre">
+                          <strong>{r.nombre}</strong>
+                          <span className="chico tenue">
+                            {NOMBRE_TIPO_CUENTA[r.tipo]} · {esDeudaTipo(r.tipo) ? "debes" : "tiene"} <span className="mono">{rd(r.saldo)}</span>
+                          </span>
+                        </span>
+                      </label>
+                      {c && r.tipo === "tarjeta" ? (
+                        <div className="caja-campo caja-registro-dia">
+                          <label htmlFor={`as-r-${r.id}-d`}>
+                            Día en que la pagas <span className="tenue">(opcional)</span>
+                          </label>
+                          <input id={`as-r-${r.id}-d`} inputMode="numeric" maxLength={2} value={c.diaPago} placeholder="Ej.: 28" autoComplete="off" onChange={(e) => cambiar("cuentas", i, { diaPago: e.target.value })} />
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="chico tenue caja-registro-nota">El saldo de cada una se cambia en el Portafolio; lo que anotes aquí lo mueve solo.</p>
+            </section>
+          ) : null}
+          {b.cuentas.some((c) => !c.reg) ? (
+            <h3 className="caja-registro-titulo">{registro.length ? "Nuevas (se guardan en el Portafolio)" : "Tus cuentas"}</h3>
+          ) : null}
           <ul className="caja-filas">
-            {b.cuentas.map((c, i) => (
+            {b.cuentas.map((c, i) => c.reg ? null : (
               <li key={c.k} className="caja-fila">
                 <div className="caja-fila-cabeza">
                   <span className={`caja-fila-icono ${c.tipo}`} aria-hidden="true">
@@ -424,8 +487,8 @@ export function AsistenteCaja() {
                     id={`as-c-${c.k}-s`}
                     valor={c.saldo}
                     cambiar={(v) => cambiar("cuentas", i, { saldo: v })}
-                    etiqueta={c.tipo === "tarjeta" ? "¿Cuánto debes hoy?" : "¿Cuánto tiene hoy?"}
-                    ejemplo={c.tipo === "tarjeta" ? "Ej.: 12,400" : "Ej.: 25,000"}
+                    etiqueta={esDeudaTipo(c.tipo) ? "¿Cuánto debes hoy?" : "¿Cuánto tiene hoy?"}
+                    ejemplo={esDeudaTipo(c.tipo) ? "Ej.: 12,400" : "Ej.: 25,000"}
                     requerido
                   />
                   {c.tipo === "tarjeta" ? (
@@ -446,8 +509,8 @@ export function AsistenteCaja() {
               </li>
             ))}
           </ul>
-          <div className="caja-agregar" role="group" aria-label="Agregar otra cuenta">
-            <span className="chico tenue">Agregar:</span>
+          <div className="caja-agregar" role="group" aria-label="Agregar en el Portafolio">
+            <span className="chico tenue">{registro.length ? "Agregar en el Portafolio:" : "Agregar:"}</span>
             {AGREGAR_CUENTA.map((t) => (
               <button
                 key={t.tipo}

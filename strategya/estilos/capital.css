@@ -1311,3 +1311,17 @@ textarea::placeholder {
     transition: none;
   }
 }
+
+/* ───────── Presupuesto · paso 3 del asistente: cuentas del registro único del Portafolio ───────── */
+.caja-registro { margin: 0 0 16px; }
+.caja-registro-titulo { font-size: 14px; font-weight: 600; margin: 16px 0 8px; color: var(--texto-2); }
+.caja-registro-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.caja-registro-item { border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel); padding: 10px 12px; display: grid; gap: 8px; }
+.caja-registro-item.elegida { border-color: var(--acento); background: var(--acento-suave); }
+.caja-registro-elegir { display: flex; align-items: center; gap: 10px; cursor: pointer; min-height: 44px; }
+.caja-registro-elegir input { width: 20px; height: 20px; flex: none; accent-color: var(--acento); }
+.caja-registro-nombre { display: grid; gap: 2px; min-width: 0; }
+.caja-registro-nombre strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.caja-registro-dia { margin: 0; }
+.caja-registro-nota { margin: 8px 0 0; }
+.caja-fila-icono.prestamo { color: var(--baja); background: var(--baja-suave); }

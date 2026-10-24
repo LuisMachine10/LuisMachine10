@@ -8,6 +8,8 @@ import { SelloCaja } from "@/componentes/caja/SelloCaja";
 import { TilesResumen } from "@/componentes/caja/TilesResumen";
 import { PanelError } from "@/componentes/PanelError";
 import { leerCaja } from "@/lib/caja/datos";
+import { leerRegistro } from "@/lib/capital/datos-registro";
+import { cuentasParaPresupuesto } from "@/lib/capital/registro";
 import { esFecha, esMes, hoyRD, mesDe, nombreMes, primerDia } from "@/lib/caja/fechas";
 import { horizonte, resumir, simular } from "@/lib/caja/motor";
 import { armarVistaMes, catalogos, ultimoCuadre } from "@/lib/caja/vista";
@@ -36,9 +38,11 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
   }
   const { datos, editadoEn } = lectura;
   if (!datos.config) {
+    // Paso 3 del asistente: se eligen las cuentas del registro único del Portafolio (no se anotan dos veces).
+    const registro = await leerRegistro(datos, lectura.enlaces, hoy).then(cuentasParaPresupuesto, () => []);
     return (
       <MarcoCaja actual="calendario" editadoEn={editadoEn} sub="Aquí anotas una sola vez lo que te entra, lo que gastas y dónde tienes tu dinero; lo demás se calcula solo." sinPestanas>
-        <AsistenteCaja />
+        <AsistenteCaja registro={registro} />
       </MarcoCaja>
     );
   }

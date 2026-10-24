@@ -115,6 +115,11 @@ export interface Cuenta {
   saldoInicial: string;
   limite: string | null;
   orden: number;
+  /**
+   * Fila del registro único del Portafolio que es esta cuenta (caja_cuentas.registro_id). Solo al crearla
+   * desde el asistente; al leer, el enlace llega aparte (LecturaCaja.enlaces).
+   */
+  registroId?: string;
 }
 
 export interface Categoria {

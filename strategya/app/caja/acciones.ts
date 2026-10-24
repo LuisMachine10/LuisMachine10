@@ -5,7 +5,9 @@
 
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
-import { armarDesdeAsistente, leerAsistente } from "@/lib/caja/asistente";
+import { armarDesdeAsistente, type CuentaDelRegistro, leerAsistente } from "@/lib/caja/asistente";
+import { leerRegistro } from "@/lib/capital/datos-registro";
+import { cuentasParaPresupuesto } from "@/lib/capital/registro";
 import { leerCaja } from "@/lib/caja/datos";
 import { COLUMNAS, filasADatos } from "@/lib/caja/filas";
 import { rd } from "@/lib/caja/formato";
@@ -257,6 +259,32 @@ export async function guardarCuenta(_p: EstadoAccion, form: FormData): Promise<E
   return guardarEn("caja_cuentas", c.id || undefined, { nombre: v.nombre, tipo: v.tipo, saldo_inicial: v.saldoInicial, limite: v.limite, orden: v.orden }, "la cuenta");
 }
 
+/**
+ * «Usar en el Presupuesto» una cuenta que ya está en el Portafolio (registro único): se enlaza, no se copia.
+ * El trigger de la base toma su nombre, tipo y límite; el saldo inicial es su saldo de hoy.
+ */
+export async function vincularCuenta(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const id = String(form.get("registroId") ?? "");
+  if (!ID.test(id)) return mal("Elige una cuenta de tu Portafolio.");
+  let lectura: Awaited<ReturnType<typeof leerCaja>>;
+  let lista: CuentaDelRegistro[];
+  try {
+    lectura = await leerCaja();
+    lista = cuentasParaPresupuesto(await leerRegistro(lectura.datos, lectura.enlaces, hoyRD()));
+  } catch (e) {
+    return mal(`No se pudo leer tu Portafolio: ${(e as Error).message}. Inténtalo de nuevo.`);
+  }
+  const r = lista.find((x) => x.id === id);
+  if (!r) return mal("Esa cuenta ya está en el Presupuesto o no se puede usar (solo saldos en RD$). Recarga la página.");
+  const orden = lectura.datos.cuentas.reduce((m, c) => Math.max(m, c.orden), 0) + 1;
+  const { error } = await (await personal()).from("caja_cuentas").insert({ nombre: r.nombre, tipo: r.tipo, saldo_inicial: r.saldo, limite: r.limite, orden, registro_id: r.id });
+  const e = errorBase(error, "usar la cuenta");
+  if (e) return e;
+  refrescar();
+  revalidatePath("/capital", "layout");
+  return bien(`Listo: «${r.nombre}» ya está en tu Presupuesto.`);
+}
+
 export async function eliminarCuenta(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
   return eliminarDe(
     "caja_cuentas",
@@ -267,7 +295,7 @@ export async function eliminarCuenta(_p: EstadoAccion, form: FormData): Promise<
       { tabla: "caja_recurrentes", col: "cuenta" },
       { tabla: "caja_recurrentes", col: "destino" },
     ],
-    "la cuenta",
+    "la cuenta del Presupuesto",
   );
 }
 
@@ -378,7 +406,15 @@ export async function crearCajaDesdeAsistente(_p: EstadoAccion, form: FormData):
     return mal(`No se pudo leer tu caja para guardar: ${(e as Error).message}. Revisa tu conexión e inténtalo de nuevo.`);
   }
   if (actual.datos.config) return mal("Tu presupuesto ya estaba creado. Para cambiar algo, ve a Configuración.");
-  const r = armarDesdeAsistente(a.valor, hoyRD(), actual.datos, randomUUID);
+  let registro: CuentaDelRegistro[] = [];
+  if (a.valor.cuentas.some((c) => c.registroId)) {
+    try {
+      registro = cuentasParaPresupuesto(await leerRegistro(actual.datos, actual.enlaces, hoyRD()));
+    } catch (e) {
+      return mal(`No se pudo leer tu Portafolio para usar sus cuentas: ${(e as Error).message}. Inténtalo de nuevo.`);
+    }
+  }
+  const r = armarDesdeAsistente(a.valor, hoyRD(), actual.datos, randomUUID, registro);
   if (!r.ok) return mal(r.error);
   const { error } = await (await personal()).rpc("caja_importar", { p_datos: aJsonSQL(r.valor) });
   if (error) return mal(`No se guardó nada (la base respondió: ${error.message}). Inténtalo de nuevo en un momento.`);

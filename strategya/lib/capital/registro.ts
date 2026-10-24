@@ -10,6 +10,7 @@
 
 import Big from "big.js";
 import { simular } from "../caja/motor";
+import type { CuentaDelRegistro } from "../caja/asistente";
 import type { DatosCaja } from "../caja/tipos";
 import { CERO, n, suma } from "./decimal";
 import { type Contexto, valorDOP } from "./posicion";
@@ -332,4 +333,11 @@ export function sugerirUniones(items: ItemRegistro[], descartadas: ReadonlySet<s
     pares.push(c);
   }
   return pares;
+}
+
+/** Las filas del registro que el Presupuesto puede usar y todavía no usa (para el asistente y Configuración). */
+export function cuentasParaPresupuesto(items: ItemRegistro[]): CuentaDelRegistro[] {
+  return items
+    .filter((i) => !i.cajaId && sirveParaPresupuesto(i))
+    .map((i) => ({ id: i.id, nombre: i.nombre, tipo: tipoCajaDe(i), saldo: i.cantidad, limite: i.limite, diaPago: i.diaPago }));
 }

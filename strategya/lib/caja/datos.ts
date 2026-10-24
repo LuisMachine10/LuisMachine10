@@ -7,6 +7,8 @@ export interface LecturaCaja {
   datos: DatosCaja;
   /** Última edición de Mena (ISO) para el sello. */
   editadoEn: string | null;
+  /** Cuenta del Presupuesto → fila del registro único del Portafolio (caja_cuentas.registro_id). */
+  enlaces: Record<string, string>;
 }
 
 type Tabla = keyof typeof COLUMNAS;
@@ -41,5 +43,8 @@ export async function leerCaja(): Promise<LecturaCaja> {
     leer("caja_notas"),
   ]);
   const filas: FilasCaja = { config: config[0] ?? null, cuentas, categorias, recurrentes, movimientos, omitidos, saldos, notas };
-  return { datos: filasADatos(filas), editadoEn: ultimaEdicion(filas) };
+  const enl = await db.from("caja_cuentas").select("id, registro_id");
+  const enlaces: Record<string, string> = {};
+  if (!enl.error) for (const e of (enl.data ?? []) as { id: string; registro_id: string | null }[]) if (e.registro_id) enlaces[e.id] = e.registro_id;
+  return { datos: filasADatos(filas), editadoEn: ultimaEdicion(filas), enlaces };
 }
