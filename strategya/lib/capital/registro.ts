@@ -339,5 +339,5 @@ export function sugerirUniones(items: ItemRegistro[], descartadas: ReadonlySet<s
 export function cuentasParaPresupuesto(items: ItemRegistro[]): CuentaDelRegistro[] {
   return items
     .filter((i) => !i.cajaId && sirveParaPresupuesto(i))
-    .map((i) => ({ id: i.id, nombre: i.nombre, tipo: tipoCajaDe(i), saldo: i.cantidad, limite: i.limite, diaPago: i.diaPago }));
+    .map((i) => ({ id: i.id, nombre: i.nombre, tipo: tipoCajaDe(i), saldo: i.cantidad, limite: i.limite, diaPago: i.diaPago, ...(i.clase === "rentafija" ? { inversion: true } : {}) }));
 }

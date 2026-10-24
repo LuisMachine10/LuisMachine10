@@ -171,11 +171,11 @@ export function PanelAportesMes({ datos, mes, volver = "/capital/futuro", compac
   const total = plan.reduce((s, x) => s.plus(x.monto), CERO);
   const hechos = plan.filter((x) => confirmados.some((c) => c.activoId === x.activo.id));
   return (
-    <Panel titulo={titulo} id="cap-t-aportes" extra={<span className="tenue chico">{hechos.length} de {plan.length} hechos</span>}>
+    <Panel titulo={titulo} id="cap-t-aportes" ancho={!compacto} extra={<span className="tenue chico">{hechos.length} de {plan.length} hechos</span>}>
       <p className="cap-nota" style={{ marginTop: 0 }}>
         Tu plan manda <strong>{rd(total)}</strong> este mes. Cada aporte queda pendiente hasta que confirmes que lo hiciste: así se suma al Portafolio{cuentas.length ? " y, si sale de una cuenta, al ahorro del Presupuesto" : ""}, una sola vez.
       </p>
-      <ul className="ap-lista">
+      <ul className={`ap-lista${compacto ? " compacta" : ""}`}>
         {(compacto ? plan.slice(0, 4) : plan).map((x) => {
           const hecho = confirmados.find((c) => c.activoId === x.activo.id);
           const unidades = x.activo.clase === "rentavariable";
@@ -193,10 +193,10 @@ export function PanelAportesMes({ datos, mes, volver = "/capital/futuro", compac
               </div>
               {hecho ? (
                 <p className="ap-estado sube">
-                  <Icono nombre="ok" /> Hecho{hecho.fecha ? ` el ${hecho.fecha}` : ""}: {x.activo.moneda} {num(hecho.monto, 2)}
+                  <Icono nombre="ok" /> Hecho{hecho.fecha ? ` el ${hecho.fecha}` : ""}: {x.activo.moneda === "DOP" ? rd(hecho.monto) : `${x.activo.moneda} ${num(hecho.monto, 2)}`}
                 </p>
               ) : compacto ? (
-                <p className="ap-estado tenue chico">Pendiente · confírmalo en Proyecciones</p>
+                <p className="ap-estado tenue chico">Pendiente</p>
               ) : (
                 <details className="ap-confirmar">
                   <summary className="boton chico">Sí, lo hice</summary>

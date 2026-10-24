@@ -160,7 +160,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
     const vigentes = new Set(registro.map((r) => r.id));
     // Las cuentas del Portafolio vienen ya elegidas; un borrador viejo pierde las que ya no existen.
     if (previo) setB({ ...previo, cuentas: previo.cuentas.filter((c) => !c.reg || vigentes.has(c.reg)) });
-    else if (registro.length) setB((x) => ({ ...x, cuentas: registro.map(deRegistro) }));
+    else if (registro.length) setB((x) => ({ ...x, cuentas: registro.filter((r) => !r.inversion).map(deRegistro) }));
     setListo(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

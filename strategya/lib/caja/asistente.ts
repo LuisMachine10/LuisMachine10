@@ -45,6 +45,8 @@ export interface CuentaDelRegistro {
   saldo: string;
   limite: string | null;
   diaPago: number | null;
+  /** Es una inversión (renta fija): sirve como destino de ahorro, pero no viene marcada de entrada. */
+  inversion?: boolean;
 }
 
 /** Un ingreso, costo o gasto: es una categoría; con días, también un fijo. */

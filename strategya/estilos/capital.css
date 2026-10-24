@@ -1578,3 +1578,22 @@ textarea::placeholder {
 .ips-reglas li.sin .ips-marca { border: 1px dashed var(--texto-3); background: transparent; color: var(--texto-3); }
 .etiqueta.sube { background: var(--sube-suave); color: var(--texto); }
 .etiqueta.baja { background: var(--baja-suave); color: var(--texto); }
+
+/* Aportes: una fila por aporte (nombre · monto | acción); el formulario se abre debajo. */
+.cap-principal { align-items: start; }
+.ap-item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+.ap-item > .ap-estado { justify-self: end; }
+.ap-confirmar[open] { grid-column: 1 / -1; }
+.ap-confirmar > summary { justify-self: end; margin-left: auto; }
+@media (min-width: 900px) {
+  .ap-lista:not(.compacta) { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+.ap-lista.compacta .ap-item { padding: 8px 10px; }
+.ap-lista.compacta .ap-nombre .chico { display: none; }
+
+.caja-asistente .caja-registro-elegir input[type="checkbox"] {
+  width: 20px; height: 20px; min-width: 20px; min-height: 0; padding: 0; margin: 0; flex: 0 0 20px;
+  appearance: auto; -webkit-appearance: checkbox; border-radius: 4px; box-shadow: none;
+}
+.caja-asistente .caja-registro-elegir { display: grid; grid-template-columns: 20px auto minmax(0, 1fr); }
+.caja-asistente .caja-registro-item .caja-fila-icono { flex: none; }

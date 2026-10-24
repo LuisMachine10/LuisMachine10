@@ -215,7 +215,7 @@ function PanelIndependencia({ datos, mes }: Props) {
   const fin = b.proy.final;
   const parte = (x: Big) => (fin.gt(0) ? x.div(fin) : null);
   return (
-    <Panel titulo="Independencia financiera" id="cap-t-libertad">
+    <Panel titulo="Independencia financiera" id="cap-t-libertad" ancho>
       {meta && ind.gastoRef ? (
         <p className="cap-nota" style={{ marginTop: 0 }}>
           Con un gasto de {rd(ind.gastoRef)} al mes y una tasa de retiro de {pct(ctx.p.tasaRetiro, 1)}, la meta es <strong>{rd(meta)}</strong>.{" "}
