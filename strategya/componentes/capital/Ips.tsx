@@ -39,7 +39,7 @@ function Explicacion() {
           <p>
             Son <strong>tus reglas de inversión escritas en frío</strong> (por ejemplo: «nunca más de 30 % en acciones», «siempre 6 meses de gastos en efectivo»), antes de que el mercado se mueva: tu objetivo, tu horizonte, cuánta caída
             toleras, qué % quieres en cada clase, la banda para rebalancear y cuántos meses de gastos guardas en efectivo. Capital las usa para
-            comparar tu cartera con tu meta y marcar lo que tienes <strong>más o menos de lo planeado</strong> (en Resumen, Análisis y los hallazgos). No es una
+            comparar tu cartera con tu meta y marcar lo que tienes <strong>más o menos de lo planeado</strong> (en Resumen y en Riesgos). No es una
             recomendación: las reglas son tuyas.
           </p>
           <ul aria-label="Lo que incluye">

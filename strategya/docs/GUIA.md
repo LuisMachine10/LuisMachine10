@@ -100,8 +100,8 @@ La página se actualiza sola.
 | **RD** | Dólar del Banco Central, tasas de los bancos, combustibles, subastas de bonos del Gobierno y rendimientos de fondos de inversión (Excel y AFI Reservas se leen solos). |
 | **News → Todos los titulares** | Titulares de WSJ, FT, CNBC, Bloomberg Línea, elEconomista, Expansión y prensa dominicana, por tema, más la agenda. |
 | **Mapa** | Globo 3D: bolsas, conflictos, rutas de barcos, sismos y huracanes. Toca un punto para ver su tarjeta. |
-| **Portafolio Financiero** | Tu patrimonio: cuánto tienes, cuánto ganaste en el mes y cómo está repartido en 4 clases (Efectivo, Cuentas de ahorro, Renta fija, Renta variable), y tu Política de inversión (IPS). |
-| **Presupuesto** | Cuánto puedes gastar hoy sin pasarte, los pagos que vienen y el saldo de tus cuentas. La primera vez te guía en 4 pasos. |
+| **Portafolio Financiero** | Tus finanzas en un solo lugar. **Mis cuentas**: anotas una sola vez tus cuentas, efectivo, inversiones, bienes, tarjetas y préstamos (el Presupuesto usa esas mismas). **Resumen**: tablero de tarjetas que mueves a tu gusto (patrimonio, participación por categoría, retorno esperado, futuro de cada categoría, aportes del mes, puente e indicadores, riesgos). **Proyecciones**: cómo crece tu dinero con el ahorro de tu Presupuesto y el interés compuesto; confirmas cada aporte con «Sí, lo hice». **Riesgos**: matriz de impacto × probabilidad. También Cartera, Cierre, Política (IPS) y Ajustes. |
+| **Presupuesto** | Cuánto puedes gastar hoy sin pasarte, los pagos que vienen y el saldo de tus cuentas. La primera vez te guía en 4 pasos; en el paso de cuentas eliges las de tu Portafolio (o agregas una nueva, que queda guardada allí). |
 | **Más → Agregar un dato** | Para escribir a mano una cifra oficial que no llega sola (por ejemplo, un fondo de BHD), siempre con su enlace. |
 | **Más → Ajustes y alertas** | Cuándo quieres que te avisemos (por ejemplo, si el oro sube más de 2 %). |
 | **Más → Estado de las fuentes** | Si una cifra se ve vieja, aquí ves qué fuente falló y por qué. |
@@ -121,6 +121,11 @@ coincidan; si llenas varias partes, el titular debe cumplirlas todas.
 Strategya arranca vacío en **Portafolio Financiero** y **Presupuesto**: cada pantalla te dice qué anotar y tiene un
 botón azul para empezar. Nunca se piden números de cuenta, tarjeta ni cédula: basta un nombre que reconozcas.
 Tus datos solo los ves tú.
+
+**Una sola vez:** las cuentas se anotan en Portafolio → Mis cuentas. El saldo que escribes es el de hoy; lo que
+anotes después en el Presupuesto (gastos, ingresos, pagos, «cuadrar con tu banco») lo mueve solo, y las dos
+pantallas muestran el mismo saldo. Si antes tenías una cuenta anotada en los dos lugares, Mis cuentas te muestra
+una sola vez «Unir cuentas repetidas»: confirmas cada par y nada se borra.
 
 ### Alertas
 

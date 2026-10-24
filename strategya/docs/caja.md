@@ -20,6 +20,14 @@ Para el Dashboard y News: `componentes/caja/ResumenCaja.tsx` (`ResumenCaja({ aho
 async): utilidad neta del mes (presupuestado vs. real), ingresos, gastos, puedes gastar, «¿Ya se hizo?» y
 lo que viene en 7 días.
 
+## Las cuentas salen del Portafolio (registro único)
+
+Las cuentas del Presupuesto son las de Portafolio → Mis cuentas (`caja_cuentas.registro_id`, ver docs/capital.md).
+El asistente, en «Tus cuentas hoy», elige del registro (o agrega una nueva, que queda en el Portafolio);
+Configuración permite «Usar una cuenta que ya está en tu Portafolio» y «Quitar del Presupuesto» (sigue en el
+Portafolio). Tipo nuevo de cuenta: `prestamo` (deuda, como la tarjeta). El saldo de hoy es el mismo en las dos
+pantallas.
+
 ## Todo enlazado: la categoría es la única fuente
 
 - Cada categoría tiene un **tipo** = su línea del estado de resultados: `ingreso`, `costo`, `gasto`,

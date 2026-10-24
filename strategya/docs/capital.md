@@ -1,4 +1,9 @@
-# Mena Capital
+# Portafolio Financiero (antes «Mis inversiones» / Mena Capital)
+
+> **Novedades (oct. 2026):** registro único «Mis cuentas, activos y deudas» enlazado con el Presupuesto,
+> Resumen con widgets editables, proyecciones con aportes del Presupuesto y matriz de riesgo 3×3. Ver la
+> sección «Registro único» al final.
+
 
 Finanzas personales de Mena dentro de Strategya: patrimonio, cartera, retorno, riesgo y futuro. Es el
 artefacto «Mena Capital» llevado a la terminal: el mismo modelo de datos y el mismo motor, con montos
@@ -143,3 +148,70 @@ Diferencias deliberadas con el artefacto:
 1. Supabase → Project Settings → Data API → **Exposed schemas**: agregar `personal` (además de `mercado`).
 2. Supabase → Edge Functions → Secrets: `FINNHUB_API_KEY` (la misma clave del módulo de mercado sirve).
 3. Abrir `/capital/importar`, subir el archivo del artefacto, revisar y confirmar.
+
+## Registro único «Mis cuentas, activos y deudas» (migración `20261023000100_registro_unico.sql`)
+
+**Una sola verdad.** `personal.activos` es el registro único: las 4 clases de inversión, `otros` (vehículo,
+inmueble, otro bien; `subtipo`) y las deudas `tarjeta`, `prestamo`, `deuda` (en una deuda `cantidad` = lo que se
+debe). Columnas nuevas: `subtipo` (ahorros: `corriente`/`ahorro`), `saldo_fecha` (saldo al EMPEZAR ese día; la app
+guarda el de hoy como «empezar mañana»), `limite`, `dia_pago`, `cuota`, `origen` (`portafolio` | `presupuesto` |
+`tarjetas`), `unido_a` (fila archivada al unir), y el plan: `capitaliza`, `frecuencia_pago`, `reinvierte`,
+`aporte_pct`, `plan_inicio`. Las pruebas de esquema exigen que no haya tablas nuevas en `personal`: por eso todo
+vive en tablas existentes.
+
+**Enlace con el Presupuesto.** `personal.caja_cuentas.registro_id` (FK única a `personal.activos`, `on delete
+restrict`). Triggers:
+
+- `caja_cuentas_antes`: una cuenta creada desde el Presupuesto (asistente, Configuración, importación) sin
+  `registro_id` se crea en el registro en el mismo paso; con `registro_id`, nombre/tipo/límite salen del registro
+  (solo saldos en RD$: ni US$, ni acciones, ni bienes).
+- `caja_cuentas_despues` y `activos_despues`: los cambios de nombre, tipo, límite y saldo pasan al otro lado. Un
+  saldo escrito en el Portafolio entra a la línea de tiempo del Presupuesto como cuadre del día anterior (o como
+  saldo inicial si es de la fecha de inicio). Bandera `personal.sinc` para no llamarse en bucle.
+- Tipo del Presupuesto: efectivo → `efectivo`, ahorros/corriente → `banco`, demás ahorros y renta fija →
+  `ahorro`, tarjeta → `tarjeta`, préstamo y otra deuda → `prestamo` (tipo nuevo en el Presupuesto, se mueve como
+  deuda; la «deuda en tarjetas» sigue contando solo tarjetas).
+
+**Saldo vigente** (`lib/capital/registro.ts · conSaldosVigentes`): para una fila enlazada, la posición de su cuenta
+al cierre de hoy con el mismo motor del Presupuesto (`simular`) sin los fijos aún no confirmados; si no está
+enlazada, lo escrito. El Portafolio y el Presupuesto muestran el mismo número.
+
+**Conversión de lo que había** (sin adivinar): cada `caja_cuentas` se copia como fila del registro
+(`origen = presupuesto`, con su id si está libre; si choca, `id-1`), cada tarjeta de `parametros.tarjetas` como
+deuda con su MISMO id (los cierres guardan el uso por ese id; `cantidad 0`, `saldo_fecha` vacío = «sin dato»). Los
+parámetros no se tocan. Nada se empareja solo: `sugerirUniones` propone pares (mismo nombre, palabras o institución
+en común, único efectivo) y Mena confirma en «Unir cuentas repetidas» (`personal.unir_registro(queda, se_va,
+saldo?, fecha?)`, SECURITY INVOKER): queda la fila del Portafolio con su id e historial; la otra se archiva
+(`unido_a`), nunca se borra. Las decisiones «son distintas» y «ya revisé» viven en `personal.preferencias`
+(clave `registro`, sin cifras).
+
+**Importaciones:** `importar_capital` reemplaza solo instrumentos del Portafolio no enlazados y no pisa el saldo
+de las cuentas que usa el Presupuesto; `caja_importar` conserva el enlace por id de cuenta y nunca borra filas del
+registro.
+
+## Resumen con widgets
+
+`/capital` usa la rejilla del Dashboard (`componentes/dashboard/Rejilla.tsx`, ahora con `clave`) y el catálogo
+`WIDGETS_PORTAFOLIO` (`lib/dashboard/widgets.ts`), guardado en `personal.preferencias` clave `portafolio`.
+Componentes en `componentes/capital/WidgetsPortafolio.tsx`.
+
+## Proyecciones con aportes del Presupuesto (`lib/capital/proyeccion.ts`, con pruebas)
+
+Ahorro del mes = `presupuestado.ahorro` de `personal.resultado_mes` (= `presupuesto_ahorro_mensual`). Reparto por
+clase (`parametros.planClases`, o la meta de la Política) y por instrumento (`aporte_pct`, o partes iguales).
+Mes a mes con big.js: tasa anual ÷ 12; capitaliza o paga cada 1/3/6/12 meses o al vencer; reinvierte o cobra;
+aporte al final del mes desde `plan_inicio`; al vencer deja de ganar y de recibir aportes. Sin plan escrito se
+supone que capitaliza (los de cupón cobran cada mes) y la pantalla lo dice.
+
+«Sí, lo hice» (`confirmarAporte`): una compra en `personal.transacciones` con `aporte_mes` y, si salió de una
+cuenta del Presupuesto, un movimiento allá (transferencia a la cuenta enlazada, o gasto con categoría de ahorro e
+inversión) guardado en `movimiento_id`: cuenta como ahorro realizado en el estado de resultados, sin anotarlo dos
+veces. Si el instrumento no está enlazado, su saldo sube directo.
+
+## Matriz de riesgo (`lib/capital/matriz.ts`, con pruebas)
+
+Cuatro riesgos (liquidez y colchón, concentración, dólar, presupuesto y deuda) en impacto × probabilidad
+(bajo/medio/alto). Umbrales en `parametros.umbrales` (Ajustes): colchón 6 meses, 25 % por instrumento, 40 % por
+SAFI/emisor, dólar 20–50 %, gasto > 10 % sobre lo presupuestado = alto, tarjetas > 30 % del ingreso mensual = alto.
+Cada riesgo dice qué evalúa, el dato que lo dispara con su fuente y qué se puede hacer, sin recomendar inversiones.
+Los avisos puntuales de antes (vencimientos, tipo de cambio viejo…) siguen bajo «Otros avisos del mes».
