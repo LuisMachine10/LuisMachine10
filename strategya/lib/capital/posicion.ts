@@ -4,6 +4,7 @@
 import { Big, CERO, n, suma } from "./decimal";
 import type { Activo, Cierres, Clase, Dec, Moneda, MonedaExtranjera, Parametros, Transaccion } from "./tipos";
 import { CLASES } from "./tipos";
+import type { ItemRegistro } from "./registro";
 
 export type OrigenFx = "bcrd" | "manual" | "ninguno";
 
@@ -63,6 +64,22 @@ export interface Contexto {
   mercado: Mercado;
   /** Hoy en RD (AAAA-MM-DD). */
   hoy: string;
+  /**
+   * Registro único completo (inversiones, otros activos y deudas) con su saldo vigente. Si falta (pruebas
+   * del motor o datos viejos), el patrimonio usa los pasivos del cierre del mes, como antes.
+   */
+  registro?: ItemRegistro[];
+  /** Estado de resultados del Presupuesto del mes (contrato personal.resultado_mes), si existe. */
+  presupuesto?: ResultadoPresupuesto | null;
+}
+
+/** Lo que el Portafolio lee del Presupuesto (montos RD$ como texto). */
+export interface ResultadoPresupuesto {
+  mes: string;
+  presupuestado: Record<string, Dec>;
+  real: Record<string, Dec>;
+  /** Lo presupuestado para ahorro e inversión (personal.presupuesto_ahorro_mensual). */
+  ahorroMensual: Dec | null;
 }
 
 export const URL_BCRD_DOLAR = "https://www.bancentral.gov.do/";

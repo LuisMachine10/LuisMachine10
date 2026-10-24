@@ -7,6 +7,7 @@ import {
   type Categoria,
   type ConfigCaja,
   type Cuenta,
+  esDeuda,
   esUno,
   FRECUENCIAS,
   MONEDAS,
@@ -70,7 +71,7 @@ export function validarCuenta(c: Campos): Resultado<Omit<Cuenta, "id">> {
   const nombre = texto(c.nombre);
   if (!nombre) return mal("La cuenta necesita un nombre.");
   if (!esUno(TIPOS_CUENTA, c.tipo)) return mal("Tipo de cuenta inválido.");
-  const saldo = leerMonto(c.saldoInicial, c.tipo === "tarjeta" ? "Deuda inicial" : "Saldo inicial", { permitirNegativo: c.tipo !== "tarjeta" });
+  const saldo = leerMonto(c.saldoInicial, esDeuda(c.tipo) ? "Deuda inicial" : "Saldo inicial", { permitirNegativo: !esDeuda(c.tipo) });
   if (!saldo.ok) return saldo;
   const limite = leerMonto(c.limite, "Límite");
   if (!limite.ok) return limite;

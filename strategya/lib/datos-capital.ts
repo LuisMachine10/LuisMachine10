@@ -1,8 +1,11 @@
 import "server-only";
 import Big from "big.js";
 import { hoyRD } from "@/lib/capital/fechas";
-import { type FilaActivo, type FilaTransaccion, filaAActivo, filaATransaccion } from "@/lib/capital/importar";
-import { armarFx, type Contexto, type ObservacionFx, type PrecioMercado, type Referencia } from "@/lib/capital/posicion";
+import { leerCaja } from "@/lib/caja/datos";
+import type { DatosCaja } from "@/lib/caja/tipos";
+import { type FilaTransaccion, filaATransaccion } from "@/lib/capital/importar";
+import { armarFx, type Contexto, type ObservacionFx, type PrecioMercado, type Referencia, type ResultadoPresupuesto } from "@/lib/capital/posicion";
+import { aActivo, COLUMNAS_REGISTRO, conSaldosVigentes, esInversion, filaARegistro, type ItemRegistro } from "@/lib/capital/registro";
 import { type Cierres, type Ips, type Parametros, parametrosVacios } from "@/lib/capital/tipos";
 import { leerCierre, leerIps, leerParametros } from "@/lib/capital/validar";
 import { mercado, personal } from "@/lib/supabase/servidor";
@@ -30,6 +33,10 @@ export interface DatosCapital {
   ahora: Date;
   /** Fecha de la última actualización de cualquier tabla personal (para el encabezado). */
   actualizado: string | null;
+  /** Registro único completo, también las filas unidas (archivadas). ctx.registro trae solo las vigentes. */
+  registroCompleto: ItemRegistro[];
+  /** El Presupuesto: sus datos (para elegir de qué cuenta sale un aporte) o el motivo si no se pudo leer. */
+  caja: { datos: DatosCaja | null; error: string | null };
 }
 
 const SERIES_REFERENCIA: Record<string, string> = {
@@ -42,11 +49,7 @@ export async function datosCapital(): Promise<DatosCapital> {
   const [db, mdb] = await Promise.all([personal(), mercado()]);
   const [pRes, aRes, tRes, cRes, iRes, fxRes, cotRes, refRes, tareaRes] = await Promise.all([
     db.from("parametros").select("datos, actualizado_en").eq("id", 1).maybeSingle(),
-    db
-      .from("activos")
-      .select("id, clase, nombre, institucion, simbolo, moneda, cantidad::text, precio::text, tasa::text, vencimiento, tipo_rf, orden, actualizado_en")
-      .order("orden")
-      .order("id"),
+    db.from("activos").select(COLUMNAS_REGISTRO).order("orden").order("id"),
     db
       .from("transacciones")
       .select("id, activo_id, simbolo, tipo, fecha, cantidad::text, precio::text, comision::text, moneda")
@@ -74,10 +77,37 @@ export async function datosCapital(): Promise<DatosCapital> {
       .limit(20),
     mdb.from("estado_tareas").select("estado, inicio, ultima_ok, error").eq("tarea", "precios-cartera").maybeSingle(),
   ]);
+  const hoy = hoyRD(ahora);
+  // El Presupuesto es otro módulo: si no responde, el Portafolio sigue con lo escrito y lo dice.
+  const [enlRes, cajaLeida, resRes] = await Promise.all([
+    db.from("caja_cuentas").select("id, registro_id"),
+    leerCaja().then(
+      (l) => ({ datos: l.datos, error: null as string | null }),
+      (e: Error) => ({ datos: null, error: e.message }),
+    ),
+    db.rpc("resultado_mes", { p_mes: hoy }),
+  ]);
 
   const filaP = exigir(pRes, "los parámetros") as { datos: unknown; actualizado_en: string } | null;
   const p: Parametros = filaP ? leerParametros(filaP.datos) : parametrosVacios();
-  const activos = (exigir(aRes, "los activos") as unknown as (FilaActivo & { actualizado_en: string })[]).map(filaAActivo);
+  const enlaces = new Map<string, string>();
+  if (!enlRes.error) for (const e of (enlRes.data ?? []) as { id: string; registro_id: string | null }[]) if (e.registro_id) enlaces.set(e.registro_id, e.id);
+  const filasRegistro = exigir(aRes, "tus cuentas, activos y deudas") as unknown as Record<string, unknown>[];
+  const registroCompleto = conSaldosVigentes(
+    filasRegistro.map((f) => filaARegistro(f, enlaces.get(String(f.id)) ?? null)),
+    cajaLeida.datos,
+    hoy,
+  );
+  const registro = registroCompleto.filter((i) => !i.unidoA);
+  const activos = registro.filter(esInversion).map(aActivo);
+  // Las tarjetas del registro reemplazan a las de los parámetros (mismos ids: el uso de cada cierre sigue valiendo).
+  const tarjetasReg = registro.filter((i) => i.clase === "tarjeta");
+  if (tarjetasReg.length) p.tarjetas = tarjetasReg.map((t) => ({ id: t.id, nombre: t.nombre, limite: t.limite ?? "0" }));
+  const resultado = !resRes.error && resRes.data && typeof resRes.data === "object" ? (resRes.data as { mes: string; presupuestado: Record<string, string> | null; real: Record<string, string> | null }) : null;
+  const presupuesto: ResultadoPresupuesto | null =
+    resultado && cajaLeida.datos?.config && resultado.presupuestado && resultado.real
+      ? { mes: resultado.mes, presupuestado: resultado.presupuestado, real: resultado.real, ahorroMensual: resultado.presupuestado.ahorro ?? null }
+      : null;
   const tx = (exigir(tRes, "las transacciones") as unknown as FilaTransaccion[]).map(filaATransaccion);
   const filasC = exigir(cRes, "los cierres") as { mes: string; datos: unknown; actualizado_en: string }[];
   const cierres: Cierres = {};
@@ -125,12 +155,14 @@ export async function datosCapital(): Promise<DatosCapital> {
 
   const fechas = [filaP?.actualizado_en, ...filasC.map((c) => c.actualizado_en)].filter((x): x is string => !!x).sort();
   return {
-    ctx: { p, activos, tx, cierres, mercado: { fx, fxAnteriorUSD: anteriorUSD, precios, referencias }, hoy: hoyRD(ahora) },
+    ctx: { p, activos, tx, cierres, mercado: { fx, fxAnteriorUSD: anteriorUSD, precios, referencias }, hoy, registro, presupuesto },
     configurado: filaP !== null,
     ips: filaI ? leerIps(filaI.datos) : null,
     tareaPrecios: exigir(tareaRes, "el estado de la tarea de precios") as EstadoPrecios | null,
     ahora,
     actualizado: fechas.at(-1) ?? null,
+    registroCompleto,
+    caja: cajaLeida,
   };
 }
 

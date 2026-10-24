@@ -34,6 +34,8 @@ import {
   type TipoTx,
   type Transaccion,
   type UsoTarjeta,
+  type Umbrales,
+  umbralesPorDefecto,
 } from "./tipos";
 
 export class Registro {
@@ -218,6 +220,9 @@ const CLAVES_PARAMETROS = [
   "escenarios", "tarjetas", "ingresos", "fijos", "variables", "aportes",
 ] as const;
 
+/** Claves que agregó Strategya (el artefacto no las tiene): se aceptan, pero no se avisa si faltan. */
+const CLAVES_STRATEGYA = ["planClases", "umbrales"] as const;
+
 const TASAS_PARAMETROS = ["inflacion", "tasaRetiro", "retornoObjetivo", "incrAporteAnual", "metaAhorro", "metaUsoTC", "bandaRebalanceo", "maxEmisor"] as const;
 
 /** Valida un objeto P. Las claves que falten quedan con el valor neutro (y se avisa si `avisarFaltantes`). */
@@ -229,7 +234,7 @@ export function validarParametros(v: unknown, r: Registro, ruta = "parametros", 
   }
   const faltan = CLAVES_PARAMETROS.filter((k) => !(k in v));
   if (avisarFaltantes && faltan.length) r.aviso(ruta, `no trae ${faltan.join(", ")}: quedan sin configurar`);
-  const extra = Object.keys(v).filter((k) => !(CLAVES_PARAMETROS as readonly string[]).includes(k));
+  const extra = Object.keys(v).filter((k) => !(CLAVES_PARAMETROS as readonly string[]).includes(k) && !(CLAVES_STRATEGYA as readonly string[]).includes(k));
   if (extra.length) r.aviso(ruta, `claves ignoradas: ${extra.join(", ")}`);
 
   if (v.fx !== undefined) {
@@ -272,6 +277,34 @@ export function validarParametros(v: unknown, r: Registro, ruta = "parametros", 
   }
   if (v.escenarios !== undefined) p.escenarios = escenariosDe(v.escenarios, `${ruta}.escenarios`, r);
   if (v.tarjetas !== undefined) p.tarjetas = tarjetas(v.tarjetas, `${ruta}.tarjetas`, r);
+  if (v.planClases !== undefined && v.planClases !== null) {
+    if (!esObjeto(v.planClases)) r.error(`${ruta}.planClases`, "debe ser un objeto por clase");
+    else {
+      const plan = {} as Record<Clase, string>;
+      for (const c of IDS_CLASE) plan[c] = decimal(v.planClases[c], `${ruta}.planClases.${c}`, r, { defecto: "0", min: "0", max: "1" }) ?? "0";
+      p.planClases = plan;
+    }
+  }
+  if (v.umbrales !== undefined && v.umbrales !== null) {
+    if (!esObjeto(v.umbrales)) r.error(`${ruta}.umbrales`, "debe ser un objeto");
+    else {
+      const u = umbralesPorDefecto();
+      const lim: Record<keyof Umbrales, { min: string; max: string }> = {
+        colchonMeses: { min: "0", max: "120" },
+        maxInstrumento: { min: "0", max: "1" },
+        maxEmisor: { min: "0", max: "1" },
+        dolarMin: { min: "0", max: "1" },
+        dolarMax: { min: "0", max: "1" },
+        sobreGasto: { min: "0", max: "10" },
+        deudaTarjetas: { min: "0", max: "10" },
+      };
+      for (const k of Object.keys(lim) as (keyof Umbrales)[]) {
+        if (v.umbrales[k] !== undefined) u[k] = decimal(v.umbrales[k], `${ruta}.umbrales.${k}`, r, { defecto: u[k], ...lim[k] }) ?? u[k];
+      }
+      if (new Big(u.dolarMin).gt(u.dolarMax)) r.error(`${ruta}.umbrales.dolarMin`, "el mínimo de dólares no puede pasar del máximo");
+      p.umbrales = u;
+    }
+  }
   for (const l of LISTAS_PRESUPUESTO) if (v[l] !== undefined) p[l] = partidas(v[l], `${ruta}.${l}`, r);
   return p;
 }

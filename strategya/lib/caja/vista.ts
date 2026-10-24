@@ -16,7 +16,7 @@ import {
   ultimoDia,
 } from "./fechas";
 import { type AjusteSaldo, type DiaSimulado, type EstadoDia, NOMBRE_ESTADO, type Ocurrencia, type Simulacion } from "./motor";
-import type { Categoria, Cuenta, DatosCaja, Movimiento } from "./tipos";
+import { type Categoria, type Cuenta, type DatosCaja, esDeuda, type Movimiento } from "./tipos";
 
 export interface Celda {
   fecha: Fecha;
@@ -130,7 +130,7 @@ export function armarPanel(datos: DatosCaja, sim: Simulacion, f: Fecha): PanelDi
     .sort((a, b) => a.orden - b.orden)
     .map((c) => {
       const p = d?.posiciones[c.id];
-      const saldo = p == null ? "0" : c.tipo === "tarjeta" ? new Big(p).times(-1).toString() : p;
+      const saldo = p == null ? "0" : esDeuda(c.tipo) ? new Big(p).times(-1).toString() : p;
       return { id: c.id, nombre: c.nombre, tipo: c.tipo, saldo, real: reales.get(c.id) ?? null };
     });
   return {

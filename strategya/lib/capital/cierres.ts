@@ -3,6 +3,7 @@
 import { Big, CERO, div, n, suma } from "./decimal";
 import { mesPrevio } from "./fechas";
 import { type Contexto, posicion } from "./posicion";
+import { balance } from "./registro";
 import type { Cierre, Dec, Foto, ListaPresupuesto, Mes, Parametros } from "./tipos";
 
 const TOTAL_AGREGADO: Record<ListaPresupuesto, keyof Cierre> = {
@@ -85,14 +86,19 @@ export function desdeFoto(f: Foto): FotoCalculada {
   };
 }
 
-/** Foto en vivo: la cartera de hoy menos los pasivos registrados en el cierre del mes. */
+/**
+ * Foto en vivo: la cartera de hoy (más otros activos del registro) menos las deudas del registro único;
+ * sin deudas en el registro, los pasivos escritos en el cierre del mes (como antes).
+ */
 export function fotoViva(ctx: Contexto, m: Mes): FotoCalculada {
   const pos = posicion(ctx);
-  const pasivos = pasivosDe(ctx.cierres[m]);
+  const b = ctx.registro ? balance(ctx, ctx.registro) : null;
+  const pasivos = b?.hayDeudas ? b.deudas : pasivosDe(ctx.cierres[m]);
+  const activos = pos.total.plus(b?.otros ?? 0);
   return {
-    activos: pos.total,
+    activos,
     pasivos,
-    patrimonio: pos.total.minus(pasivos),
+    patrimonio: activos.minus(pasivos),
     liquidos: pos.liquidos,
     ingresoPasivoAnual: pos.rentaTotal,
     fecha: ctx.hoy,

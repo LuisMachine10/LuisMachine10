@@ -140,6 +140,13 @@ export interface Parametros {
   bandaRebalanceo: Dec;
   maxEmisor: Dec;
   escenarios: Escenario[];
+  /**
+   * Reparto del ahorro presupuestado por clase (fracciones que suman 1). null = no escrito: se usa la meta
+   * de asignación de la política.
+   */
+  planClases: Record<Clase, Dec> | null;
+  /** Umbrales de la matriz de riesgo (Ajustes del Portafolio). */
+  umbrales: Umbrales;
   tarjetas: Tarjeta[];
   ingresos: Partida[];
   fijos: Partida[];
@@ -148,6 +155,37 @@ export interface Parametros {
 }
 
 export type TipoRentaFija = "acumula" | "cupon";
+
+/** Cada cuánto paga intereses un instrumento que no los capitaliza dentro de sí. */
+export const FRECUENCIAS_PAGO = [
+  { id: "mensual", nom: "Cada mes", meses: 1 },
+  { id: "trimestral", nom: "Cada 3 meses", meses: 3 },
+  { id: "semestral", nom: "Cada 6 meses", meses: 6 },
+  { id: "anual", nom: "Cada año", meses: 12 },
+  { id: "vencimiento", nom: "Todo al vencer", meses: 0 },
+] as const;
+export type FrecuenciaPago = (typeof FRECUENCIAS_PAGO)[number]["id"];
+
+/**
+ * Plan de cada instrumento para las proyecciones (columnas de personal.activos). null = sin configurar:
+ * la pantalla usa un supuesto (ver lib/capital/proyeccion.ts · reglasDe) y lo dice.
+ */
+export interface PlanInstrumento {
+  /** ¿Capitaliza los intereses dentro del instrumento? */
+  capitaliza: boolean | null;
+  /** Si no capitaliza: cada cuánto paga los intereses. */
+  frecuenciaPago: FrecuenciaPago | null;
+  /** Si no capitaliza: ¿reinviertes lo que te paga? */
+  reinvierte: boolean | null;
+  /** Parte (fracción) del aporte mensual de su clase que va a este instrumento. */
+  aportePct: Dec | null;
+  /** Desde cuándo recibe aportes (AAAA-MM-DD). */
+  inicio: string | null;
+}
+
+export function planVacio(): PlanInstrumento {
+  return { capitaliza: null, frecuenciaPago: null, reinvierte: null, aportePct: null, inicio: null };
+}
 
 export interface Activo {
   id: string;
@@ -167,6 +205,15 @@ export interface Activo {
   /** Vencimiento AAAA-MM-DD (renta fija). */
   venc: string | null;
   tipoRF: TipoRentaFija | null;
+  /** Registro único: fecha del saldo escrito (saldo al empezar ese día). */
+  saldoFecha?: string | null;
+  /** Cuentas de ahorro: «corriente» (para el día a día) o «ahorro». */
+  subtipo?: string | null;
+  /** Id de la cuenta del Presupuesto enlazada (si el Presupuesto la usa). */
+  cajaId?: string | null;
+  /** Lo que Mena escribió (si el Presupuesto la mueve, cantidad = saldo vigente). */
+  cantidadEscrita?: Dec;
+  plan?: PlanInstrumento;
 }
 
 export interface Transaccion {
@@ -243,6 +290,44 @@ export type Ips = Record<SeccionIps, string> & {
 export type Mes = string;
 export type Cierres = Record<Mes, Cierre>;
 
+/** Umbrales de la matriz de riesgo. Fracciones salvo colchonMeses (meses de gasto). */
+export interface Umbrales {
+  colchonMeses: Dec;
+  maxInstrumento: Dec;
+  maxEmisor: Dec;
+  dolarMin: Dec;
+  dolarMax: Dec;
+  /** Gasto real sobre lo presupuestado a partir del cual el riesgo es alto. */
+  sobreGasto: Dec;
+  /** Deuda de tarjetas sobre el ingreso mensual a partir de la cual el riesgo es alto. */
+  deudaTarjetas: Dec;
+}
+
+/** Los de fábrica (pedido de Mena, oct. 2026). Se editan en Ajustes del Portafolio. */
+export function umbralesPorDefecto(): Umbrales {
+  return { colchonMeses: "6", maxInstrumento: "0.25", maxEmisor: "0.4", dolarMin: "0.2", dolarMax: "0.5", sobreGasto: "0.1", deudaTarjetas: "0.3" };
+}
+
+/** Clases del registro único que no son inversiones: otros activos y deudas. */
+export const CLASES_OTRAS = [
+  { id: "otros", nom: "Otros activos", desc: "Vehículo, inmueble u otro bien con valor" },
+  { id: "tarjeta", nom: "Tarjetas de crédito", desc: "Lo que debes en tus tarjetas" },
+  { id: "prestamo", nom: "Préstamos", desc: "Préstamos con saldo, cuota y tasa" },
+  { id: "deuda", nom: "Otras deudas", desc: "Lo que debes y no es tarjeta ni préstamo" },
+] as const;
+export type ClaseOtra = (typeof CLASES_OTRAS)[number]["id"];
+export type ClaseRegistro = Clase | ClaseOtra;
+export const CLASES_DEUDA: readonly ClaseRegistro[] = ["tarjeta", "prestamo", "deuda"];
+export function esClaseDeuda(c: string): boolean {
+  return (CLASES_DEUDA as readonly string[]).includes(c);
+}
+export function esClaseInversion(c: string): c is Clase {
+  return (IDS_CLASE as readonly string[]).includes(c);
+}
+export function nombreClaseRegistro(id: string): string {
+  return CLASES_OTRAS.find((c) => c.id === id)?.nom ?? nombreClase(id);
+}
+
 /** Parámetros neutros: sin cifras de nadie. Lo que falte se ve como «sin configurar». */
 export function parametrosVacios(): Parametros {
   return {
@@ -261,6 +346,8 @@ export function parametrosVacios(): Parametros {
     bandaRebalanceo: "0",
     maxEmisor: "0",
     escenarios: [],
+    planClases: null,
+    umbrales: umbralesPorDefecto(),
     tarjetas: [],
     ingresos: [],
     fijos: [],

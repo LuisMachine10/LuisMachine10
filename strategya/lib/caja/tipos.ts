@@ -3,8 +3,13 @@
 
 import type { Fecha } from "./fechas";
 
-export const TIPOS_CUENTA = ["banco", "efectivo", "ahorro", "tarjeta"] as const;
+export const TIPOS_CUENTA = ["banco", "efectivo", "ahorro", "tarjeta", "prestamo"] as const;
 export type TipoCuenta = (typeof TIPOS_CUENTA)[number];
+
+/** Tarjeta y préstamo son deudas: su saldo es lo que se debe (positivo) y su posición interna es negativa. */
+export function esDeuda(tipo: TipoCuenta | string | undefined): boolean {
+  return tipo === "tarjeta" || tipo === "prestamo";
+}
 
 /**
  * Tipo de cada categoría = la línea del estado de resultados donde cae. El orden es el del estado:
@@ -46,6 +51,7 @@ export const NOMBRE_TIPO_CUENTA: Record<TipoCuenta, string> = {
   efectivo: "Efectivo",
   ahorro: "Ahorro e inversión",
   tarjeta: "Tarjeta de crédito",
+  prestamo: "Préstamo",
 };
 
 export const NOMBRE_TIPO_CATEGORIA: Record<TipoCategoria, string> = {

@@ -16,7 +16,7 @@ import {
 } from "@/app/caja/acciones";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { NOMBRE_ESTADO, type Ocurrencia } from "@/lib/caja/motor";
-import { NOMBRE_TIPO, NOMBRE_TIPO_CUENTA, type TipoMovimiento } from "@/lib/caja/tipos";
+import { esDeuda, NOMBRE_TIPO, NOMBRE_TIPO_CUENTA, type TipoMovimiento } from "@/lib/caja/tipos";
 import type { PanelDiaVista } from "@/lib/caja/vista";
 import { BotonesAnotar } from "./BotonesNuevo";
 import { CamposMovimiento, type OpcionCategoria, type OpcionCuenta, SelectCategoria } from "./CamposMovimiento";
@@ -327,9 +327,9 @@ export function PanelDia({
                   <li key={c.id}>
                     <span>
                       {c.nombre}
-                      <span className="chico tenue"> · {c.tipo === "tarjeta" ? "lo que debes" : NOMBRE_TIPO_CUENTA[c.tipo].toLowerCase()}</span>
+                      <span className="chico tenue"> · {esDeuda(c.tipo) ? "lo que debes" : NOMBRE_TIPO_CUENTA[c.tipo].toLowerCase()}</span>
                     </span>
-                    <span className={`mono ${new Big(c.saldo).lt(0) && c.tipo !== "tarjeta" ? "baja" : ""}`}>
+                    <span className={`mono ${new Big(c.saldo).lt(0) && !esDeuda(c.tipo) ? "baja" : ""}`}>
                       {rd(c.saldo)}
                       {c.real != null ? (
                         <span className="sube" title="Cuadrado con tu banco este día">

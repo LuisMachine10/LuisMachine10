@@ -57,8 +57,8 @@ const NUEVO: Borrador = {
 };
 
 const PASOS = ["Lo que te entra", "Costos y gastos", "Tus cuentas hoy", "Ahorro y colchón"] as const;
-const ICONO_TIPO: Record<TipoCuenta, NombreIcono> = { banco: "banco", efectivo: "efectivo", ahorro: "ahorro", tarjeta: "tarjeta" };
-const EJEMPLO_NOMBRE: Record<TipoCuenta, string> = { banco: "Ej.: Banco Popular", efectivo: "Ej.: Cartera", ahorro: "Ej.: Ahorro APAP", tarjeta: "Ej.: Visa" };
+const ICONO_TIPO: Record<TipoCuenta, NombreIcono> = { banco: "banco", efectivo: "efectivo", ahorro: "ahorro", tarjeta: "tarjeta", prestamo: "tarjeta" };
+const EJEMPLO_NOMBRE: Record<TipoCuenta, string> = { banco: "Ej.: Banco Popular", efectivo: "Ej.: Cartera", ahorro: "Ej.: Ahorro APAP", tarjeta: "Ej.: Visa", prestamo: "Ej.: Préstamo del carro" };
 const AGREGAR_CUENTA: { tipo: TipoCuenta; texto: string }[] = [
   { tipo: "banco", texto: "Banco" },
   { tipo: "efectivo", texto: "Efectivo" },

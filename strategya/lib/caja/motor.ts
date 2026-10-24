@@ -27,6 +27,7 @@ import {
   type Movimiento,
   type Recurrente,
   type TipoMovimiento,
+  esDeuda,
 } from "./tipos";
 
 export type EstadoDia = "holgado" | "cerca" | "bajo";
@@ -167,7 +168,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
   const pos = new Map<string, Big>();
   for (const c of datos.cuentas) {
     const s = new Big(c.saldoInicial || "0");
-    pos.set(c.id, c.tipo === "tarjeta" ? s.times(-1) : s);
+    pos.set(c.id, esDeuda(c.tipo) ? s.times(-1) : s);
   }
 
   const movPorDia = agrupar(datos.movimientos, (m) => m.fecha);
@@ -258,7 +259,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       if (!c) continue;
       const anterior = pos.get(c.id)!;
       const real = new Big(s.saldo);
-      const esTarjeta = c.tipo === "tarjeta";
+      const esTarjeta = esDeuda(c.tipo);
       const esperado = esTarjeta ? anterior.times(-1) : anterior;
       pos.set(c.id, esTarjeta ? real.times(-1) : real);
       ajustes.push({ cuentaId: c.id, real: real.toString(), esperado: esperado.toString(), diferencia: real.minus(esperado).toString() });
