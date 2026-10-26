@@ -5,20 +5,21 @@
 import Big from "big.js";
 import { cambioDelMes, indicadores } from "../capital/cierres";
 import { matrizRiesgo, tonoGravedad } from "../capital/matriz";
-import { ahorroPresupuestado, aportesDelPlan } from "../capital/proyeccion";
+import { aportesDeMes, type PrefAportes } from "../capital/aportes";
+import { ahorroPresupuestado } from "../capital/proyeccion";
 import type { DatosCapital } from "../datos-capital";
 import type { FotoDinero } from "../../supabase/functions/_shared/boletin/tipos.ts";
 
-export function fotoTuDinero(datos: Pick<DatosCapital, "ctx" | "configurado" | "registroCompleto" | "aportesConfirmados">): FotoDinero {
+export function fotoTuDinero(datos: Pick<DatosCapital, "ctx" | "configurado" | "registroCompleto" | "aportesConfirmados"> & { prefAportes?: PrefAportes }): FotoDinero {
   const { ctx } = datos;
   const mes = ctx.hoy.slice(0, 7);
   const hayAlgo = datos.configurado || datos.registroCompleto.length > 0 || ctx.activos.length > 0;
   const ind = indicadores(ctx, mes);
   const cambio = hayAlgo ? cambioDelMes(ctx, mes) : null;
 
-  const plan = aportesDelPlan(ctx, ahorroPresupuestado(ctx)).filter((x) => x.monto.gt(0));
-  const confirmados = datos.aportesConfirmados.filter((x) => x.mes === mes);
-  const pendientes = plan.filter((x) => !confirmados.some((c) => c.activoId === x.activo.id));
+  // Los del mes (sin los vencidos); «Omitir este mes» cuenta como respondido, no como pendiente.
+  const plan = aportesDeMes(ctx, mes, ahorroPresupuestado(ctx), datos.aportesConfirmados, datos.prefAportes ?? { omitidos: [] });
+  const pendientes = plan.filter((x) => x.estado === "pendiente");
   const suma = (xs: { monto: Big }[]) => xs.reduce((s, x) => s.plus(x.monto), new Big(0));
 
   const matriz = hayAlgo ? matrizRiesgo(ctx) : [];

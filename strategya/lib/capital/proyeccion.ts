@@ -121,6 +121,11 @@ export interface AporteInstrumento {
   pctClase: Big;
   pctEnClase: Big;
   monto: Big;
+  /**
+   * Ya venció: su parte NO se reparte sola entre los demás (Fase F: nada automático). Queda «sin destino»
+   * hasta que Mena confirme a dónde va (Proyecciones → «Venció…»). No se pide como aporte del mes.
+   */
+  vencido: boolean;
 }
 
 /** Cuánto va a cada instrumento al mes: ahorro × % de su clase × % dentro de la clase. */
@@ -129,14 +134,14 @@ export function aportesDelPlan(ctx: Contexto, ahorroMensual: Big | null): Aporte
   if (!rep || !ahorroMensual || ahorroMensual.lte(0)) return [];
   const out: AporteInstrumento[] = [];
   for (const c of IDS_CLASE) {
-    const lista = ctx.activos.filter((a) => a.clase === c && !(a.venc && a.venc < ctx.hoy));
+    const lista = ctx.activos.filter((a) => a.clase === c);
     if (!lista.length || rep.pct[c].lte(0)) continue;
     const escritos = lista.some((a) => a.plan?.aportePct !== null && a.plan?.aportePct !== undefined);
     const sumaEscritos = lista.reduce((s, a) => s.plus(n(a.plan?.aportePct ?? null)), CERO);
     for (const a of lista) {
       const pctEnClase = escritos ? (sumaEscritos.gt(0) ? n(a.plan?.aportePct ?? null).div(sumaEscritos) : CERO) : new Big(1).div(lista.length);
       const monto = ahorroMensual.times(rep.pct[c]).times(pctEnClase).round(2, Big.roundHalfEven);
-      out.push({ activo: a, pctClase: rep.pct[c], pctEnClase, monto });
+      out.push({ activo: a, pctClase: rep.pct[c], pctEnClase, monto, vencido: !!(a.venc && a.venc < ctx.hoy) });
     }
   }
   return out;
@@ -161,7 +166,7 @@ export interface ProyeccionPortafolio {
 }
 
 export function proyectarPortafolio(ctx: Contexto, meses: number, ahorroMensual: Big | null): ProyeccionPortafolio {
-  const aportes = new Map(aportesDelPlan(ctx, ahorroMensual).map((x) => [x.activo.id, x.monto]));
+  const aportes = new Map(aportesDelPlan(ctx, ahorroMensual).filter((x) => !x.vencido).map((x) => [x.activo.id, x.monto]));
   const porInstrumento: ProyeccionPortafolio["porInstrumento"] = [];
   const sinValorar: Activo[] = [];
   for (const a of ctx.activos) {

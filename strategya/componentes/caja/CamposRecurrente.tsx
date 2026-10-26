@@ -84,7 +84,7 @@ export function CamposRecurrente({
             <select name="moneda" value={moneda} onChange={(e) => setMoneda(e.target.value as Moneda)}>
               {MONEDAS.map((m) => (
                 <option key={m} value={m}>
-                  {m === "DOP" ? "Pesos (RD$)" : "Dólares (US$, tasa general)"}
+                  {m === "DOP" ? "Pesos (RD$)" : "Dólares (US$, dólar del BCRD)"}
                 </option>
               ))}
             </select>

@@ -4,8 +4,9 @@ import { personal } from "@/lib/supabase/servidor";
 // Preferencias del Portafolio en personal.preferencias (RLS: cada usuario, solo sus filas). Sin cifras:
 //   «portafolio» → disposición de los widgets del Resumen (mismo formato que la del Dashboard);
 //   «registro»   → «Unir cuentas repetidas»: los pares que Mena dijo que son distintos y si ya revisó.
+//   «aportes»    → aportes del plan que Mena omitió («Omitir este mes»): instrumento, mes y motivo (sin cifras).
 
-export type ClaveCapital = "portafolio" | "registro";
+export type ClaveCapital = "portafolio" | "registro" | "aportes";
 
 export interface PrefRegistro {
   /** Pares «idPresupuesto|idPortafolio» que Mena dijo que NO son la misma cuenta. */

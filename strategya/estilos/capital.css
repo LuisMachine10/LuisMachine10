@@ -1597,3 +1597,41 @@ textarea::placeholder {
 }
 .caja-asistente .caja-registro-elegir { display: grid; grid-template-columns: 20px auto minmax(0, 1fr); }
 .caja-asistente .caja-registro-item .caja-fila-icono { flex: none; }
+
+/* ───────── Fase F: aportes (omitir, meses anteriores) y vencidos ───────── */
+.ap-acciones { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: flex-start; }
+.ap-acciones > .ap-confirmar > summary { margin-left: 0; }
+.ap-acciones:has(details[open]) { grid-column: 1 / -1; justify-content: flex-start; }
+.ap-acciones > details[open] { flex: 1 1 100%; order: -1; }
+.ap-acciones:has(details[open]) > details:not([open]) { display: none; }
+.ap-item.omitido { background: var(--panel-alto); }
+.ap-item.omitido .ap-monto { text-decoration: line-through; color: var(--texto-2); }
+.ap-item > .ap-estado form { display: inline; }
+.ap-estado { flex-wrap: wrap; }
+.ap-anteriores { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--borde); }
+.ap-anteriores h3 { margin: 0 0 4px; font-size: 15px; }
+.ap-reubicar { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; grid-column: 1 / -1; }
+.ap-reubicar .cap-campo { flex: 1 1 220px; min-width: 0; }
+
+.cap-borrar > summary { list-style: none; width: max-content; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.cap-borrar > summary::-webkit-details-marker { display: none; }
+.cap-borrar[open] > summary { margin-bottom: 8px; }
+.cap-borrar .cap-botones { align-items: center; flex-wrap: wrap; }
+
+/* Botón con estado de envío (aparece al instante al pulsar Guardar). */
+.cap-boton-enviando { display: inline-flex; align-items: center; gap: 8px; }
+.cap-girando { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: cap-girar 0.8s linear infinite; }
+@keyframes cap-girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cap-girando { animation: none; border-right-color: currentColor; opacity: 0.6; } }
+.cap-estado-envio { margin: 8px 0 0; font-size: 13.5px; }
+
+/* Revisar conexión con el Presupuesto (Ajustes). */
+.conexion-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.conexion-lista li { border: 1px solid var(--borde); border-radius: var(--radio-chico); padding: 10px 12px; display: grid; gap: 6px; background: var(--panel); }
+.conexion-cabeza { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.conexion-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 13.5px; }
+.conexion-cifras > div { display: grid; gap: 2px; min-width: 0; }
+.conexion-marca { font-weight: 700; }
+.conexion-marca.si { color: var(--sube); }
+.conexion-marca.no { color: var(--baja); }
+.conexion-porque { margin: 0; font-size: 13px; color: var(--texto-2); }

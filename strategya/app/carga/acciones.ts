@@ -4,6 +4,7 @@
 // estas validaciones solo dan mensajes claros antes de llegar a ella.
 
 import { revalidatePath } from "next/cache";
+import { invalidarMercado } from "@/lib/supabase/cache-mercado";
 import { validarDecimal, validarEnlace, validarFecha, type Validacion } from "@/lib/rd";
 import { mercado } from "@/lib/supabase/servidor";
 
@@ -20,6 +21,8 @@ function primerError(...v: Validacion<unknown>[]): string | null {
 }
 
 function refrescar() {
+  // Un dato manual cambia lo que se lee de `mercado`: la caché compartida se vacía para verlo ya.
+  invalidarMercado();
   revalidatePath("/");
   revalidatePath("/rd");
   revalidatePath("/carga");

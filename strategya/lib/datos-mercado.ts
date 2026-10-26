@@ -16,6 +16,7 @@ import type {
   PuntoIntradia,
   SerieMercado,
 } from "@/lib/mercado-vista";
+import { ETIQUETAS, leerMercadoCacheado } from "@/lib/supabase/cache-mercado";
 import { mercado, personal } from "@/lib/supabase/servidor";
 
 // Lecturas del módulo «mercado en vivo». Las cifras se piden como texto (::text): nunca pasan por float.
@@ -80,8 +81,8 @@ function exigir<T>(r: { data: T | null; error: { message: string } | null }, que
   return (r.data ?? []) as T;
 }
 
-export const datosMercado = cache(async (): Promise<DatosMercado> => {
-  const db = await mercado();
+// Cotizaciones (iguales para todos): caché compartida de 1 minuto (la ingesta corre cada 5).
+export const datosMercado = cache(async (): Promise<DatosMercado> => leerMercadoCacheado("mercado", 60, async (db): Promise<DatosMercado> => {
   const hace4dias = new Date(Date.now() - 4 * 86_400_000).toISOString();
   const hace24h = new Date(Date.now() - 24 * 3_600_000).toISOString();
   const [series, ultimas, intradia, explicaciones, movimientos, manual, fuentes, tareas] = await Promise.all([
@@ -122,7 +123,7 @@ export const datosMercado = cache(async (): Promise<DatosMercado> => {
     fuentes: exigir(fuentes, "las fuentes") as FuenteMercado[],
     tareas: exigir(tareas, "el estado de las tareas") as EstadoTareaMercado[],
   };
-});
+}, [ETIQUETAS.cotizaciones]));
 
 /** URL y clave publicable para la suscripción Realtime del navegador (pública por diseño; RLS protege). */
 export function configRealtime(): { url: string; clave: string } | null {

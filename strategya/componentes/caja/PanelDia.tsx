@@ -16,6 +16,7 @@ import {
 } from "@/app/caja/acciones";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { NOMBRE_ESTADO, type Ocurrencia } from "@/lib/caja/motor";
+import { describirTasa, type TasaUsada } from "@/lib/caja/tasas";
 import { esDeuda, NOMBRE_TIPO, NOMBRE_TIPO_CUENTA, type TipoMovimiento } from "@/lib/caja/tipos";
 import type { PanelDiaVista } from "@/lib/caja/vista";
 import { BotonesAnotar } from "./BotonesNuevo";
@@ -44,6 +45,17 @@ function IconoTipo({ tipo }: { tipo: string }) {
   );
 }
 
+/** La tasa con que un monto en US$ pasó a RD$ (propia o del BCRD, con su fecha), o «no confirmado». */
+function TasaUSD({ dop, tasa }: { dop: string | null; tasa?: TasaUsada | null }) {
+  if (!dop) return <span className="tenue chico"> · no confirmado (sin tasa)</span>;
+  return (
+    <span className="tenue chico" title={tasa?.origen === "bcrd" ? `Dólar de venta del BCRD del ${tasa.fecha}` : "La tasa que anotaste"}>
+      {" "}≈ {rd(dop)}
+      {tasa ? ` · ${describirTasa(tasa)}` : ""}
+    </span>
+  );
+}
+
 function Signo({ tipo }: { tipo: string }) {
   return <>{tipo === "ingreso" ? "+" : tipo === "gasto" ? "−" : "⇄ "}</>;
 }
@@ -64,7 +76,7 @@ function MontoOcurrencia({ o }: { o: Ocurrencia }) {
     <span className={`caja-item-monto ${o.tipo === "ingreso" ? "sube" : ""}`}>
       <Signo tipo={o.tipo} />
       {o.moneda === "USD" ? enMoneda(o.monto, "USD") : rd(o.monto)}
-      {o.moneda === "USD" ? <span className="tenue chico"> {o.montoDOP ? `≈ ${rd(o.montoDOP)}` : "sin tasa"}</span> : null}
+      {o.moneda === "USD" ? <TasaUSD dop={o.montoDOP} /> : null}
     </span>
   );
 }
@@ -283,11 +295,16 @@ export function PanelDia({
                         {m.recurrenteId ? <span className="etiqueta ok">fijo confirmado</span> : null}
                       </span>
                       <Ruta tipo={m.tipo} cuenta={m.cuenta} destino={m.destino} categoria={m.categoria} cat={cat} />
+                      {m.tipo === "pago_tarjeta" && m.interes ? (
+                        <span className="caja-item-detalle">
+                          capital {enMoneda(new Big(m.monto).minus(m.interes).toFixed(), m.moneda)} · interés {enMoneda(m.interes, m.moneda)} (gasto financiero)
+                        </span>
+                      ) : null}
                     </span>
                     <span className={`caja-item-monto ${m.tipo === "ingreso" ? "sube" : m.tipo === "gasto" ? "baja" : ""}`}>
                       <Signo tipo={m.tipo} />
                       {enMoneda(m.monto, m.moneda)}
-                      {m.moneda === "USD" ? <span className="tenue chico"> {m.montoDOP ? `≈ ${rd(m.montoDOP)}` : "sin tasa"}</span> : null}
+                      {m.moneda === "USD" ? <TasaUSD dop={m.montoDOP} tasa={m.tasaUsada} /> : null}
                     </span>
                   </div>
                   <details className="caja-desplegable">
@@ -330,7 +347,7 @@ export function PanelDia({
                       <span className="chico tenue"> · {esDeuda(c.tipo) ? "lo que debes" : NOMBRE_TIPO_CUENTA[c.tipo].toLowerCase()}</span>
                     </span>
                     <span className={`mono ${new Big(c.saldo).lt(0) && !esDeuda(c.tipo) ? "baja" : ""}`}>
-                      {rd(c.saldo)}
+                      {enMoneda(c.saldo, c.moneda)}
                       {c.real != null ? (
                         <span className="sube" title="Cuadrado con tu banco este día">
                           {" "}
@@ -359,20 +376,20 @@ export function PanelDia({
                         <label key={c.id}>
                           {c.nombre}
                           <span className="caja-monto">
-                            <span aria-hidden="true">RD$</span>
+                            <span aria-hidden="true">{c.moneda === "USD" ? "US$" : "RD$"}</span>
                             <input
                               name={`saldo:${c.id}`}
                               inputMode="decimal"
                               autoComplete="off"
                               defaultValue={c.real ?? ""}
-                              placeholder={`Ej.: ${rd(c.saldo).replace(/^−?RD\$ /, "")}`}
+                              placeholder={`Ej.: ${enMoneda(c.saldo, c.moneda).replace(/^−?(RD|US)\$ /, "")}`}
                               aria-describedby={aj ? `dif-${c.id}` : undefined}
                             />
                           </span>
                           {aj ? (
                             <span id={`dif-${c.id}`} className={`chico ${new Big(aj.diferencia).eq(0) ? "tenue" : "alerta"}`}>
-                              Esperaba {rd(aj.esperado)} · diferencia {new Big(aj.diferencia).gt(0) ? "+" : ""}
-                              {rd(aj.diferencia)}
+                              Esperaba {enMoneda(aj.esperado, c.moneda)} · diferencia {new Big(aj.diferencia).gt(0) ? "+" : ""}
+                              {enMoneda(aj.diferencia, c.moneda)}
                             </span>
                           ) : null}
                         </label>

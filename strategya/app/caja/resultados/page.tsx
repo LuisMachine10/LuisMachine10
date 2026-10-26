@@ -11,8 +11,9 @@ import { SinDatosCaja } from "@/componentes/caja/SinDatosCaja";
 import { PanelError } from "@/componentes/PanelError";
 import { SelloFuente } from "@/componentes/SelloFuente";
 import { leerCaja } from "@/lib/caja/datos";
-import { esMes, hoyRD, mesDe, nombreMes, ultimoDia } from "@/lib/caja/fechas";
-import { rd } from "@/lib/caja/formato";
+import { esMes, fechaLarga, hoyRD, mesDe, nombreMes, ultimoDia } from "@/lib/caja/fechas";
+import { enMoneda, rd } from "@/lib/caja/formato";
+import { describirTasa, FUENTE_BCRD } from "@/lib/caja/tasas";
 import { horizonte, simular } from "@/lib/caja/motor";
 import { estadoDeResultados } from "@/lib/caja/resultados";
 import { catalogos } from "@/lib/caja/vista";
@@ -157,8 +158,8 @@ export default async function PaginaResultados({ searchParams }: { searchParams:
                 <li>
                   <Icono n="aviso" tam={16} />
                   <span>
-                    {e.sinTasa} monto(s) en dólares sin tasa o de «pagar todo lo que debas» no se suman. Pon la tasa en{" "}
-                    <Link href="/caja/ajustes#t-general">Configuración</Link>.
+                    {e.sinTasa} monto(s) en dólares sin tasa (ni la que anotaste ni el dólar del BCRD de su fecha: no confirmado) o de «pagar todo lo
+                    que debas» no se suman.
                   </span>
                 </li>
               ) : null}
@@ -176,6 +177,28 @@ export default async function PaginaResultados({ searchParams }: { searchParams:
             </div>
             <div className="panel-cuerpo">
               <TablaResultados e={e} />
+              {e.conversiones.length ? (
+                <details className="caja-leyenda-caja">
+                  <summary>Dólares de este mes: tasa usada ({e.conversiones.length})</summary>
+                  <ul className="caja-er-ayuda chico">
+                    {e.conversiones.map((x) => (
+                      <li key={x.id}>
+                        {fechaLarga(x.fecha).replace(/ de \d{4}$/, "")}: {enMoneda(x.monto, "USD")}{" "}
+                        {x.dop ? (
+                          <>
+                            × {describirTasa(x.tasa)} = <span className="mono">{rd(x.dop)}</span>
+                          </>
+                        ) : (
+                          <span className="baja">no confirmado: sin tasa, no se suma</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <span className="sello">
+                    Fuente: la tasa que anotaste o el <a href={FUENTE_BCRD.url} target="_blank" rel="noreferrer">dólar de venta del BCRD</a> del día (o el último publicado en los 7 días anteriores).
+                  </span>
+                </details>
+              ) : null}
               <details className="caja-leyenda-caja">
                 <summary>¿Cómo se lee?</summary>
                 <ul className="caja-er-ayuda chico tenue">
@@ -191,6 +214,10 @@ export default async function PaginaResultados({ searchParams }: { searchParams:
                   </li>
                   <li>
                     <strong>% cumplido</strong> = real ÷ presupuestado. Montos en RD$; los dólares, con su tasa.
+                  </li>
+                  <li>
+                    <strong>Pagos de tarjeta o préstamo</strong>: solo la parte de interés cuenta como gasto financiero; el capital no es gasto
+                    (baja lo que debes).
                   </li>
                 </ul>
               </details>

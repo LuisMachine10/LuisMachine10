@@ -15,7 +15,7 @@ const TEXTO: Record<TipoMovimiento, { titulo: string; sub: string; boton: string
   ingreso: { titulo: "Anotar un ingreso", sub: "Dinero que te entró ese día. Cae en su categoría del estado de resultados.", boton: "Guardar ingreso" },
   gasto: { titulo: "Anotar un gasto", sub: "Lo que pagaste ese día. Baja tu disponible y cae en su categoría del estado de resultados.", boton: "Guardar gasto" },
   transferencia: { titulo: "Mover entre mis cuentas", sub: "Pasar dinero de una cuenta tuya a otra (del banco a la cartera o al ahorro). No es ingreso ni gasto: solo cambia de lugar.", boton: "Guardar" },
-  pago_tarjeta: { titulo: "Pagar una tarjeta", sub: "Sale de tu banco y baja lo que debes en la tarjeta.", boton: "Guardar pago" },
+  pago_tarjeta: { titulo: "Pagar una tarjeta o un préstamo", sub: "Sale de tu banco y baja lo que debes por la parte de capital; el interés va a gastos financieros.", boton: "Guardar pago" },
 };
 
 export function NuevoMovimiento({

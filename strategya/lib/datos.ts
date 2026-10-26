@@ -1,6 +1,7 @@
 import "server-only";
 import type { EstadoTarea } from "@/componentes/CurvaTesoro";
 import type { ObservacionCurva, SerieCurva } from "@/lib/curva";
+import { ETIQUETAS, leerMercadoCacheado } from "@/lib/supabase/cache-mercado";
 import { mercado } from "@/lib/supabase/servidor";
 
 // Las cifras se piden como texto (::text) para no pasar por float en el JSON de PostgREST.
@@ -31,7 +32,8 @@ function exigir<T>(r: { data: T | null; error: { message: string } | null }, que
 }
 
 export async function datosTesoro(diasAtras = 45) {
-  const db = await mercado();
+  // Datos de mercado (iguales para todos): caché compartida de 5 minutos.
+  return leerMercadoCacheado(`tesoro:${diasAtras}`, 300, async (db) => {
   const desde = new Date(Date.now() - diasAtras * 86_400_000).toISOString().slice(0, 10);
   const [series, obs, fuente, tarea] = await Promise.all([
     db.from("series").select("id, nombre, nombre_corto, orden, max_antiguedad_min").eq("fuente_id", "tesoro_eeuu").order("orden"),
@@ -48,6 +50,7 @@ export async function datosTesoro(diasAtras = 45) {
     },
     tarea: exigir(tarea, "el estado de la tarea") as EstadoTarea | null,
   };
+  }, [ETIQUETAS.cotizaciones]);
 }
 
 export async function estadoTareas() {

@@ -3,6 +3,9 @@
 
 import Link from "next/link";
 import { decidirUnion, guardarParametros } from "@/app/capital/acciones";
+import { revisarConexion } from "@/lib/capital/conexion";
+import { n } from "@/lib/capital/decimal";
+import { num, rd } from "@/lib/capital/formato";
 import { aPct } from "@/lib/capital/formulario";
 import { umbralesPorDefecto } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
@@ -17,6 +20,68 @@ function Comun({ seccion, mes }: { seccion: string; mes: string }) {
       <input type="hidden" name="volver" value="/capital/ajustes" />
       <input type="hidden" name="mes" value={mes} />
     </>
+  );
+}
+
+/** «Revisar conexión con el Presupuesto»: cada cuenta enlazada con su saldo en los dos lados. Solo lee. */
+export function PanelConexion({ datos }: { datos: DatosCapital }) {
+  const r = revisarConexion(datos.registroCompleto, datos.caja.datos, datos.ctx.hoy);
+  const bien = r.cuentas.filter((c) => c.cuadra).length;
+  const din = (v: string, moneda: string) => (moneda === "USD" ? `US$ ${num(v, 2)}` : rd(v, 2));
+  return (
+    <Panel
+      titulo="Revisar conexión con el Presupuesto"
+      id="cap-t-conexion"
+      ancho
+      extra={r.cuentas.length ? <span className="tenue chico">{bien} de {r.cuentas.length} cuadran</span> : null}
+    >
+      <p className="cap-nota" style={{ marginTop: 0 }}>
+        Compara, sin cambiar nada, el saldo de hoy de cada cuenta en <strong>Mis cuentas</strong> y en el <strong>calendario del Presupuesto</strong>.
+      </p>
+      {datos.caja.error ? (
+        <p className="cap-aviso">No se pudo leer el Presupuesto: {datos.caja.error}</p>
+      ) : r.sinPresupuesto ? (
+        <p className="tenue">Todavía no tienes Presupuesto: cuando lo crees, aquí verás si cada cuenta cuadra.</p>
+      ) : !r.cuentas.length && !r.sueltas.length ? (
+        <p className="tenue">El Presupuesto no usa ninguna cuenta todavía.</p>
+      ) : (
+        <ul className="conexion-lista">
+          {r.cuentas.map((c) => (
+            <li key={c.cajaId}>
+              <div className="conexion-cabeza">
+                <strong>{c.nombre}</strong>
+                <span className={`conexion-marca ${c.cuadra ? "si" : "no"}`}>{c.cuadra ? "✓ cuadra" : c.diferencia && !n(c.diferencia).eq(0) ? `≠ diferencia ${din(n(c.diferencia).abs().toFixed(2), c.moneda)}` : "≠ revisar"}</span>
+              </div>
+              <div className="conexion-cifras">
+                <div>
+                  <span className="tenue chico">En Mis cuentas{c.deuda ? " (debes)" : ""}</span>
+                  <span className="mono">{din(c.portafolio, c.moneda)}</span>
+                </div>
+                <div>
+                  <span className="tenue chico">En el Presupuesto, al final de hoy</span>
+                  <span className="mono">{c.presupuesto === null ? "—" : din(c.presupuesto, c.moneda)}</span>
+                </div>
+              </div>
+              {c.motivos.map((m) => (
+                <p key={m} className="conexion-porque">
+                  {m}
+                </p>
+              ))}
+            </li>
+          ))}
+          {r.sueltas.map((s) => (
+            <li key={s.cajaId}>
+              <div className="conexion-cabeza">
+                <strong>{s.nombre}</strong>
+                <span className="conexion-marca no">≠ sin enlace</span>
+              </div>
+              <p className="conexion-porque">Está en el Presupuesto pero no en Mis cuentas. Avísanos para revisarla.</p>
+            </li>
+          ))}
+        </ul>
+      )}
+      <span className="sello">Tus registros · Mis cuentas y el calendario del Presupuesto de hoy ({datos.ctx.hoy}) · no cambia nada</span>
+    </Panel>
   );
 }
 
@@ -35,6 +100,7 @@ export function VistaAjustes({ datos, mes }: Props) {
   ];
   return (
     <>
+      <PanelConexion datos={datos} />
       <Panel titulo="Límites de tus riesgos" id="cap-t-umbrales" ancho extra={<span className="tenue chico">los usa la matriz de Riesgos</span>}>
         <form action={guardarParametros} className="cap-form" key={JSON.stringify(u)}>
           <Comun seccion="umbrales" mes={mes} />

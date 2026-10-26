@@ -10,7 +10,10 @@ import { leerRegistro } from "@/lib/capital/datos-registro";
 import { cuentasParaPresupuesto } from "@/lib/capital/registro";
 import { leerCaja } from "@/lib/caja/datos";
 import { COLUMNAS, filasADatos } from "@/lib/caja/filas";
-import { rd } from "@/lib/caja/formato";
+import Big from "big.js";
+import { separarPago } from "@/lib/caja/deudas";
+import { enMoneda, rd } from "@/lib/caja/formato";
+import { type DatosCaja, esDeuda, type Movimiento } from "@/lib/caja/tipos";
 import { adicionalDesdeV1 } from "@/lib/caja/resultados";
 import { aJsonSQL, parsearImportacion, type ResumenImportacion } from "@/lib/caja/importar";
 import { esFecha, hoyRD } from "@/lib/caja/fechas";
@@ -43,7 +46,36 @@ function campos(form: FormData): Campos {
 
 function refrescar() {
   revalidatePath("/caja", "layout");
+  revalidatePath("/capital", "layout");
   revalidatePath("/");
+}
+
+/**
+ * Pago de tarjeta o préstamo: decide cuánto fue interés (lo escrito, o con la tasa del préstamo, o nada)
+ * y lo explica en palabras. Devuelve el error si el destino no es una deuda y se escribió el capital.
+ */
+async function interesDelPago(m: Omit<Movimiento, "id">): Promise<{ interes: string | null; frase: string } | { error: string }> {
+  if (m.tipo !== "pago_tarjeta") return { interes: null, frase: "" };
+  let datos: DatosCaja;
+  try {
+    datos = (await leerCaja()).datos;
+  } catch (e) {
+    return { error: `No se pudo leer tu Presupuesto para separar capital e interés: ${(e as Error).message}. Inténtalo de nuevo.` };
+  }
+  const destino = datos.cuentas.find((c) => c.id === m.destino);
+  if (!destino || !esDeuda(destino.tipo)) {
+    if (m.interes) return { error: "Solo los pagos a una tarjeta o a un préstamo llevan capital e interés. Elige la deuda que pagas." };
+    return { interes: null, frase: "" };
+  }
+  const sep = separarPago(datos, m, m.interes);
+  const mon = (x: string) => enMoneda(x, m.moneda);
+  const frase =
+    sep.como === "tasa"
+      ? ` De tu pago, ${mon(sep.capital)} bajó lo que debes y ${mon(sep.interes ?? "0")} fue interés (debías ${mon(sep.deuda ?? "0")} × ${new Big(sep.tasa ?? "0").times(100).toFixed(2)} % al año ÷ 12).`
+      : sep.como === "escrito"
+        ? ` ${mon(sep.capital)} bajó lo que debes y ${mon(sep.interes ?? "0")} fue interés o cargos.`
+        : ` Todo el pago bajó lo que debes en «${destino.nombre}».`;
+  return { interes: sep.interes, frase };
 }
 
 function errorBase(e: { message: string } | null, que: string): EstadoAccion | null {
@@ -61,10 +93,12 @@ export async function registrarMovimiento(_p: EstadoAccion, form: FormData): Pro
   const r = validarMovimiento(campos(form));
   if (!r.ok) return mal(r.error);
   const m = r.valor;
+  const pago = await interesDelPago(m);
+  if ("error" in pago) return mal(pago.error);
   const db = await personal();
   const { error } = await db.from("caja_movimientos").insert({
     fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta,
-    destino: m.destino, categoria: m.categoria, nota: m.nota, recurrente_id: m.recurrenteId,
+    destino: m.destino, categoria: m.categoria, nota: m.nota, recurrente_id: m.recurrenteId, interes: pago.interes,
   });
   const e = errorBase(error, "registrar el movimiento");
   if (e) return e;
@@ -83,7 +117,7 @@ export async function registrarMovimiento(_p: EstadoAccion, form: FormData): Pro
     }
   }
   refrescar();
-  return bien(m.recurrenteId ? `Listo: ya se hizo.${nota}` : "Anotado.");
+  return bien(m.recurrenteId ? `Listo: ya se hizo.${pago.frase}${nota}` : `Anotado.${pago.frase}`);
 }
 
 export async function editarMovimiento(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
@@ -92,12 +126,14 @@ export async function editarMovimiento(_p: EstadoAccion, form: FormData): Promis
   const r = validarMovimiento(c);
   if (!r.ok) return mal(r.error);
   const m = r.valor;
+  const pago = await interesDelPago(m);
+  if ("error" in pago) return mal(pago.error);
   const db = await personal();
   const { error, count } = await db
     .from("caja_movimientos")
     .update(
       { fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta, destino: m.destino,
-        categoria: m.categoria, nota: m.nota, actualizado_en: new Date().toISOString() },
+        categoria: m.categoria, nota: m.nota, interes: pago.interes, actualizado_en: new Date().toISOString() },
       { count: "exact" },
     )
     .eq("id", c.id);
@@ -105,7 +141,7 @@ export async function editarMovimiento(_p: EstadoAccion, form: FormData): Promis
   if (e) return e;
   if (!count) return mal("Ese movimiento ya no existe.");
   refrescar();
-  return bien("Guardado.");
+  return bien(`Guardado.${pago.frase}`);
 }
 
 export async function eliminarMovimiento(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
@@ -275,7 +311,7 @@ export async function vincularCuenta(_p: EstadoAccion, form: FormData): Promise<
     return mal(`No se pudo leer tu Portafolio: ${(e as Error).message}. Inténtalo de nuevo.`);
   }
   const r = lista.find((x) => x.id === id);
-  if (!r) return mal("Esa cuenta ya está en el Presupuesto o no se puede usar (solo saldos en RD$). Recarga la página.");
+  if (!r) return mal("Esa cuenta ya está en el Presupuesto o no se puede usar (solo saldos en RD$ o US$; no acciones, bienes ni €). Recarga la página.");
   const orden = lectura.datos.cuentas.reduce((m, c) => Math.max(m, c.orden), 0) + 1;
   const { error } = await (await personal()).from("caja_cuentas").insert({ nombre: r.nombre, tipo: r.tipo, saldo_inicial: r.saldo, limite: r.limite, orden, registro_id: r.id });
   const e = errorBase(error, "usar la cuenta");

@@ -37,6 +37,7 @@ import {
   NOMBRE_TIPO_CUENTA,
   type Recurrente,
   TIPOS_CATEGORIA,
+  monedaDe,
   TIPOS_CUENTA,
   type TipoCategoria,
 } from "@/lib/caja/tipos";
@@ -81,7 +82,7 @@ function CamposCuenta({ c }: { c?: Cuenta }) {
       <div className="caja-campo">
         <label htmlFor={`saldo-${c?.id ?? "nueva"}`}>Saldo el día de inicio (en tarjeta, lo que debías)</label>
         <div className="caja-monto">
-          <span aria-hidden="true">RD$</span>
+          <span aria-hidden="true">{c?.moneda === "USD" ? "US$" : "RD$"}</span>
           <input id={`saldo-${c?.id ?? "nueva"}`} name="saldoInicial" inputMode="decimal" defaultValue={c?.saldoInicial ?? ""} placeholder="Ej.: 25,000" autoComplete="off" />
         </div>
       </div>
@@ -405,10 +406,11 @@ export default async function PaginaConfiguracion() {
                       <span className="caja-item-detalle" title={`Identificador interno: ${c.id}`}>
                         {NOMBRE_TIPO_CUENTA[c.tipo]}
                         {c.limite ? ` · límite ${rd(c.limite)}` : ""} · {esDeuda(c.tipo) ? "debes" : "tiene"} hoy
-                        {` · al empezar: ${rd(c.saldoInicial)}`}
+                        {` · al empezar: ${enMoneda(c.saldoInicial, monedaDe(c))}`}
+                        {c.moneda === "USD" ? " · en dólares" : ""}
                       </span>
                     </span>
-                    <span className="caja-item-monto">{rd(saldoHoy.get(c.id) ?? c.saldoInicial)}</span>
+                    <span className="caja-item-monto">{enMoneda(saldoHoy.get(c.id) ?? c.saldoInicial, monedaDe(c))}</span>
                   </div>
                   <details className="caja-desplegable">
                     <summary>Editar o borrar</summary>
@@ -433,7 +435,7 @@ export default async function PaginaConfiguracion() {
                     </option>
                     {disponibles.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {r.nombre} · {NOMBRE_TIPO_CUENTA[r.tipo]} · {rd(r.saldo)}
+                        {r.nombre} · {NOMBRE_TIPO_CUENTA[r.tipo]} · {enMoneda(r.saldo, r.moneda ?? "DOP")}
                       </option>
                     ))}
                   </select>
@@ -509,15 +511,12 @@ export default async function PaginaConfiguracion() {
                   <input id="cfg-margen" name="margen" inputMode="decimal" required defaultValue={cfg?.margen ?? "3000"} autoComplete="off" placeholder="Ej.: 3,000" />
                 </div>
               </div>
-              <label>
-                <span>
-                  Tasa del dólar (RD$ por US$, opcional){" "}
-                  <Ayuda que="la tasa del dólar">
-                    La que tú uses para pasar a pesos los montos en dólares que no traen su propia tasa. Sin tasa, esos montos no se suman.
-                  </Ayuda>
-                </span>
-                <input name="tasaUSD" inputMode="decimal" defaultValue={cfg?.tasaUSD ?? ""} placeholder="Ej.: 60.25" autoComplete="off" />
-              </label>
+              {/* La tasa general de antes ya no se usa para convertir; se conserva tal cual (importar/exportar). */}
+              <input type="hidden" name="tasaUSD" value={cfg?.tasaUSD ?? ""} />
+              <p className="caja-campo-ayuda ancho" style={{ margin: 0 }}>
+                <strong>Dólares:</strong> se pasan a pesos con la tasa que anotes en cada movimiento o, si no la anotas, con el dólar de venta oficial
+                del Banco Central (BCRD) de ese día. Si no hay dato del BCRD, el monto queda «no confirmado» y no se suma.
+              </p>
             </div>
           </FormAccion>
         </div>

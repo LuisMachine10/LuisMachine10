@@ -13,6 +13,7 @@ import { balance, clavePar, esDeuda, type ItemRegistro, type ParUnion, sugerirUn
 import { CLASES, CLASES_OTRAS, MONEDAS } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
 import { fechaCorta } from "@/lib/formato";
+import { BotonEnviar } from "./BotonEnviar";
 import { Icono } from "./Iconos";
 import { Panel } from "./Piezas";
 import { SelloFx } from "./Sellos";
@@ -174,20 +175,31 @@ function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: st
             <input type="hidden" name="mes" value={mes} />
             <CamposRegistro i={i} hoy={datos.ctx.hoy} />
             <div className="cap-botones">
-              <button className="boton" type="submit">
+              <BotonEnviar className="boton" aviso="Guardando los cambios de «{nombre}»…">
                 Guardar cambios
-              </button>
+              </BotonEnviar>
             </div>
           </form>
-          <form action={eliminarRegistro} className="cap-botones" style={{ marginTop: 10 }}>
-            <input type="hidden" name="id" value={i.id} />
-            <input type="hidden" name="mes" value={mes} />
-            <button className="boton secundario chico peligro" type="submit" disabled={!!i.cajaId} title={i.cajaId ? "La usa el Presupuesto: quítala allá primero" : undefined}>
-              <Icono nombre="basura" />
-              Borrar {i.nombre}
-            </button>
-            {i.cajaId ? <span className="tenue chico">La usa el Presupuesto: para borrarla, quítala primero en Presupuesto → Configuración.</span> : null}
-          </form>
+          {i.cajaId ? (
+            <p className="tenue chico" style={{ marginTop: 10 }}>
+              La usa el Presupuesto: para borrarla, quítala primero en Presupuesto → Configuración.
+            </p>
+          ) : (
+            <details className="cap-borrar" style={{ marginTop: 10 }}>
+              <summary className="boton secundario chico peligro">
+                <Icono nombre="basura" />
+                Borrar {i.nombre}
+              </summary>
+              <form action={eliminarRegistro} className="cap-botones">
+                <input type="hidden" name="id" value={i.id} />
+                <input type="hidden" name="mes" value={mes} />
+                <span className="chico">¿Seguro? «{i.nombre}» sale de Mis cuentas (sus transacciones se conservan). No se puede deshacer.</span>
+                <BotonEnviar className="boton chico peligro" enviando="Borrando…">
+                  Sí, borrar
+                </BotonEnviar>
+              </form>
+            </details>
+          )}
         </div>
       </details>
     </li>
@@ -258,9 +270,9 @@ function TarjetaPar({ p, datos, mes }: { p: ParUnion; datos: DatosCapital; mes: 
           </label>
         </fieldset>
         <div className="cap-botones">
-          <button type="submit" className="boton">
+          <BotonEnviar className="boton" enviando="Uniendo…" aviso="Uniendo las dos cuentas en una sola…">
             Sí, es la misma: unir
-          </button>
+          </BotonEnviar>
         </div>
       </form>
       <form action={decidirUnion} className="reg-par-no">
@@ -385,9 +397,9 @@ export function VistaCuentas({ datos, mes, pref, revisar }: Props) {
             <input type="hidden" name="mes" value={mes} />
             <CamposRegistro hoy={datos.ctx.hoy} />
             <div className="cap-botones">
-              <button className="boton boton-grande" type="submit">
+              <BotonEnviar className="boton boton-grande" aviso="Guardando «{nombre}»… aparece en tu lista en un momento.">
                 Guardar
-              </button>
+              </BotonEnviar>
             </div>
           </form>
         </div>

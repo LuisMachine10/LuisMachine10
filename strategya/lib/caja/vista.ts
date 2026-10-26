@@ -15,7 +15,7 @@ import {
   sumarDias,
   ultimoDia,
 } from "./fechas";
-import { type AjusteSaldo, type DiaSimulado, type EstadoDia, NOMBRE_ESTADO, type Ocurrencia, type Simulacion } from "./motor";
+import { type AjusteSaldo, type DiaSimulado, type EstadoDia, type MovimientoAplicado, NOMBRE_ESTADO, type Ocurrencia, type Simulacion } from "./motor";
 import { type Categoria, type Cuenta, type DatosCaja, esDeuda, type Movimiento } from "./tipos";
 
 export interface Celda {
@@ -42,6 +42,8 @@ export interface CuentaDia {
   id: string;
   nombre: string;
   tipo: Cuenta["tipo"];
+  /** Moneda de la cuenta: el saldo va en esta moneda. */
+  moneda: "DOP" | "USD";
   /** Posición al cierre (tarjeta: deuda positiva). */
   saldo: string;
   /** Saldo real cuadrado ese día, si lo hay (como lo escribió Mena). */
@@ -58,7 +60,7 @@ export interface PanelDiaVista {
   disponible: string | null;
   entradas: string;
   salidas: string;
-  registrados: (Movimiento & { montoDOP: string | null })[];
+  registrados: MovimientoAplicado[];
   planificados: Ocurrencia[];
   porConfirmar: Ocurrencia[];
   omitidos: Ocurrencia[];
@@ -131,7 +133,7 @@ export function armarPanel(datos: DatosCaja, sim: Simulacion, f: Fecha): PanelDi
     .map((c) => {
       const p = d?.posiciones[c.id];
       const saldo = p == null ? "0" : esDeuda(c.tipo) ? new Big(p).times(-1).toString() : p;
-      return { id: c.id, nombre: c.nombre, tipo: c.tipo, saldo, real: reales.get(c.id) ?? null };
+      return { id: c.id, nombre: c.nombre, tipo: c.tipo, moneda: c.moneda ?? "DOP", saldo, real: reales.get(c.id) ?? null };
     });
   return {
     fecha: f,
@@ -154,9 +156,11 @@ export function armarPanel(datos: DatosCaja, sim: Simulacion, f: Fecha): PanelDi
 }
 
 /** Catálogos mínimos para los formularios del cliente. */
-export function catalogos(datos: DatosCaja): { cuentas: Pick<Cuenta, "id" | "nombre" | "tipo">[]; categorias: Pick<Categoria, "id" | "nombre" | "tipo">[] } {
+export function catalogos(datos: DatosCaja): { cuentas: Pick<Cuenta, "id" | "nombre" | "tipo" | "moneda" | "tasaAnual">[]; categorias: Pick<Categoria, "id" | "nombre" | "tipo">[] } {
   return {
-    cuentas: [...datos.cuentas].sort((a, b) => a.orden - b.orden).map(({ id, nombre, tipo }) => ({ id, nombre, tipo })),
+    cuentas: [...datos.cuentas]
+      .sort((a, b) => a.orden - b.orden)
+      .map(({ id, nombre, tipo, moneda, tasaAnual }) => ({ id, nombre, tipo, ...(moneda && moneda !== "DOP" ? { moneda } : {}), ...(tasaAnual ? { tasaAnual } : {}) })),
     categorias: datos.categorias.map(({ id, nombre, tipo }) => ({ id, nombre, tipo })),
   };
 }

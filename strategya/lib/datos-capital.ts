@@ -3,6 +3,7 @@ import Big from "big.js";
 import { hoyRD } from "@/lib/capital/fechas";
 import { leerCaja } from "@/lib/caja/datos";
 import type { DatosCaja } from "@/lib/caja/tipos";
+import { leerPrefAportes, type PrefAportes } from "@/lib/capital/aportes";
 import { type FilaTransaccion, filaATransaccion } from "@/lib/capital/importar";
 import { armarFx, type Contexto, type ObservacionFx, type PrecioMercado, type Referencia, type ResultadoPresupuesto } from "@/lib/capital/posicion";
 import { aActivo, COLUMNAS_REGISTRO, conSaldosVigentes, esInversion, filaARegistro, type ItemRegistro } from "@/lib/capital/registro";
@@ -41,6 +42,8 @@ export interface DatosCapital {
   aportesConfirmados: { id: string; activoId: string; mes: string; fecha: string | null; monto: string; movimientoId: string | null }[];
   /** El Presupuesto: sus datos (para elegir de qué cuenta sale un aporte) o el motivo si no se pudo leer. */
   caja: { datos: DatosCaja | null; error: string | null };
+  /** Aportes que Mena omitió («Omitir este mes»), de personal.preferencias (clave «aportes»). */
+  prefAportes: PrefAportes;
 }
 
 const SERIES_REFERENCIA: Record<string, string> = {
@@ -111,7 +114,7 @@ export const datosCapital = cache(async (): Promise<DatosCapital> => {
   const hoy = hoyRD(ahora);
   const db = await personal();
   // El Presupuesto es otro módulo: si no responde, el Portafolio sigue con lo escrito y lo dice.
-  const [pRes, aRes, tRes, cRes, iRes, merc, cajaLeida, resRes] = await Promise.all([
+  const [pRes, aRes, tRes, cRes, iRes, merc, cajaLeida, resRes, prefAp] = await Promise.all([
     db.from("parametros").select("datos, actualizado_en").eq("id", 1).maybeSingle(),
     db.from("activos").select(COLUMNAS_REGISTRO).order("orden").order("id"),
     db
@@ -127,6 +130,7 @@ export const datosCapital = cache(async (): Promise<DatosCapital> => {
       (e: Error) => ({ datos: null, error: e.message, enlaces: null }),
     ),
     db.rpc("resultado_mes", { p_mes: hoy }),
+    db.from("preferencias").select("valor").eq("clave", "aportes").limit(1),
   ]);
   // Sin el Presupuesto, el enlace de cada cuenta se lee aparte (para no dejar borrar lo que usa).
   let enlacesCaja = cajaLeida.enlaces;
@@ -206,6 +210,7 @@ export const datosCapital = cache(async (): Promise<DatosCapital> => {
     registroCompleto,
     aportesConfirmados,
     caja: { datos: cajaLeida.datos, error: cajaLeida.error },
+    prefAportes: leerPrefAportes(prefAp.error ? null : ((prefAp.data ?? [])[0] as { valor: unknown } | undefined)?.valor),
   };
 });
 

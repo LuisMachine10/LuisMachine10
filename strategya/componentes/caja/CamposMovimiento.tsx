@@ -1,10 +1,14 @@
 "use client";
 
 // Campos de un movimiento (anotar, ajustar un fijo o editar). El destino solo aparece al mover entre
-// cuentas y en pagos de tarjeta; la tasa, solo en US$; la categoría es obligatoria en ingresos y gastos.
+// cuentas y en pagos de tarjeta o préstamo; la tasa, solo en US$; la categoría es obligatoria en ingresos y
+// gastos. En un pago de tarjeta o préstamo se pregunta cuánto fue capital (lo que baja la deuda): vacío =
+// todo, o, en un préstamo con tasa en el Portafolio, el interés del mes con esa tasa.
 
+import Big from "big.js";
 import { useId, useState } from "react";
 import {
+  esDeuda,
   MONEDAS,
   NOMBRE_TIPO,
   NOMBRE_TIPO_CATEGORIA,
@@ -20,6 +24,10 @@ export interface OpcionCuenta {
   id: string;
   nombre: string;
   tipo: TipoCuenta;
+  /** Moneda de la cuenta (vacío = RD$). */
+  moneda?: Moneda;
+  /** Préstamo u otra deuda con tasa en el Portafolio (fracción anual). */
+  tasaAnual?: string | null;
 }
 export interface OpcionCategoria {
   id: string;
@@ -32,7 +40,8 @@ export const CATEGORIAS_PARA: Record<TipoMovimiento, readonly TipoCategoria[]> =
   ingreso: ["ingreso", "otro_ingreso"],
   gasto: ["gasto", "costo", "gasto_financiero", "otro_gasto", "ahorro_inversion"],
   transferencia: ["ahorro_inversion"],
-  pago_tarjeta: [],
+  // La categoría de un pago de tarjeta o préstamo es la del INTERÉS (gasto financiero), si hubo.
+  pago_tarjeta: ["gasto_financiero"],
 };
 
 export const AYUDA_MOVER = "Pasar dinero de una cuenta tuya a otra (del banco a la cartera o al ahorro). No es ingreso ni gasto: solo cambia de lugar.";
@@ -46,15 +55,33 @@ export interface ValoresMovimiento {
   destino?: string | null;
   categoria?: string | null;
   nota?: string | null;
+  interes?: string | null;
 }
 
-export function SelectCuenta({ nombre, valor, cuentas, soloTarjetas = false, etiqueta, className }: { nombre: string; valor?: string | null; cuentas: OpcionCuenta[]; soloTarjetas?: boolean; etiqueta: string; className?: string }) {
-  const lista = soloTarjetas ? cuentas.filter((c) => c.tipo === "tarjeta") : cuentas;
+export function SelectCuenta({
+  nombre,
+  valor,
+  cuentas,
+  soloTarjetas = false,
+  etiqueta,
+  className,
+  alCambiar,
+}: {
+  nombre: string;
+  valor?: string | null;
+  cuentas: OpcionCuenta[];
+  /** Solo deudas (tarjetas y préstamos): el destino de un pago. */
+  soloTarjetas?: boolean;
+  etiqueta: string;
+  className?: string;
+  alCambiar?: (id: string) => void;
+}) {
+  const lista = soloTarjetas ? cuentas.filter((c) => esDeuda(c.tipo)) : cuentas;
   const desconocida = valor && !cuentas.some((c) => c.id === valor);
   return (
     <label className={className}>
       {etiqueta}
-      <select name={nombre} defaultValue={valor ?? ""} required>
+      <select name={nombre} defaultValue={valor ?? ""} required onChange={alCambiar ? (e) => alCambiar(e.target.value) : undefined}>
         <option value="" disabled>
           Elige…
         </option>
@@ -62,6 +89,7 @@ export function SelectCuenta({ nombre, valor, cuentas, soloTarjetas = false, eti
         {lista.map((c) => (
           <option key={c.id} value={c.id}>
             {c.nombre}
+            {c.moneda === "USD" ? " (US$)" : ""}
           </option>
         ))}
       </select>
@@ -81,7 +109,7 @@ export function SelectCategoria({ valor, categorias, tipo = "gasto", nombre = "c
   const select = (
     <select id={id} name={nombre} defaultValue={valor ?? ""} required={obligatoria}>
       <option value="" disabled={obligatoria}>
-        {obligatoria ? "Elige…" : "No, solo muevo dinero"}
+        {obligatoria ? "Elige…" : tipo === "pago_tarjeta" ? "«Intereses de tus deudas»" : "No, solo muevo dinero"}
       </option>
       {valor && !categorias.some((c) => c.id === valor) ? <option value={valor}>«{valor}» (ya no existe)</option> : null}
       {tipos.map((t) => (
@@ -100,7 +128,7 @@ export function SelectCategoria({ valor, categorias, tipo = "gasto", nombre = "c
   if (id) return select;
   return (
     <label>
-      {obligatoria ? "Categoría" : "¿Es ahorro o inversión? (opcional)"}
+      {obligatoria ? "Categoría" : tipo === "pago_tarjeta" ? "Si hubo interés, ¿en qué categoría va? (opcional)" : "¿Es ahorro o inversión? (opcional)"}
       {select}
       {obligatoria && !lista.length ? <span className="caja-campo-ayuda">Aún no tienes categorías de este tipo: créalas en Configuración.</span> : null}
     </label>
@@ -120,8 +148,17 @@ export function CamposMovimiento({
 }) {
   const [tipo, setTipo] = useState<TipoMovimiento>(v.tipo ?? "gasto");
   const [moneda, setMoneda] = useState<Moneda>(v.moneda ?? "DOP");
+  const [destino, setDestino] = useState<string>(v.destino ?? "");
   const id = useId();
   const conDestino = tipo === "transferencia" || tipo === "pago_tarjeta";
+  const deuda = tipo === "pago_tarjeta" ? cuentas.find((c) => c.id === destino && esDeuda(c.tipo)) : undefined;
+  const tasaDeuda = deuda && deuda.tipo === "prestamo" && deuda.tasaAnual ? new Big(deuda.tasaAnual) : null;
+  const capitalPrevio = v.interes && v.monto ? new Big(v.monto).minus(v.interes).toFixed() : "";
+  // Al elegir una cuenta en US$, el monto pasa a US$ (y al revés): se puede cambiar a mano.
+  const alCambiarCuenta = (cid: string) => {
+    const c = cuentas.find((x) => x.id === cid);
+    if (c) setMoneda(c.moneda ?? "DOP");
+  };
   return (
     <div className="caja-campos">
       <div className="caja-campo ancho caja-campo-monto">
@@ -154,23 +191,48 @@ export function CamposMovimiento({
       {moneda === "USD" ? (
         <label className="ancho">
           Tasa: cuántos RD$ por US$ (opcional)
-          <input name="tasa" inputMode="decimal" autoComplete="off" defaultValue={v.tasa ?? ""} placeholder="Vacío = la tasa general de Configuración" />
+          <input name="tasa" inputMode="decimal" autoComplete="off" defaultValue={v.tasa ?? ""} placeholder="Vacío = el dólar oficial del BCRD de ese día" />
+          <span className="caja-campo-ayuda">Si tu banco te cobró otra tasa, escríbela. Sin ninguna, el monto queda «no confirmado» en tus totales en RD$.</span>
         </label>
       ) : null}
-      <SelectCuenta nombre="cuenta" valor={v.cuenta} cuentas={cuentas} className={conDestino ? undefined : "ancho"} etiqueta={conDestino ? "Sale de" : tipo === "ingreso" ? "¿A qué cuenta entra?" : "¿Con qué pagaste?"} />
+      <SelectCuenta
+        nombre="cuenta"
+        valor={v.cuenta}
+        cuentas={cuentas}
+        className={conDestino ? undefined : "ancho"}
+        etiqueta={conDestino ? "Sale de" : tipo === "ingreso" ? "¿A qué cuenta entra?" : "¿Con qué pagaste?"}
+        alCambiar={alCambiarCuenta}
+      />
       {conDestino ? (
-        <SelectCuenta key={tipo} nombre="destino" valor={v.destino} cuentas={cuentas} soloTarjetas={tipo === "pago_tarjeta"} etiqueta={tipo === "pago_tarjeta" ? "Tarjeta que pagas" : "Entra a"} />
+        <SelectCuenta
+          key={tipo}
+          nombre="destino"
+          valor={v.destino}
+          cuentas={cuentas}
+          soloTarjetas={tipo === "pago_tarjeta"}
+          etiqueta={tipo === "pago_tarjeta" ? "Tarjeta o préstamo que pagas" : "Entra a"}
+          alCambiar={setDestino}
+        />
       ) : null}
       {tipo === "transferencia" ? (
         <p className="ancho caja-campo-ayuda" style={{ margin: 0 }}>
           {AYUDA_MOVER}
         </p>
       ) : null}
-      {tipo === "pago_tarjeta" ? null : (
-        <div className="ancho">
-          <SelectCategoria key={tipo} valor={v.categoria} categorias={categorias} tipo={tipo} />
-        </div>
-      )}
+      {tipo === "pago_tarjeta" ? (
+        <label className="ancho">
+          ¿Cuánto de este pago fue capital? (opcional)
+          <input name="capital" inputMode="decimal" autoComplete="off" defaultValue={capitalPrevio} placeholder={tasaDeuda ? "Vacío = lo calculamos con tu tasa" : "Vacío = todo fue capital"} />
+          <span className="caja-campo-ayuda">
+            {tasaDeuda
+              ? `Lo que debes baja solo por el capital. Vacío: el interés del mes se calcula con la tasa de «${deuda!.nombre}» en tu Portafolio (${tasaDeuda.times(100).toFixed(2)} % al año: lo que debías × tasa ÷ 12) y va a gastos financieros.`
+              : "Lo que debes baja solo por el capital. Si tu estado de cuenta dice que una parte fue interés o cargos, escribe aquí solo el capital: el resto va a gastos financieros. Vacío = todo fue capital."}
+          </span>
+        </label>
+      ) : null}
+      <div className="ancho">
+        <SelectCategoria key={tipo} valor={v.categoria} categorias={categorias} tipo={tipo} />
+      </div>
       {conNota ? (
         <label className="ancho">
           ¿En qué fue? (opcional)

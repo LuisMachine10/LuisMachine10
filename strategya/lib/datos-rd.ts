@@ -12,6 +12,7 @@ import {
   SERIES_TASAS,
   TAREAS_RD,
 } from "@/lib/rd";
+import { ETIQUETAS, leerMercadoCacheado } from "@/lib/supabase/cache-mercado";
 import { mercado } from "@/lib/supabase/servidor";
 
 // Lecturas del módulo República Dominicana. Las cifras se piden como texto (::text): nunca float.
@@ -72,8 +73,8 @@ function haceDias(dias: number): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santo_Domingo" }).format(new Date(Date.now() - dias * 86_400_000));
 }
 
-export const datosRD = cache(async () => {
-  const db = await mercado();
+// Datos de mercado (iguales para todos): caché compartida de 5 minutos (lib/supabase/cache-mercado.ts).
+export const datosRD = cache(async () => leerMercadoCacheado("rd", 300, async (db) => {
   const [series, dolar, macro, tasas, combustibles, fuentes, tareas, emisiones, avisos, fondos, manuales, eurusd, brent, seriesExtra] = await Promise.all([
     db.from("series").select("id, nombre, nombre_corto, unidad, frecuencia, max_antiguedad_min, fuente_id, orden")
       .in("id", [...SERIES_DOLAR, ...SERIES_MACRO_RD, ...SERIES_TASAS, ...SERIES_COMBUSTIBLES]).order("orden"),
@@ -124,7 +125,7 @@ export const datosRD = cache(async () => {
     brent: exigir<(ObsRD & { hora_dato: string | null })[]>(brent, "el Brent")[0] ?? null,
     seriesExtra: exigir<SerieRD[]>(seriesExtra, "las series EURUSD y BRENT"),
   };
-});
+}, [ETIQUETAS.rd]));
 
 export type DatosRD = Awaited<ReturnType<typeof datosRD>>;
 

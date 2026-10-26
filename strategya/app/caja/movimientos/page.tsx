@@ -1,4 +1,5 @@
 import Big from "big.js";
+import { describirTasa, FUENTE_BCRD } from "@/lib/caja/tasas";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { asignarCategoria } from "@/app/caja/acciones";
@@ -68,7 +69,9 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
             Totales de {nombreMes(mes)}
           </h2>
           <NavMes mes={mes} ruta="/caja/movimientos" hoyMes={mesDe(hoy)} />
-          <span className="sello">Solo lo anotado o confirmado · fuente: tus registros</span>
+          <span className="sello">
+            Solo lo anotado o confirmado · fuente: tus registros{t.movimientos.some((m) => m.moneda === "USD") ? <> · US$ con la tasa que anotaste o el <a href={FUENTE_BCRD.url} target="_blank" rel="noreferrer">dólar de venta del BCRD</a> de su fecha</> : null}
+          </span>
         </div>
         <div className="panel-cuerpo">
           <div className="caja-totales">
@@ -100,7 +103,8 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
           </div>
           {t.sinTasa ? (
             <p className="caja-aviso">
-              {t.sinTasa} movimiento(s) en dólares no entran en los totales porque falta la tasa. Ponla en Configuración → General.
+              {t.sinTasa} movimiento(s) en dólares no entran en los totales en RD$: no hay tasa propia ni dólar del BCRD de su fecha (no confirmado). Puedes
+              escribir la tasa que te cobró tu banco en el movimiento.
             </p>
           ) : null}
         </div>
@@ -187,7 +191,14 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
                                 {enMoneda(m.monto, m.moneda)}
                               </span>
                               {m.moneda === "USD" ? (
-                                <span className="chico tenue mono">{m.montoDOP ? `≈ ${rd(m.montoDOP)}` : <span className="baja">sin tasa</span>}</span>
+                                <span className="chico tenue mono">
+                                  {m.montoDOP ? `≈ ${rd(m.montoDOP)} · ${describirTasa(m.tasaUsada ?? null)}` : <span className="baja">no confirmado: sin tasa</span>}
+                                </span>
+                              ) : null}
+                              {m.tipo === "pago_tarjeta" && m.interes ? (
+                                <span className="chico tenue">
+                                  capital {enMoneda(new Big(m.monto).minus(m.interes).toFixed(), m.moneda)} · interés {enMoneda(m.interes, m.moneda)}
+                                </span>
                               ) : null}
                             </span>
                           </div>

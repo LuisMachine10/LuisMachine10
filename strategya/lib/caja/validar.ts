@@ -127,6 +127,18 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
   const destino = c.tipo === "transferencia" || c.tipo === "pago_tarjeta" ? opcional(c.destino) : null;
   const e = revisarCuentas(c.tipo, cuenta, destino) ?? revisarCategoria(c.tipo, opcional(c.categoria));
   if (e) return mal(e);
+  // Pago de tarjeta o préstamo: «¿cuánto fue capital?». Escrito → interés = monto − capital. Vacío → sin
+  // decidir aquí (la acción lo calcula con la tasa del préstamo o lo deja todo como capital).
+  let interes: string | null | undefined;
+  if (c.tipo === "pago_tarjeta") {
+    const cap = leerMonto(c.capital, "Capital");
+    if (!cap.ok) return { ok: false, error: `${cap.error} Escribe solo la parte que baja tu deuda, por ejemplo 7,500, o déjalo vacío.` };
+    if (cap.valor !== null) {
+      if (new Big(cap.valor).gt(monto.valor!)) return mal("El capital no puede ser mayor que el pago. Escribe la parte del pago que baja tu deuda.");
+      const i = new Big(monto.valor!).minus(cap.valor);
+      interes = i.eq(0) ? null : i.toFixed();
+    }
+  }
   return ok({
     fecha,
     tipo: c.tipo,
@@ -138,6 +150,7 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
     categoria: opcional(c.categoria),
     nota: opcional(c.nota),
     recurrenteId: opcional(c.recurrenteId),
+    ...(interes !== undefined ? { interes } : {}),
   });
 }
 

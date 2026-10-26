@@ -3,7 +3,7 @@
 // confirmar («Sí, lo hice») y el plan de cada instrumento. Son cálculos con tus supuestos, no pronósticos.
 
 import Link from "next/link";
-import { confirmarAporte, guardarParametros, guardarPlan } from "@/app/capital/acciones";
+import { guardarParametros, guardarPlan } from "@/app/capital/acciones";
 import { CERO, n } from "@/lib/capital/decimal";
 import { sumarMeses } from "@/lib/capital/fechas";
 import { aPct } from "@/lib/capital/formulario";
@@ -11,9 +11,7 @@ import { num, pct, rd } from "@/lib/capital/formato";
 import { ahorroPresupuestado, aportesDelPlan, horizonteMeses, proyectarPortafolio, repartoClases } from "@/lib/capital/proyeccion";
 import { CLASES, FRECUENCIAS_PAGO, nombreClase } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
-import { esDeuda as esDeudaCaja } from "@/lib/caja/tipos";
 import { GraficoSerie } from "./GraficoSerie";
-import { Icono } from "./Iconos";
 import { Kpi, Mosaicos, Panel, SinDatos } from "./Piezas";
 
 type Props = { datos: DatosCapital; mes: string; anios?: string | null };
@@ -148,120 +146,7 @@ export function PanelProyeccion({ datos, mes, anios, compacto = false }: Props &
   );
 }
 
-/** Lo que el plan manda a invertir este mes: pendiente hasta «Sí, lo hice» (con monto real y fecha). */
-export function PanelAportesMes({ datos, mes, volver = "/capital/futuro", compacto = false }: Props & { volver?: string; compacto?: boolean }) {
-  const { ctx } = datos;
-  const mesHoy = ctx.hoy.slice(0, 7);
-  const ahorro = ahorroPresupuestado(ctx);
-  const plan = aportesDelPlan(ctx, ahorro).filter((x) => x.monto.gt(0));
-  const confirmados = datos.aportesConfirmados.filter((x) => x.mes === mesHoy);
-  const cuentas = (datos.caja.datos?.cuentas ?? []).filter((c) => !esDeudaCaja(c.tipo));
-  const titulo = "Aportes de este mes";
-  if (!plan.length) {
-    return (
-      <Panel titulo={titulo} id="cap-t-aportes">
-        <SinDatos accion={ahorro ? { href: "/capital/futuro#cap-t-plan", texto: "Repartir mi ahorro" } : { href: "/caja/ajustes", texto: "Apartar ahorro en mi Presupuesto" }}>
-          {ahorro
-            ? "Tu Presupuesto aparta ahorro, pero falta decir a qué categorías va. Escribe el reparto en el plan."
-            : "Cuando tu Presupuesto aparte dinero para ahorro e inversión, aquí verás cuánto toca a cada inversión cada mes."}
-        </SinDatos>
-      </Panel>
-    );
-  }
-  const total = plan.reduce((s, x) => s.plus(x.monto), CERO);
-  const hechos = plan.filter((x) => confirmados.some((c) => c.activoId === x.activo.id));
-  return (
-    <Panel titulo={titulo} id="cap-t-aportes" ancho={!compacto} extra={<span className="tenue chico">{hechos.length} de {plan.length} hechos</span>}>
-      <p className="cap-nota" style={{ marginTop: 0 }}>
-        Tu plan manda <strong>{rd(total)}</strong> este mes. Cada aporte queda pendiente hasta que confirmes que lo hiciste: así se suma al Portafolio{cuentas.length ? " y, si sale de una cuenta, al ahorro del Presupuesto" : ""}, una sola vez.
-      </p>
-      <ul className={`ap-lista${compacto ? " compacta" : ""}`}>
-        {(compacto ? plan.slice(0, 4) : plan).map((x) => {
-          const hecho = confirmados.find((c) => c.activoId === x.activo.id);
-          const unidades = x.activo.clase === "rentavariable";
-          return (
-            <li key={x.activo.id} className={`ap-item${hecho ? " hecho" : ""}`}>
-              <div className="ap-cabeza">
-                <span className={`cap-muestra ${x.activo.clase}`} aria-hidden="true" />
-                <span className="ap-nombre">
-                  <strong>{x.activo.nombre}</strong>
-                  <span className="chico tenue">
-                    {nombreClase(x.activo.clase)} · {pct(x.pctClase.times(x.pctEnClase), 0)} de tu ahorro
-                  </span>
-                </span>
-                <span className="mono ap-monto">{rd(x.monto)}</span>
-              </div>
-              {hecho ? (
-                <p className="ap-estado sube">
-                  <Icono nombre="ok" /> Hecho{hecho.fecha ? ` el ${hecho.fecha}` : ""}: {x.activo.moneda === "DOP" ? rd(hecho.monto) : `${x.activo.moneda} ${num(hecho.monto, 2)}`}
-                </p>
-              ) : compacto ? (
-                <p className="ap-estado tenue chico">Pendiente</p>
-              ) : (
-                <details className="ap-confirmar">
-                  <summary className="boton chico">Sí, lo hice</summary>
-                  <form action={confirmarAporte} className="cap-form">
-                    <input type="hidden" name="activoId" value={x.activo.id} />
-                    <input type="hidden" name="aporteMes" value={mesHoy} />
-                    <input type="hidden" name="mes" value={mes} />
-                    <input type="hidden" name="volver" value={volver} />
-                    <div className="reg-campos">
-                      {unidades ? (
-                        <>
-                          <label className="cap-campo">
-                            Unidades que compraste
-                            <input name="cantidad" inputMode="decimal" required placeholder="Ej.: 2" autoComplete="off" />
-                          </label>
-                          <label className="cap-campo">
-                            Precio de cada una ({x.activo.moneda})
-                            <input name="precio" inputMode="decimal" required placeholder="Ej.: 101.25" autoComplete="off" />
-                          </label>
-                        </>
-                      ) : (
-                        <label className="cap-campo">
-                          Monto real ({x.activo.moneda === "DOP" ? "RD$" : x.activo.moneda})
-                          <input name="monto" inputMode="decimal" required defaultValue={x.activo.moneda === "DOP" ? x.monto.toFixed(2) : ""} placeholder="Ej.: 5,000" autoComplete="off" />
-                        </label>
-                      )}
-                      <label className="cap-campo">
-                        Fecha
-                        <input type="date" name="fecha" defaultValue={ctx.hoy} required />
-                      </label>
-                      <label className="cap-campo">
-                        ¿De qué cuenta salió?
-                        <select name="cuenta" defaultValue={x.activo.moneda === "DOP" ? (cuentas.find((c) => c.tipo === "banco")?.id ?? "") : ""}>
-                          <option value="">De ninguna del Presupuesto</option>
-                          {x.activo.moneda === "DOP"
-                            ? cuentas.filter((c) => c.id !== x.activo.cajaId).map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.nombre}
-                                </option>
-                              ))
-                            : null}
-                        </select>
-                      </label>
-                    </div>
-                    <div className="cap-botones">
-                      <button type="submit" className="boton">
-                        Confirmar aporte
-                      </button>
-                    </div>
-                  </form>
-                </details>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {compacto && plan.length > 4 ? (
-        <p className="cap-nota">
-          <Link href="/capital/futuro#cap-t-aportes">Ver los {plan.length} aportes</Link>
-        </p>
-      ) : null}
-      <span className="sello">Fuente: tu Presupuesto · el reparto de tu plan</span>
-    </Panel>
-  );
-}
+export { PanelAportesMes } from "./Aportes";
 
 /** Reparto por categoría y reglas de cada instrumento (tasa, capitaliza, pagos, reinversión, % del aporte). */
 export function PanelPlan({ datos, mes }: Props) {

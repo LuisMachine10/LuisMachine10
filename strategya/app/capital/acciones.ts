@@ -24,6 +24,7 @@ import { activoAFila, type AnalisisArchivo, analizarArchivo, cargaParaBase, TAMA
 import { esMes, hoyRD } from "@/lib/capital/fechas";
 import Big from "big.js";
 import { fechaDeSaldo, planDeFormulario, registroDeFormulario } from "@/lib/capital/formulario-registro";
+import { conOmision, leerPrefAportes, reubicarParte, sinOmision } from "@/lib/capital/aportes";
 import { guardarPreferenciaCapital, leerPreferenciaCapital, leerPrefRegistro } from "@/lib/capital/preferencias";
 import { SECCIONES_IPS } from "@/lib/capital/tipos";
 import { Registro, validarActivo, validarCierre, validarIps, validarParametros, validarTransaccion } from "@/lib/capital/validar";
@@ -400,6 +401,7 @@ export async function confirmarAporte(form: FormData): Promise<void> {
   const c = camposDe(form);
   const resultado = await intentar(async () => {
     if (!c.activoId || !ID_REGISTRO.test(c.activoId) || !esMes(c.aporteMes)) throw new Error("Faltan datos del aporte. Recarga la página.");
+    if (c.aporteMes > hoyRD(new Date()).slice(0, 7)) throw new Error("Ese mes todavía no llega: confirma el aporte cuando lo hagas.");
     const fecha = c.fecha || hoyRD(new Date());
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw new Error("La fecha no es válida.");
     const datos = await datosCapital();
@@ -420,7 +422,12 @@ export async function confirmarAporte(form: FormData): Promise<void> {
       const caja = datos.caja.datos;
       const origen = caja?.cuentas.find((x) => x.id === c.cuenta);
       if (!caja || !origen) throw new Error("Esa cuenta ya no está en el Presupuesto. Recarga la página.");
-      if (a.moneda !== "DOP") throw new Error("El Presupuesto lleva sus cuentas en RD$: para un aporte en otra moneda deja «¿De qué cuenta salió?» en «De ninguna».");
+      const monedaOrigen = origen.moneda ?? "DOP";
+      if (a.moneda !== monedaOrigen) {
+        throw new Error(
+          `«${origen.nombre}» está en ${monedaOrigen === "USD" ? "US$" : "RD$"} y «${a.nombre}» en ${a.moneda === "USD" ? "US$" : a.moneda}: elige una cuenta en la misma moneda o deja «¿De qué cuenta salió?» en «De ninguna».`,
+        );
+      }
       let categoria = caja.categorias.find((k) => k.tipo === "ahorro_inversion")?.id ?? null;
       if (!categoria) {
         const nueva = await db.from("caja_categorias").insert({ nombre: "Ahorro e inversión", tipo: "ahorro_inversion" }).select("id").single();
@@ -430,7 +437,7 @@ export async function confirmarAporte(form: FormData): Promise<void> {
       const destino = a.cajaId ?? null;
       const mov = await db
         .from("caja_movimientos")
-        .insert({ fecha, tipo: destino ? "transferencia" : "gasto", monto: montoMoneda.toFixed(), moneda: "DOP", cuenta: origen.id, destino, categoria, nota: `Aporte a ${a.nombre}`.slice(0, 500) })
+        .insert({ fecha, tipo: destino ? "transferencia" : "gasto", monto: montoMoneda.toFixed(), moneda: a.moneda, cuenta: origen.id, destino, categoria, nota: `Aporte a ${a.nombre}`.slice(0, 500) })
         .select("id")
         .single();
       sinError(mov.error, "el movimiento en el Presupuesto");
@@ -452,8 +459,74 @@ export async function confirmarAporte(form: FormData): Promise<void> {
       aporte_mes: c.aporteMes, movimiento_id: movimientoId,
     });
     sinError(error, "el aporte en el libro");
+    // Si estaba omitido ese mes, deja de estarlo.
+    if (datos.prefAportes.omitidos.some((x) => x.activoId === a.id && x.mes === c.aporteMes)) {
+      await guardarPreferenciaCapital("aportes", sinOmision(datos.prefAportes, a.id, c.aporteMes));
+    }
     revalidatePath("/caja", "layout");
     return movimientoId ? `Aporte a ${a.nombre} confirmado y anotado en tu Presupuesto como ahorro` : `Aporte a ${a.nombre} confirmado`;
   });
   volver(c.volver === "/capital" ? "/capital" : "/capital/futuro", c.mes, resultado);
+}
+
+/** «Omitir este mes»: ese aporte deja de pedirse (con motivo opcional). No mueve dinero ni borra nada. */
+export async function omitirAporte(form: FormData): Promise<void> {
+  const c = camposDe(form);
+  const resultado = await intentar(async () => {
+    if (!c.activoId || !ID_REGISTRO.test(c.activoId) || !esMes(c.aporteMes)) throw new Error("Faltan datos del aporte. Recarga la página.");
+    const datos = await datosCapital();
+    const a = datos.ctx.activos.find((x) => x.id === c.activoId);
+    if (!a) throw new Error("Ese instrumento ya no está en tu Portafolio.");
+    if (datos.aportesConfirmados.some((x) => x.activoId === a.id && x.mes === c.aporteMes)) throw new Error(`El aporte de ${c.aporteMes} a «${a.nombre}» ya estaba confirmado: no se puede omitir.`);
+    const motivo = (c.motivo ?? "").trim().slice(0, 200) || null;
+    const e = await guardarPreferenciaCapital("aportes", conOmision(datos.prefAportes, { activoId: a.id, mes: c.aporteMes, motivo, fecha: hoyRD(new Date()) }));
+    if (e) throw new Error(`No se pudo guardar: ${e}`);
+    return `Listo: el aporte de ${c.aporteMes} a ${a.nombre} queda omitido${motivo ? ` (${motivo})` : ""}`;
+  });
+  volver(c.volver === "/capital" ? "/capital" : "/capital/futuro", c.mes, resultado);
+}
+
+/** Deshacer «Omitir este mes»: el aporte vuelve a quedar pendiente. */
+export async function deshacerOmisionAporte(form: FormData): Promise<void> {
+  const c = camposDe(form);
+  const resultado = await intentar(async () => {
+    if (!c.activoId || !ID_REGISTRO.test(c.activoId) || !esMes(c.aporteMes)) throw new Error("Faltan datos del aporte. Recarga la página.");
+    const pref = leerPrefAportes((await leerPreferenciaCapital("aportes")).valor);
+    const e = await guardarPreferenciaCapital("aportes", sinOmision(pref, c.activoId, c.aporteMes));
+    if (e) throw new Error(`No se pudo guardar: ${e}`);
+    return "Listo: el aporte vuelve a estar pendiente";
+  });
+  volver(c.volver === "/capital" ? "/capital" : "/capital/futuro", c.mes, resultado);
+}
+
+/**
+ * Un instrumento venció: Mena confirmó a dónde pasa su parte del ahorro (pantalla de confirmación en
+ * Proyecciones). Se escribe el reparto nuevo (aporte_pct de los tocados y, si cambia de categoría, el plan
+ * por categoría). Nada se mueve de dinero y nada pasa sin este «Sí».
+ */
+export async function reubicarAporte(form: FormData): Promise<void> {
+  const c = camposDe(form);
+  const resultado = await intentar(async () => {
+    if (!c.vencidoId || !c.destinoId || !ID_REGISTRO.test(c.vencidoId) || !ID_REGISTRO.test(c.destinoId)) throw new Error("Faltan los instrumentos. Recarga la página.");
+    const datos = await datosCapital();
+    const r = reubicarParte(datos.ctx, c.vencidoId, c.destinoId);
+    if (!r) throw new Error("Ya no se puede pasar esa parte (¿ya lo hiciste o cambió el plan?). Recarga la página.");
+    const db = await personal();
+    for (const [id, pct] of Object.entries(r.aportePct)) {
+      const { error } = await db.from("activos").update({ aporte_pct: pct, actualizado_en: new Date().toISOString() }).eq("id", id);
+      sinError(error, "el reparto");
+    }
+    if (r.planClases) {
+      const actual = await parametrosGuardados();
+      const reg = new Registro();
+      const p = validarParametros({ ...actual, planClases: r.planClases }, reg, "parámetros", false);
+      if (!reg.ok) throw new Error(errores(reg));
+      const { error } = await db.from("parametros").upsert({ id: 1, datos: p, actualizado_en: new Date().toISOString() }, { onConflict: "id" });
+      sinError(error, "el reparto por categoría");
+    }
+    const v = datos.ctx.activos.find((x) => x.id === c.vencidoId)!;
+    const d = datos.ctx.activos.find((x) => x.id === c.destinoId)!;
+    return `Listo: la parte de «${v.nombre}» pasa a «${d.nombre}»`;
+  });
+  volver("/capital/futuro", c.mes, resultado);
 }
