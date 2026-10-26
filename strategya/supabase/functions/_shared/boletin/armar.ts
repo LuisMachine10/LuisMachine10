@@ -32,6 +32,7 @@ import type {
   EstadoCifra,
   Fila,
   FondoGuardado,
+  FotoDinero,
   FuenteRef,
   Item,
   NivelGuardado,
@@ -585,6 +586,41 @@ function rd$(v: string): string {
   return `${n.lt(0) ? "−" : ""}RD$${cifra(n.abs().toString(), 0)}`;
 }
 
+const DEC = /^-?\d+(\.\d+)?$/;
+const dec = (x: unknown): string | null => (typeof x === "string" && DEC.test(x) ? x : null);
+const MES = /^\d{4}-(0[1-9]|1[0-2])$/;
+const NIVELES_RIESGO = new Set(["bajo", "medio", "alto"]);
+
+/** La foto la escribe la app: se valida campo por campo y lo que no tenga forma se descarta (nunca se rellena). */
+export function leerFoto(x: unknown): FotoDinero | null {
+  if (!x || typeof x !== "object") return null;
+  const o = x as Record<string, unknown>;
+  if (typeof o.mes !== "string" || !MES.test(o.mes)) return null;
+  const a = o.aportes as Record<string, unknown> | null | undefined;
+  const entero = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null);
+  const aportes =
+    a && typeof a === "object" && entero(a.plan) !== null && entero(a.pendientes) !== null && dec(a.total) && dec(a.pendiente)
+      ? { plan: entero(a.plan)!, pendientes: entero(a.pendientes)!, total: dec(a.total)!, pendiente: dec(a.pendiente)! }
+      : null;
+  const riesgos = Array.isArray(o.riesgos)
+    ? o.riesgos
+        .filter((r): r is Record<string, unknown> => !!r && typeof r === "object")
+        .filter((r) => typeof r.titulo === "string" && NIVELES_RIESGO.has(String(r.impacto)) && NIVELES_RIESGO.has(String(r.probabilidad)))
+        .map((r) => ({ titulo: String(r.titulo).slice(0, 80), impacto: String(r.impacto), probabilidad: String(r.probabilidad) }))
+    : [];
+  return {
+    mes: o.mes,
+    patrimonio: dec(o.patrimonio),
+    vivo: o.vivo === true,
+    cambio: dec(o.cambio),
+    cambio_pct: dec(o.cambio_pct),
+    previo: typeof o.previo === "string" && MES.test(o.previo) ? o.previo : null,
+    aportes,
+    riesgos,
+    riesgos_evaluados: entero(o.riesgos_evaluados) ?? 0,
+  };
+}
+
 function seccionTuDinero(c: Ctx): Seccion | null {
   const t = c.d.tu_dinero;
   if (!t) return null;
@@ -600,7 +636,7 @@ function seccionTuDinero(c: Ctx): Seccion | null {
     items.push({ texto: "Utilidad neta del mes: no confirmado (el Presupuesto todavía no está armado)." });
     c.falta("Tu dinero · Presupuesto: sin configurar.");
   }
-  const f = t.foto;
+  const f = leerFoto(t.foto);
   if (f && t.foto_en) {
     const viejo = c.ahora.getTime() - new Date(t.foto_en).getTime() > 48 * 3_600_000;
     const cuando = `foto del ${fechaCorta(diaRD(t.foto_en))}, ${horaRD(t.foto_en)}${viejo ? " · dato viejo" : ""}`;
