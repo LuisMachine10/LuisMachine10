@@ -1,10 +1,9 @@
 import "server-only";
-import Big from "big.js";
 import { cache } from "react";
 import { ETIQUETAS, leerMercadoCacheado } from "@/lib/supabase/cache-mercado";
 import { personal } from "@/lib/supabase/servidor";
 import { hoyRD } from "./fechas";
-import { COLUMNAS_COMPLETAS, type FilasCaja, filasADatos, ORDEN, ultimaEdicion } from "./filas";
+import { COLUMNAS_COMPLETAS, COLUMNAS_ENLACE, conRegistro, type FilaEnlace, type FilasCaja, filasADatos, ORDEN, ultimaEdicion } from "./filas";
 import type { TasaDia, TasasUSD } from "./tasas";
 import type { DatosCaja } from "./tipos";
 
@@ -86,21 +85,13 @@ export const leerCaja = cache(async (): Promise<LecturaCaja> => {
     leer("caja_omitidos"),
     leer("caja_saldos_reales"),
     leer("caja_notas"),
-    // Enlace con el registro único y, de préstamos y deudas, su tasa (para separar interés y capital).
-    db.from("caja_cuentas").select("id, registro_id, activos(clase, tasa::text)"),
+    // Enlace con el registro único: tasa de préstamos y deudas, ciclo y parte en US$ de las tarjetas.
+    db.from("caja_cuentas").select(COLUMNAS_ENLACE),
     tasasUSD(),
   ]);
   const filas: FilasCaja = { config: config[0] ?? null, cuentas, categorias, recurrentes, movimientos, omitidos, saldos, notas };
-  const enlaces: Record<string, string> = {};
-  const tasaDeuda = new Map<string, string>();
-  if (!enl.error) {
-    for (const e of (enl.data ?? []) as unknown as { id: string; registro_id: string | null; activos: { clase: string; tasa: string | null } | null }[]) {
-      if (e.registro_id) enlaces[e.id] = e.registro_id;
-      if (e.activos && (e.activos.clase === "prestamo" || e.activos.clase === "deuda") && e.activos.tasa && new Big(e.activos.tasa).gt(0)) tasaDeuda.set(e.id, e.activos.tasa);
-    }
-  }
   const datos = filasADatos(filas);
-  for (const c of datos.cuentas) if (tasaDeuda.has(c.id)) c.tasaAnual = tasaDeuda.get(c.id)!;
+  const enlaces = enl.error ? {} : conRegistro(datos, (enl.data ?? []) as unknown as FilaEnlace[]);
   datos.tasasUSD = tasas;
   return { datos, editadoEn: ultimaEdicion(filas), enlaces };
 });

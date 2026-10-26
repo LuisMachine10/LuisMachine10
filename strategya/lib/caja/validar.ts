@@ -140,6 +140,7 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
       interes = i.eq(0) ? null : i.toFixed();
     }
   }
+  const parte = leerParte(c);
   return ok({
     fecha,
     tipo: c.tipo,
@@ -152,7 +153,16 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
     nota: opcional(c.nota),
     recurrenteId: opcional(c.recurrenteId),
     ...(interes !== undefined ? { interes } : {}),
+    ...(parte ? { parte } : {}),
   });
+}
+
+/**
+ * Tarjeta en dos monedas: a qué parte va el pago («La parte en RD$» / «La parte en US$»). Vacío = según la
+ * moneda del monto. Solo los pagos y los cargos a una tarjeta lo usan; los demás quedan en null.
+ */
+export function leerParte(c: Campos): "DOP" | "USD" | null {
+  return c.parte === "DOP" || c.parte === "USD" ? c.parte : null;
 }
 
 export function validarRecurrente(c: Campos): Resultado<Omit<Recurrente, "id">> {
@@ -206,6 +216,7 @@ export function validarRecurrente(c: Campos): Resultado<Omit<Recurrente, "id">> 
     desde,
     hasta,
     activo: c.activo === undefined ? true : c.activo === "on" || c.activo === "true",
+    ...(c.tipo === "pago_tarjeta" && leerParte(c) ? { parte: leerParte(c) } : {}),
   });
 }
 

@@ -342,14 +342,16 @@ export function aJsonSQL(d: DatosCaja & { config: ConfigCaja }) {
     recurrentes: d.recurrentes.map((r) => ({
       id: r.id, nombre: r.nombre, tipo: r.tipo, monto: r.monto, moneda: r.moneda, pago_total: r.pagoTotal,
       cuenta: r.cuenta, destino: r.destino, categoria: r.categoria, frecuencia: r.frecuencia, dias: r.dias,
-      cada_n: r.cadaN, fecha: r.fecha, desde: r.desde, hasta: r.hasta, activo: r.activo,
+      cada_n: r.cadaN, fecha: r.fecha, desde: r.desde, hasta: r.hasta, activo: r.activo, ...(r.parte ? { parte: r.parte } : {}),
     })),
     movimientos: d.movimientos.map((m) => ({
       id: m.id, fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta,
       destino: m.destino, categoria: m.categoria, nota: m.nota, recurrente_id: m.recurrenteId, ...(m.interes ? { interes: m.interes } : {}),
+      ...(m.parte ? { parte: m.parte } : {}),
     })),
     omitidos: d.omitidos.map((o) => ({ fecha: o.fecha, recurrente_id: o.recurrenteId })),
-    saldos: d.saldos.map((s) => ({ fecha: s.fecha, cuenta_id: s.cuentaId, saldo: s.saldo })),
+    // El saldo en US$ escrito en Mis cuentas entra al leer (lib/caja/datos.ts, `sintetico`): no se guarda como cuadre.
+    saldos: d.saldos.filter((s) => !s.sintetico).map((s) => ({ fecha: s.fecha, cuenta_id: s.cuentaId, saldo: s.saldo })),
     notas: d.notas.map((n) => ({ fecha: n.fecha, nota: n.nota })),
   };
 }

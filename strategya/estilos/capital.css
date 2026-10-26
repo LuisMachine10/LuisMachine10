@@ -1353,7 +1353,9 @@ textarea::placeholder {
 .reg-form:has(option[value="rentafija"]:checked) .s-venc,
 .reg-form:has(option[value="prestamo"]:checked) .s-venc { display: grid; }
 .reg-form:has(option[value="tarjeta"]:checked) .s-tarjeta { display: grid; }
-.reg-form:has(option[value="tarjeta"]:checked) .s-deuda,
+.reg-form .s-tarjeta-nota { display: none; }
+.reg-form:has(option[value="tarjeta"]:checked) .s-tarjeta-nota { display: block; }
+.reg-form:has(option[value="tarjeta"]:checked) .s-no-tarjeta { display: none; }
 .reg-form:has(option[value="prestamo"]:checked) .s-deuda,
 .reg-form:has(option[value="deuda"]:checked) .s-deuda { display: grid; }
 .reg-form:has(option[value="prestamo"]:checked) .s-prestamo { display: grid; }
@@ -1635,3 +1637,9 @@ textarea::placeholder {
 .conexion-marca.si { color: var(--sube); }
 .conexion-marca.no { color: var(--baja); }
 .conexion-porque { margin: 0; font-size: 13px; color: var(--texto-2); }
+
+/* Tarjetas: ciclo (corte · pago · fecha límite) y uso del límite por moneda */
+.reg-ciclo { color: var(--texto); }
+.reg-ficha-tc { display: grid; gap: 6px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: var(--radio-chico, 8px); background: var(--panel-alto); }
+.reg-ficha-tc p { margin: 0; }
+.reg-uso-tc { display: grid; gap: 4px; }

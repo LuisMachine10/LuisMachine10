@@ -19,15 +19,21 @@
 // Cuentas en US$ (Fase F): su posición va en US$; el disponible y los totales del día, en RD$ con la tasa
 // del BCRD de ese día. Pagos de tarjeta o préstamo: la deuda baja solo por el capital (monto − interés);
 // el interés es una salida (gasto financiero).
+// Tarjetas en dos monedas: la parte en US$ es una segunda posición (clave «<id>#usd», en US$). Un pago va a la
+// parte que diga `parte` (o, sin ella, a la de la moneda del monto); un cargo en US$ a la tarjeta, a su parte en
+// US$. Pagar la parte en US$ desde una cuenta en RD$ usa la tasa del movimiento o la del BCRD de la fecha.
 // Todo con big.js; ningún monto pasa por float.
 
 import Big from "big.js";
 import { type Fecha, diasDelMes, diasEntre, esFecha, mesDe, rangoFechas, sumarDias, ultimoDia, type Mes } from "./fechas";
 import { aDOP, convertir, type TasaUsada, tasaBcrd, tasaDeCambio, tasaPara } from "./tasas";
 import {
+  claveUSD,
   type ConfigCaja,
   type Cuenta,
   type DatosCaja,
+  esClaveUSD,
+  idDeClave,
   type Moneda,
   monedaDe,
   type Movimiento,
@@ -62,6 +68,8 @@ export interface Ocurrencia {
   destino: string | null;
   categoria: string | null;
   pagoTotal: boolean;
+  /** Tarjeta en dos monedas: parte a la que va el pago. */
+  parte?: Moneda | null;
 }
 
 export interface MovimientoAplicado extends Movimiento {
@@ -91,7 +99,7 @@ export interface DiaSimulado {
   porConfirmar: Ocurrencia[];
   omitidos: Ocurrencia[];
   ajustes: AjusteSaldo[];
-  /** Posición de cada cuenta al cierre del día (tarjeta negativa = deuda). */
+  /** Posición de cada cuenta al cierre del día (tarjeta negativa = deuda). La parte en US$ de una tarjeta, en «<id>#usd». */
   posiciones: Record<string, string>;
   disponible: string;
   ahorroTotal: string;
@@ -169,7 +177,13 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
   for (const c of datos.cuentas) {
     const s = new Big(c.saldoInicial || "0");
     pos.set(c.id, esDeuda(c.tipo) ? s.times(-1) : s);
+    if (c.usd) pos.set(claveUSD(c.id), new Big(c.usd.saldoInicial || "0").times(-1));
   }
+  /** Moneda de una posición: la parte en US$ de una tarjeta va en US$. */
+  const monedaPos = (id: string): Moneda => (esClaveUSD(id) ? "USD" : monedaDe(cuentas.get(id)));
+  /** A qué posición va un monto: en una tarjeta en dos monedas, la parte elegida (o la de la moneda del monto). */
+  const lado = (id: string | null, moneda: Moneda, parte: Moneda | null | undefined): string | null =>
+    id && cuentas.get(id)?.usd && (parte ?? moneda) === "USD" ? claveUSD(id) : id;
 
   const movPorDia = agrupar(datos.movimientos, (m) => m.fecha);
   const omitPorDia = agrupar(datos.omitidos, (o) => o.fecha);
@@ -177,6 +191,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
   const notas = new Map(datos.notas.map((n) => [n.fecha, n.nota]));
   const sinTasa = new Set<string>();
   const cuentasUSDSinTasa = new Set<string>();
+  const tarjetasUSDSinTasa = new Set<string>();
 
   const dias: DiaSimulado[] = [];
   const porFecha = new Map<Fecha, DiaSimulado>();
@@ -191,7 +206,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
     /** Suma `delta` (en la moneda del monto) a la posición de la cuenta, en la moneda de la cuenta. */
     const mover = (id: string | null, delta: Big, moneda: Moneda, tasa: TasaUsada | null): boolean => {
       if (!id || !pos.has(id)) return true;
-      const v = convertir(delta, moneda, monedaDe(cuentas.get(id)), tasa);
+      const v = convertir(delta, moneda, monedaPos(id), tasa);
       if (!v) return false;
       pos.set(id, pos.get(id)!.plus(v));
       return true;
@@ -201,18 +216,29 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
      * Aplica un movimiento: `m` en su moneda, `dop` el mismo monto en RD$ (null sin tasa). En un pago de
      * tarjeta o préstamo, `interes` (en la moneda del monto) no baja la deuda: es una salida del mes.
      */
-    const aplicar = (tipo: TipoMovimiento, m: Big, moneda: Moneda, tasa: TasaUsada | null, dop: Big | null, cuenta: string | null, destino: string | null, interes: Big = CERO): boolean => {
+    const aplicar = (
+      tipo: TipoMovimiento,
+      m: Big,
+      moneda: Moneda,
+      tasa: TasaUsada | null,
+      dop: Big | null,
+      cuenta: string | null,
+      destino: string | null,
+      interes: Big = CERO,
+      parte: Moneda | null = null,
+    ): boolean => {
       let ok = true;
       if (tipo === "ingreso") {
-        ok = mover(cuenta, m, moneda, tasa);
+        ok = mover(lado(cuenta, moneda, parte), m, moneda, tasa);
         if (dop) entradas = entradas.plus(dop);
       } else if (tipo === "gasto") {
-        ok = mover(cuenta, m.times(-1), moneda, tasa);
+        ok = mover(lado(cuenta, moneda, parte), m.times(-1), moneda, tasa);
         if (dop) salidas = salidas.plus(dop);
       } else {
-        ok = mover(cuenta, m.times(-1), moneda, tasa);
-        const capital = tipo === "pago_tarjeta" && interes.gt(0) ? m.minus(interes) : m;
-        ok = mover(destino, capital, moneda, tasa) && ok;
+        const pago = tipo === "pago_tarjeta";
+        ok = mover(lado(cuenta, moneda, pago ? null : parte), m.times(-1), moneda, tasa);
+        const capital = pago && interes.gt(0) ? m.minus(interes) : m;
+        ok = mover(lado(destino, moneda, pago ? parte : null), capital, moneda, tasa) && ok;
         if (tipo === "pago_tarjeta" && interes.gt(0) && dop) salidas = salidas.plus(convertir(interes, moneda, "DOP", tasa) ?? CERO);
         if (destino && cuentas.get(destino)?.tipo === "ahorro" && dop) ahorro = ahorro.plus(dop);
       }
@@ -225,7 +251,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       const tasa = tasaDeCambio(it.tasa, datos.tasasUSD, d);
       const dop = aDOP(it.monto, it.moneda, it.tasa, datos.tasasUSD, d);
       const interes = it.tipo === "pago_tarjeta" && it.interes ? new Big(it.interes) : CERO;
-      if (!aplicar(it.tipo, m, it.moneda, tasa, dop, it.cuenta, it.destino, interes)) sinTasa.add(`${d} · movimiento registrado en US$`);
+      if (!aplicar(it.tipo, m, it.moneda, tasa, dop, it.cuenta, it.destino, interes, it.parte ?? null)) sinTasa.add(`${d} · movimiento registrado en US$`);
       if (it.tipo === "ingreso") tieneIngreso = true;
       registrados.push({ ...it, montoDOP: dop ? dop.toString() : null, tasaUsada: it.moneda === "USD" ? tasaPara(it.moneda, it.tasa, datos.tasasUSD, d) : undefined });
     }
@@ -242,9 +268,11 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       let monto = r.monto;
       let moneda = r.moneda;
       if (r.tipo === "pago_tarjeta" && r.pagoTotal) {
-        const debe = r.destino && pos.has(r.destino) ? pos.get(r.destino)!.times(-1) : CERO;
+        // Pago total: lo que se debe en esa parte de la tarjeta (RD$, o US$ si el pago va a la parte en US$).
+        const k = r.destino && r.parte === "USD" && cuentas.get(r.destino)?.usd ? claveUSD(r.destino) : r.destino;
+        const debe = k && pos.has(k) ? pos.get(k)!.times(-1) : CERO;
         monto = (debe.gt(0) ? debe : CERO).toString();
-        moneda = monedaDe(r.destino ? cuentas.get(r.destino) : undefined);
+        moneda = k ? monedaPos(k) : "DOP";
       }
       const tasa = tasaDeCambio(null, datos.tasasUSD, d);
       const dop = aDOP(monto, moneda, null, datos.tasasUSD, d);
@@ -259,13 +287,14 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
         destino: r.destino,
         categoria: r.categoria,
         pagoTotal: r.tipo === "pago_tarjeta" && r.pagoTotal,
+        ...(r.parte ? { parte: r.parte } : {}),
       };
       if (omitidosHoy.has(r.id)) {
         omitidos.push(oc);
         continue;
       }
       if (d >= hoy) {
-        if (!aplicar(r.tipo, new Big(monto), moneda, tasa, dop, r.cuenta, r.destino)) sinTasa.add(`${d} · ${r.nombre}`);
+        if (!aplicar(r.tipo, new Big(monto), moneda, tasa, dop, r.cuenta, r.destino, CERO, r.parte ?? null)) sinTasa.add(`${d} · ${r.nombre}`);
         if (r.tipo === "ingreso") tieneIngreso = true;
         planificados.push(oc);
       } else {
@@ -275,14 +304,15 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
 
     const ajustes: AjusteSaldo[] = [];
     for (const s of saldosPorDia.get(d) ?? []) {
-      const c = cuentas.get(s.cuentaId);
-      if (!c) continue;
-      const anterior = pos.get(c.id)!;
+      // Cuadre de una cuenta o de la parte en US$ de una tarjeta («<id>#usd»).
+      const c = cuentas.get(idDeClave(s.cuentaId));
+      if (!c || !pos.has(s.cuentaId)) continue;
+      const anterior = pos.get(s.cuentaId)!;
       const real = new Big(s.saldo);
       const esTarjeta = esDeuda(c.tipo);
       const esperado = esTarjeta ? anterior.times(-1) : anterior;
-      pos.set(c.id, esTarjeta ? real.times(-1) : real);
-      ajustes.push({ cuentaId: c.id, real: real.toString(), esperado: esperado.toString(), diferencia: real.minus(esperado).toString() });
+      pos.set(s.cuentaId, esTarjeta ? real.times(-1) : real);
+      ajustes.push({ cuentaId: s.cuentaId, real: real.toString(), esperado: esperado.toString(), diferencia: real.minus(esperado).toString() });
     }
 
     // Totales del día en RD$: las cuentas en US$ con el dólar del BCRD de ese día.
@@ -307,6 +337,14 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       if (esEfectivo(c)) disponible = disponible.plus(v);
       else if (c.tipo === "ahorro") ahorroTotal = ahorroTotal.plus(v);
       else if (c.tipo === "tarjeta" && v.lt(0)) deuda = deuda.minus(v);
+      if (c.usd) {
+        // La parte en US$ de la tarjeta: a RD$ con el dólar del BCRD del día (sin dato, no se suma).
+        const k = claveUSD(c.id);
+        const pu = pos.get(k)!;
+        posiciones[k] = pu.toString();
+        if (!tasaDia) tarjetasUSDSinTasa.add(c.nombre);
+        else if (pu.lt(0)) deuda = deuda.minus(pu.times(tasaDia.valor));
+      }
     }
 
     const dia: DiaSimulado = {
@@ -339,6 +377,11 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
   if (cuentasUSDSinTasa.size) {
     advertencias.push(
       `Sin dólar del BCRD en algunos días: el saldo en US$ de ${[...cuentasUSDSinTasa].join(", ")} no se sumó al disponible de esos días (no confirmado).`,
+    );
+  }
+  if (tarjetasUSDSinTasa.size) {
+    advertencias.push(
+      `Sin dólar del BCRD en algunos días: lo que debes en US$ en ${[...tarjetasUSDSinTasa].join(", ")} no se sumó a tu deuda en tarjetas de esos días (no confirmado).`,
     );
   }
   return { inicio, hoy, hasta, dias, porFecha, advertencias };

@@ -2,6 +2,7 @@
 // escribe Mena en la fila de personal.activos, con errores que dicen cómo arreglarlo. Montos como texto.
 
 import { aDecimal } from "../../supabase/functions/_shared/json";
+import { cicloDeFormulario } from "../caja/ciclo";
 import { Big } from "./decimal";
 import { esFecha, sumarMeses } from "./fechas";
 import { type Campos, numeroForm, pctForm } from "./formulario";
@@ -71,6 +72,13 @@ export interface FilaAlta {
   limite: string | null;
   dia_pago: number | null;
   cuota: string | null;
+  /** Tarjeta: ciclo. Las demás: null (las restricciones de la base lo exigen). */
+  dia_corte: number | null;
+  dias_para_pagar: number | null;
+  /** Tarjeta en RD$ con parte en dólares. */
+  limite_usd: string | null;
+  saldo_usd?: string | null;
+  saldo_usd_fecha?: string | null;
 }
 
 /**
@@ -99,6 +107,9 @@ export function registroDeFormulario(c: Campos, hoy: string): ResultadoForm<Fila
     limite: null,
     dia_pago: null,
     cuota: null,
+    dia_corte: null,
+    dias_para_pagar: null,
+    limite_usd: null,
   };
   const saldoCambio = c.saldoMostrado === undefined || numeroForm(c.saldo) !== numeroForm(c.saldoMostrado);
   if (tipo.clase === "rentavariable") {
@@ -131,11 +142,37 @@ export function registroDeFormulario(c: Campos, hoy: string): ResultadoForm<Fila
     fila.vencimiento = c.venc;
   }
   if (tipo.clase === "tarjeta") {
-    const l = monto(c.limite, "el límite de la tarjeta", "80,000", true);
+    const l = monto(c.limite, "el límite de la tarjeta en RD$", "80,000", true);
     if (!l.ok) return l;
     if (l.valor && new Big(l.valor).lt(0)) return { ok: false, error: "El límite no puede ser negativo." };
     fila.limite = l.valor;
+    // Ciclo: día de corte, días para pagar después del corte y día en que quieres pagar.
+    // En Mis cuentas el campo de la tarjeta se llama diaPagoTarjeta (el de préstamos, diaPago); el Presupuesto manda diaPago.
+    const ci = cicloDeFormulario({ ...c, diaPago: c.diaPagoTarjeta !== undefined ? c.diaPagoTarjeta : c.diaPago });
+    if (!ci.ok) return ci;
+    fila.dia_corte = ci.valor.dia_corte;
+    fila.dias_para_pagar = ci.valor.dias_para_pagar;
+    fila.dia_pago = ci.valor.dia_pago;
+    // Parte en dólares: límite y lo que debes en US$ (solo en una tarjeta en RD$).
+    const lu = monto(c.limiteUsd, "el límite de la tarjeta en US$", "2,000", true);
+    if (!lu.ok) return lu;
+    if (lu.valor && new Big(lu.valor).lt(0)) return { ok: false, error: "El límite en US$ no puede ser negativo." };
+    const usdCambio = c.saldoUsdMostrado === undefined || numeroForm(c.saldoUsd) !== numeroForm(c.saldoUsdMostrado);
+    const su = monto(c.saldoUsd, "cuánto debes hoy en US$", "350", true);
+    if (!su.ok) return su;
+    if (su.valor && new Big(su.valor).lt(0)) return { ok: false, error: "En US$ escribe lo que debes en positivo (por ejemplo 350). Si no debes nada en dólares, escribe 0." };
+    if ((lu.valor !== null || (usdCambio && su.valor !== null)) && moneda !== "DOP") {
+      return { ok: false, error: "Esta tarjeta está anotada en US$. La parte en dólares es para tarjetas en RD$ que también tienen límite en dólares: anótala en RD$ y escribe aquí su parte en US$." };
+    }
+    fila.limite_usd = lu.valor;
+    if (usdCambio) {
+      fila.saldo_usd = su.valor;
+      fila.saldo_usd_fecha = su.valor === null ? null : fechaDeSaldo(hoy);
+    }
+    return { ok: true, valor: fila };
   }
+  fila.saldo_usd = null;
+  fila.saldo_usd_fecha = null;
   if (deuda && c.diaPago) {
     const d = Number(c.diaPago);
     if (!/^\d{1,2}$/.test(c.diaPago) || d < 1 || d > 31) return { ok: false, error: "El día de pago es un número del 1 al 31, por ejemplo 28." };

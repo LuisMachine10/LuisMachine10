@@ -11,9 +11,11 @@
 import Big from "big.js";
 import { simular } from "../caja/motor";
 import type { CuentaDelRegistro } from "../caja/asistente";
-import type { DatosCaja } from "../caja/tipos";
+import { claveUSD, type DatosCaja } from "../caja/tipos";
+import { DIAS_MAXIMOS_TASA } from "../caja/tasas";
+import { diasEntre } from "../caja/fechas";
 import { CERO, n, suma } from "./decimal";
-import { type Contexto, valorDOP } from "./posicion";
+import { type Contexto, type FxMoneda, valorDOP } from "./posicion";
 import {
   type Activo,
   type ClaseRegistro,
@@ -52,7 +54,22 @@ export interface ItemRegistro {
   /** Fecha del saldo escrito (saldo al empezar ese día). null = sin saldo registrado. */
   saldoFecha: string | null;
   limite: Dec | null;
+  /** Tarjeta: día en que quieres pagar. Préstamo: día en que pagas la cuota. */
   diaPago: number | null;
+  /** Tarjeta: día del mes del corte (1–31). */
+  diaCorte: number | null;
+  /** Tarjeta: días naturales desde el corte hasta la fecha límite. */
+  diasParaPagar: number | null;
+  /** Tarjeta en RD$ con parte en dólares: límite en US$. */
+  limiteUsd: Dec | null;
+  /** Tarjeta en RD$ con parte en dólares: lo que debes HOY en US$ (con lo anotado en el Presupuesto). */
+  saldoUsd: Dec | null;
+  /** Lo que Mena escribió en US$ la última vez. */
+  saldoUsdEscrito: Dec | null;
+  /** Fecha del saldo en US$ escrito (al empezar ese día). */
+  saldoUsdFecha: string | null;
+  /** Fechas de los pagos de tarjeta o préstamo anotados en el Presupuesto a esta deuda (para el aviso de la fecha límite). */
+  pagos: string[];
   cuota: Dec | null;
   origen: OrigenRegistro;
   unidoA: string | null;
@@ -67,7 +84,7 @@ export interface ItemRegistro {
 
 /** Columnas que se piden a personal.activos (numeric como texto). */
 export const COLUMNAS_REGISTRO =
-  "id, clase, subtipo, nombre, institucion, simbolo, moneda, cantidad::text, precio::text, tasa::text, vencimiento, tipo_rf, saldo_fecha, limite::text, dia_pago, cuota::text, origen, unido_a, capitaliza, frecuencia_pago, reinvierte, aporte_pct::text, plan_inicio, orden, actualizado_en";
+  "id, clase, subtipo, nombre, institucion, simbolo, moneda, cantidad::text, precio::text, tasa::text, vencimiento, tipo_rf, saldo_fecha, limite::text, dia_pago, cuota::text, origen, unido_a, capitaliza, frecuencia_pago, reinvierte, aporte_pct::text, plan_inicio, orden, actualizado_en, dia_corte, dias_para_pagar, limite_usd::text, saldo_usd::text, saldo_usd_fecha";
 
 type F = Record<string, unknown>;
 const txt = (v: unknown): string | null => (v === null || v === undefined ? null : String(v));
@@ -100,6 +117,13 @@ export function filaARegistro(f: F, cajaId: string | null = null): ItemRegistro 
     saldoFecha: dia(f.saldo_fecha),
     limite: txt(f.limite),
     diaPago: f.dia_pago === null || f.dia_pago === undefined ? null : Number(f.dia_pago),
+    diaCorte: f.dia_corte === null || f.dia_corte === undefined ? null : Number(f.dia_corte),
+    diasParaPagar: f.dias_para_pagar === null || f.dias_para_pagar === undefined ? null : Number(f.dias_para_pagar),
+    limiteUsd: txt(f.limite_usd),
+    saldoUsd: txt(f.saldo_usd),
+    saldoUsdEscrito: txt(f.saldo_usd),
+    saldoUsdFecha: dia(f.saldo_usd_fecha),
+    pagos: [],
     cuota: txt(f.cuota),
     origen: (txt(f.origen) as OrigenRegistro | null) ?? "portafolio",
     unidoA: txt(f.unido_a),
@@ -170,17 +194,81 @@ export function conSaldosVigentes(items: ItemRegistro[], caja: DatosCaja | null,
   const sim = simular({ ...caja, recurrentes: [] }, { hoy, hasta: hoy });
   const d = sim.porFecha.get(hoy);
   if (!d) return items;
+  const limpio = (x: Big) => {
+    const t = x.toFixed();
+    return t === "-0" ? "0" : t;
+  };
   return items.map((i) => {
     if (!i.cajaId || d.posiciones[i.cajaId] === undefined) return i;
     const pos = new Big(d.posiciones[i.cajaId]);
-    const cantidad = (esDeuda(i) ? pos.times(-1) : pos).toFixed();
+    const cantidad = limpio(esDeuda(i) ? pos.times(-1) : pos);
     const movimientos = caja.movimientos.filter((m) => m.fecha <= hoy && (m.cuenta === i.cajaId || m.destino === i.cajaId)).length;
-    return { ...i, cantidad: cantidad === "-0" ? "0" : cantidad, vigente: { fuente: "presupuesto", movimientos } };
+    const pagos = caja.movimientos.filter((m) => m.tipo === "pago_tarjeta" && m.destino === i.cajaId).map((m) => m.fecha);
+    const pu = d.posiciones[claveUSD(i.cajaId)];
+    const saldoUsd = pu === undefined ? i.saldoUsd : limpio(new Big(pu).times(-1));
+    return { ...i, cantidad, saldoUsd, pagos, vigente: { fuente: "presupuesto", movimientos } };
   });
 }
 
-/** Valor en RD$ de una fila (deudas en positivo). null si falta el tipo de cambio de su moneda. */
+/** ¿La tarjeta lleva parte en US$ (tarjeta en RD$ con límite o saldo en dólares)? */
+export const esDobleMoneda = (i: Pick<ItemRegistro, "clase" | "moneda" | "limiteUsd" | "saldoUsd">) =>
+  i.clase === "tarjeta" && i.moneda === "DOP" && (i.limiteUsd !== null || i.saldoUsd !== null);
+
+/**
+ * Dólar para la parte en US$ de una tarjeta: el de venta del BCRD (el más reciente guardado), si es de los
+ * últimos 7 días. Un tipo escrito a mano o un dato más viejo no sirve: la parte en US$ queda «no confirmado».
+ */
+export function dolarBcrdHoy(ctx: Contexto): FxMoneda | null {
+  const fx = ctx.mercado.fx.USD;
+  if (fx.origen !== "bcrd" || !fx.valor || !fx.fecha) return null;
+  const d = diasEntre(fx.fecha, ctx.hoy);
+  return d >= 0 && d <= DIAS_MAXIMOS_TASA ? fx : null;
+}
+
+export interface UsoMoneda {
+  saldo: Big;
+  limite: Big | null;
+  /** saldo ÷ límite (fracción). null sin límite. */
+  uso: Big | null;
+}
+
+export interface UsoTarjeta {
+  /** La parte en la moneda de la tarjeta (RD$ casi siempre). null si la tarjeta solo tiene parte en US$ y nada en RD$. */
+  principal: UsoMoneda;
+  /** La parte en US$ (solo tarjetas en dos monedas). */
+  usd: UsoMoneda | null;
+  /** Total en RD$ (la parte en US$ con el dólar del BCRD). null si la moneda de la tarjeta no tiene tipo de cambio. */
+  totalDOP: Big | null;
+  /** La parte en US$ no se sumó: falta el dólar del BCRD de hoy. */
+  usdNoConfirmado: boolean;
+  /** Dólar usado para la parte en US$ (null si no hay o no hace falta). */
+  tasa: FxMoneda | null;
+}
+
+const usoDe = (saldo: Big, limite: Dec | null): UsoMoneda => {
+  const l = limite === null ? null : new Big(limite);
+  return { saldo, limite: l, uso: l && l.gt(0) ? saldo.div(l) : null };
+};
+
+/** Uso del límite por moneda (saldo ÷ límite) y total en RD$ de una tarjeta. */
+export function usoTarjeta(ctx: Contexto, i: ItemRegistro): UsoTarjeta {
+  const principal = usoDe(n(i.cantidad), i.limite);
+  const base = valorDOP(ctx, aActivo(i));
+  if (!esDobleMoneda(i)) return { principal, usd: null, totalDOP: base, usdNoConfirmado: false, tasa: null };
+  const usd = usoDe(n(i.saldoUsd ?? "0"), i.limiteUsd);
+  const tasa = dolarBcrdHoy(ctx);
+  if (usd.saldo.eq(0)) return { principal, usd, totalDOP: base, usdNoConfirmado: false, tasa };
+  if (!tasa?.valor) return { principal, usd, totalDOP: base, usdNoConfirmado: true, tasa: null };
+  return { principal, usd, totalDOP: base === null ? null : base.plus(usd.saldo.times(tasa.valor)), usdNoConfirmado: false, tasa };
+}
+
+/**
+ * Valor en RD$ de una fila (deudas en positivo). null si falta el tipo de cambio de su moneda. En una tarjeta en
+ * dos monedas suma la parte en US$ con el dólar del BCRD de hoy; sin ese dato, esa parte no se suma (la pantalla
+ * dice «no confirmado»).
+ */
 export function valorRegistro(ctx: Contexto, i: ItemRegistro): Big | null {
+  if (esDobleMoneda(i)) return usoTarjeta(ctx, i).totalDOP;
   return valorDOP(ctx, aActivo(i));
 }
 
@@ -196,6 +284,8 @@ export interface Balance {
   sinValorar: ItemRegistro[];
   /** Deudas sin saldo escrito (punteado gris «sin dato»). */
   deudasSinDato: ItemRegistro[];
+  /** Tarjetas cuya parte en US$ no se sumó (sin dólar del BCRD de hoy). */
+  usdNoConfirmado: ItemRegistro[];
   hayDeudas: boolean;
 }
 
@@ -228,13 +318,19 @@ export function balance(ctx: Contexto, items: ItemRegistro[]): Balance {
     porClase,
     sinValorar,
     deudasSinDato: vigentes.filter((i) => esDeuda(i) && i.saldoFecha === null && i.vigente.fuente === "escrito"),
+    usdNoConfirmado: vigentes.filter((i) => esDobleMoneda(i) && usoTarjeta(ctx, i).usdNoConfirmado),
     hayDeudas: vigentes.some(esDeuda),
   };
 }
 
-/** Deuda de tarjetas (RD$, solo las que tienen saldo). */
+/** Deuda de tarjetas (RD$, solo las que tienen saldo). La parte en US$ con el dólar del BCRD de hoy (sin él, no se suma). */
 export function deudaTarjetas(ctx: Contexto, items: ItemRegistro[]): Big {
   return suma(items.filter((i) => !i.unidoA && i.clase === "tarjeta").map((i) => valorRegistro(ctx, i) ?? CERO));
+}
+
+/** Tarjetas cuya parte en US$ quedó fuera de los totales en RD$ (falta el dólar del BCRD de hoy). */
+export function tarjetasUsdNoConfirmado(ctx: Contexto, items: ItemRegistro[]): ItemRegistro[] {
+  return items.filter((i) => !i.unidoA && esDobleMoneda(i) && usoTarjeta(ctx, i).usdNoConfirmado);
 }
 
 // ───────────────────────── Unir cuentas repetidas ─────────────────────────

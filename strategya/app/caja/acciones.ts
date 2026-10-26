@@ -98,7 +98,7 @@ export async function registrarMovimiento(_p: EstadoAccion, form: FormData): Pro
   const db = await personal();
   const { error } = await db.from("caja_movimientos").insert({
     fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta,
-    destino: m.destino, categoria: m.categoria, nota: m.nota, recurrente_id: m.recurrenteId, interes: pago.interes,
+    destino: m.destino, categoria: m.categoria, nota: m.nota, recurrente_id: m.recurrenteId, interes: pago.interes, parte: m.parte ?? null,
   });
   const e = errorBase(error, "registrar el movimiento");
   if (e) return e;
@@ -133,7 +133,7 @@ export async function editarMovimiento(_p: EstadoAccion, form: FormData): Promis
     .from("caja_movimientos")
     .update(
       { fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta, destino: m.destino,
-        categoria: m.categoria, nota: m.nota, interes: pago.interes, actualizado_en: new Date().toISOString() },
+        categoria: m.categoria, nota: m.nota, interes: pago.interes, parte: m.parte ?? null, actualizado_en: new Date().toISOString() },
       { count: "exact" },
     )
     .eq("id", c.id);
@@ -407,6 +407,7 @@ export async function guardarRecurrente(_p: EstadoAccion, form: FormData): Promi
     {
       nombre: v.nombre, tipo: v.tipo, monto: v.monto, moneda: v.moneda, pago_total: v.pagoTotal, cuenta: v.cuenta, destino: v.destino,
       categoria: v.categoria, frecuencia: v.frecuencia, dias: v.dias, cada_n: v.cadaN, fecha: v.fecha, desde: v.desde, hasta: v.hasta, activo: v.activo,
+      parte: v.parte ?? null,
     },
     "el pago fijo",
   );

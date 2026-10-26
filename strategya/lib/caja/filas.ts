@@ -1,7 +1,10 @@
 // Filas de Postgres (montos como texto: col::text) → modelo del motor. Puro, sin red: lo usan
 // lib/caja/datos.ts (PostgREST) y las pruebas de base (SQL directo).
 
-import type { Categoria, ConfigCaja, Cuenta, DatosCaja, Movimiento, NotaDia, Omitido, Recurrente, SaldoReal } from "./tipos";
+import Big from "big.js";
+import { cicloDe } from "./ciclo";
+import { sumarDias } from "./fechas";
+import { type Categoria, claveUSD, type ConfigCaja, type Cuenta, type DatosCaja, type Movimiento, type NotaDia, type Omitido, type Recurrente, type SaldoReal } from "./tipos";
 
 /** Columnas que se piden a cada tabla. Los numeric siempre como ::text. */
 export const COLUMNAS = {
@@ -24,7 +27,9 @@ export const COLUMNAS = {
 export const COLUMNAS_COMPLETAS = {
   ...COLUMNAS,
   caja_cuentas: `${COLUMNAS.caja_cuentas}, moneda`,
-  caja_movimientos: `${COLUMNAS.caja_movimientos}, interes::text`,
+  // parte: tarjetas en dos monedas (migración 20261028000100_tarjetas_ciclo.sql).
+  caja_recurrentes: `${COLUMNAS.caja_recurrentes}, parte`,
+  caja_movimientos: `${COLUMNAS.caja_movimientos}, interes::text, parte`,
 } as const;
 
 /** Orden en que se leen (la simulación depende del orden de recurrentes y movimientos). */
@@ -92,6 +97,7 @@ export function filasADatos(f: FilasCaja): DatosCaja {
         desde: r.desde == null ? null : fecha(r.desde),
         hasta: r.hasta == null ? null : fecha(r.hasta),
         activo: r.activo !== false,
+        ...(r.parte === "DOP" || r.parte === "USD" ? { parte: r.parte } : {}),
       }),
     ),
     movimientos: f.movimientos.map(
@@ -108,6 +114,7 @@ export function filasADatos(f: FilasCaja): DatosCaja {
         nota: s(m.nota),
         recurrenteId: s(m.recurrente_id),
         ...(m.interes != null ? { interes: String(m.interes) } : {}),
+        ...(m.parte === "DOP" || m.parte === "USD" ? { parte: m.parte } : {}),
       }),
     ),
     omitidos: f.omitidos.map((o): Omitido => ({ fecha: fecha(o.fecha), recurrenteId: String(o.recurrente_id) })),
@@ -122,4 +129,53 @@ export function ultimaEdicion(f: FilasCaja): string | null {
     .filter((x) => x != null)
     .map((x) => (x instanceof Date ? x.toISOString() : String(x)));
   return todas.sort().at(-1) ?? null;
+}
+
+/** Lo que el Presupuesto lee del registro único por cada cuenta enlazada (caja_cuentas → activos). */
+export const COLUMNAS_ENLACE =
+  "id, registro_id, activos(clase, moneda, tasa::text, dia_corte, dias_para_pagar, dia_pago, limite_usd::text, saldo_usd::text, saldo_usd_fecha)";
+
+export interface FilaEnlace {
+  id: string;
+  registro_id: string | null;
+  activos: Record<string, unknown> | null;
+}
+
+/**
+ * Completa las cuentas del Presupuesto con lo que vive en el registro único (Portafolio → Mis cuentas): la tasa
+ * de préstamos y deudas (para separar interés y capital), el ciclo de cada tarjeta y su parte en US$. Devuelve el
+ * enlace cuenta → fila del registro.
+ *
+ * Parte en US$ de una tarjeta: lo que se debía en US$ al empezar el Presupuesto es el saldo escrito si es de esa
+ * fecha o antes; si se escribió después, entra como cuadre de ese día («<id>#usd», sintético: no se guarda), igual
+ * que el saldo en RD$ de una cuenta enlazada. Desde ahí lo mueven los pagos y cargos a esa parte.
+ */
+export function conRegistro(datos: DatosCaja, filas: FilaEnlace[]): Record<string, string> {
+  const enlaces: Record<string, string> = {};
+  const inicio = datos.config?.inicio ?? null;
+  for (const e of filas) {
+    if (e.registro_id) enlaces[e.id] = e.registro_id;
+    const a = e.activos;
+    const c = datos.cuentas.find((x) => x.id === e.id);
+    if (!a || !c) continue;
+    const clase = String(a.clase);
+    if ((clase === "prestamo" || clase === "deuda") && a.tasa && new Big(String(a.tasa)).gt(0)) c.tasaAnual = String(a.tasa);
+    if (clase !== "tarjeta") continue;
+    const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+    const ciclo = cicloDe({ diaCorte: num(a.dia_corte), diasParaPagar: num(a.dias_para_pagar), diaPago: num(a.dia_pago) });
+    if (ciclo) c.ciclo = ciclo;
+    const limiteUsd = s(a.limite_usd);
+    const saldoUsd = s(a.saldo_usd);
+    if (a.moneda !== "DOP" || (limiteUsd === null && saldoUsd === null)) continue;
+    const fechaUsd = a.saldo_usd_fecha == null ? null : fecha(a.saldo_usd_fecha);
+    if (saldoUsd !== null && fechaUsd && inicio && fechaUsd > inicio) {
+      c.usd = { saldoInicial: "0", limite: limiteUsd };
+      const k = claveUSD(c.id);
+      const dia = sumarDias(fechaUsd, -1);
+      if (!datos.saldos.some((x) => x.cuentaId === k && x.fecha === dia)) datos.saldos.push({ fecha: dia, cuentaId: k, saldo: saldoUsd, sintetico: true });
+    } else {
+      c.usd = { saldoInicial: saldoUsd ?? "0", limite: limiteUsd };
+    }
+  }
+  return enlaces;
 }

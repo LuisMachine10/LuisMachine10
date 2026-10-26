@@ -9,7 +9,9 @@ import { diaDelSaldo, TIPOS_ALTA, tipoAltaDe } from "@/lib/capital/formulario-re
 import { aPct } from "@/lib/capital/formulario";
 import { num, pct, rd } from "@/lib/capital/formato";
 import type { PrefRegistro } from "@/lib/capital/preferencias";
-import { balance, clavePar, esDeuda, type ItemRegistro, type ParUnion, sugerirUniones, valorRegistro } from "@/lib/capital/registro";
+import { balance, clavePar, esDeuda, esDobleMoneda, type ItemRegistro, type ParUnion, sugerirUniones, usoTarjeta, valorRegistro } from "@/lib/capital/registro";
+import { cicloDe, cicloVigente, lineaCiclo, notaCiclo } from "@/lib/caja/ciclo";
+import type { Contexto } from "@/lib/capital/posicion";
 import { CLASES, CLASES_OTRAS, MONEDAS } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
 import { fechaCorta } from "@/lib/formato";
@@ -88,7 +90,7 @@ function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
           Banco o institución <span className="ayuda">(opcional)</span>
           <input name="inst" maxLength={200} defaultValue={i?.inst ?? ""} placeholder="Ej.: Banco Popular" autoComplete="off" />
         </label>
-        <label className="cap-campo">
+        <label className="cap-campo s-no-tarjeta">
           Moneda
           <select name="moneda" defaultValue={i?.moneda ?? "DOP"}>
             {MONEDAS.map((m) => (
@@ -128,18 +130,52 @@ function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
           <input type="date" name="venc" defaultValue={i?.venc ?? ""} />
         </label>
         <label className="cap-campo s-tarjeta">
-          Límite de la tarjeta <span className="ayuda">(opcional)</span>
-          <input name="limite" inputMode="decimal" defaultValue={i?.limite ?? ""} placeholder="Ej.: 80,000" autoComplete="off" />
+          ¿Y cuánto debes hoy en US$? <span className="ayuda">(si tu tarjeta tiene parte en dólares)</span>
+          <span className="cap-con-moneda">
+            <span aria-hidden="true">US$</span>
+            <input name="saldoUsd" inputMode="decimal" defaultValue={i?.saldoUsd ?? ""} placeholder="Ej.: 350" autoComplete="off" />
+          </span>
+        </label>
+        {i && i.clase === "tarjeta" ? <input type="hidden" name="saldoUsdMostrado" value={i.saldoUsd ?? ""} /> : null}
+        <label className="cap-campo s-tarjeta">
+          Límite en RD$ <span className="ayuda">(opcional)</span>
+          <span className="cap-con-moneda">
+            <span aria-hidden="true">RD$</span>
+            <input name="limite" inputMode="decimal" defaultValue={i?.limite ?? ""} placeholder="Ej.: 80,000" autoComplete="off" />
+          </span>
+        </label>
+        <label className="cap-campo s-tarjeta">
+          Límite en US$ <span className="ayuda">(opcional)</span>
+          <span className="cap-con-moneda">
+            <span aria-hidden="true">US$</span>
+            <input name="limiteUsd" inputMode="decimal" defaultValue={i?.limiteUsd ?? ""} placeholder="Ej.: 2,000" autoComplete="off" />
+          </span>
+        </label>
+        <label className="cap-campo s-tarjeta">
+          Día de corte <span className="ayuda">(1 al 31)</span>
+          <input name="diaCorte" inputMode="numeric" maxLength={2} defaultValue={i?.diaCorte ? String(i.diaCorte) : ""} placeholder="Ej.: 15" autoComplete="off" />
+        </label>
+        <label className="cap-campo s-tarjeta">
+          Días para pagar después del corte
+          <input name="diasParaPagar" inputMode="numeric" maxLength={2} defaultValue={i?.diasParaPagar ? String(i.diasParaPagar) : ""} placeholder="Ej.: 28" autoComplete="off" />
+        </label>
+        <label className="cap-campo s-tarjeta">
+          Día en que quieres pagar <span className="ayuda">(opcional)</span>
+          <input name="diaPagoTarjeta" inputMode="numeric" maxLength={2} defaultValue={i?.clase === "tarjeta" && i.diaPago ? String(i.diaPago) : ""} placeholder="Ej.: 30" autoComplete="off" />
         </label>
         <label className="cap-campo s-deuda">
           Día del mes en que pagas <span className="ayuda">(opcional)</span>
-          <input name="diaPago" inputMode="numeric" maxLength={2} defaultValue={i?.diaPago ? String(i.diaPago) : ""} placeholder="Ej.: 28" autoComplete="off" />
+          <input name="diaPago" inputMode="numeric" maxLength={2} defaultValue={i && i.clase !== "tarjeta" && i.diaPago ? String(i.diaPago) : ""} placeholder="Ej.: 28" autoComplete="off" />
         </label>
         <label className="cap-campo s-prestamo">
           Cuota mensual <span className="ayuda">(opcional)</span>
           <input name="cuota" inputMode="decimal" defaultValue={i?.cuota ?? ""} placeholder="Ej.: 9,500" autoComplete="off" />
         </label>
       </div>
+      <p className="tenue chico reg-nota s-tarjeta-nota">
+        Tarjeta: con el día de corte y los días para pagar calculamos tu fecha límite. Ej.: corta el 15 y tienes 28 días → la fecha límite es 28 días después del
+        corte; si quieres pagar el 30, te avisamos si ese día cae después de la fecha límite. Si tu tarjeta tiene límite en pesos y en dólares, escribe las dos partes.
+      </p>
       <p className="tenue chico reg-nota">
         Basta un nombre que reconozcas: nunca pongas números de cuenta, de tarjeta ni cédula. El saldo que escribes es el de hoy; lo que anotes desde mañana en el
         Presupuesto lo mueve solo. Hoy es {fechaCorta(hoy)}.
@@ -148,9 +184,79 @@ function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
   );
 }
 
+/** «Corte 15 nov · pagas el 30 nov · fecha límite 13 dic» de una tarjeta con ciclo (o null). */
+export function lineaTarjeta(i: ItemRegistro, hoy: string): { linea: string; nota: string | null } | null {
+  const c = i.clase === "tarjeta" ? cicloDe(i) : null;
+  if (!c) return null;
+  const f = cicloVigente(hoy, c);
+  return { linea: lineaCiclo(f, hoy), nota: notaCiclo(f, c) };
+}
+
+const usd = (x: Parameters<typeof num>[0]) => `US$ ${num(x, 2)}`;
+
+/** Uso del límite por moneda y total en RD$ (con el dólar del BCRD, o «no confirmado»). */
+function UsoDeTarjeta({ i, ctx }: { i: ItemRegistro; ctx: Contexto }) {
+  const u = usoTarjeta(ctx, i);
+  const partes: string[] = [];
+  if (u.principal.limite) partes.push(`En RD$ usas ${pct(u.principal.uso, 0)} de tu límite (${rd(u.principal.saldo)} de ${rd(u.principal.limite)}).`);
+  if (u.usd) {
+    partes.push(
+      u.usd.limite
+        ? `En US$ usas ${pct(u.usd.uso, 0)} de tu límite (${usd(u.usd.saldo)} de ${usd(u.usd.limite)}).`
+        : `En US$ debes ${usd(u.usd.saldo)} (sin límite en US$ escrito).`,
+    );
+  }
+  if (!partes.length) return null;
+  return (
+    <div className="reg-uso-tc">
+      {partes.map((x) => (
+        <p key={x} className="chico">
+          {x}
+        </p>
+      ))}
+      {u.usd ? (
+        u.usdNoConfirmado ? (
+          <p className="chico cap-sin-dato">Total en RD$: la parte en US$ no se suma (no confirmado: falta el dólar del BCRD de hoy).</p>
+        ) : u.totalDOP ? (
+          <p className="chico">
+            Total en RD$: <span className="mono">{rd(u.totalDOP)}</span>
+            {u.tasa?.valor ? (
+              <span className="sello">
+                {" "}
+                · US$ a {num(u.tasa.valor, 2)} (dólar de venta del BCRD del {fechaCorta(u.tasa.fecha!)}
+                {u.tasa.url ? (
+                  <>
+                    ,{" "}
+                    <a href={u.tasa.url} target="_blank" rel="noreferrer">
+                      fuente
+                    </a>
+                  </>
+                ) : null}
+                )
+              </span>
+            ) : null}
+          </p>
+        ) : null
+      ) : null}
+    </div>
+  );
+}
+
 function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: string }) {
   const v = valorRegistro(datos.ctx, i);
-  const detalle = [nombreTipo(i), i.inst || null, n(i.tasa).gt(0) ? `${pct(i.tasa, 2)} al año` : null, i.limite ? `límite ${rd(i.limite)}` : null, i.diaPago ? `paga el ${i.diaPago}` : null, i.venc ? `vence ${fechaCorta(i.venc)}` : null].filter(Boolean);
+  const tc = i.clase === "tarjeta";
+  const limites = tc ? [i.limite ? `límite ${rd(i.limite)}` : null, i.limiteUsd ? `${i.limite ? "" : "límite "}${usd(i.limiteUsd)}` : null].filter(Boolean).join(" · ") : null;
+  const ciclo = lineaTarjeta(i, datos.ctx.hoy);
+  const detalle = [
+    nombreTipo(i),
+    i.inst || null,
+    n(i.tasa).gt(0) ? `${pct(i.tasa, 2)} al año` : null,
+    tc ? limites || null : i.limite ? `límite ${rd(i.limite)}` : null,
+    i.diaPago && !ciclo ? (tc ? `quieres pagar el ${i.diaPago}` : `paga el ${i.diaPago}`) : null,
+    i.venc ? `vence ${fechaCorta(i.venc)}` : null,
+  ].filter(Boolean);
+  const doble = esDobleMoneda(i);
+  const noConf = doble && usoTarjeta(datos.ctx, i).usdNoConfirmado;
   return (
     <li>
       <details className="cap-instrumento" key={`${i.id}-${i.cantidad}-${i.nombre}`}>
@@ -159,6 +265,7 @@ function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: st
             {i.nombre}
             {i.cajaId ? <span className="etiqueta reg-en-presupuesto">En el Presupuesto</span> : null}
             <span className="detalle">{detalle.join(" · ")}</span>
+            {ciclo ? <span className="detalle reg-ciclo">{ciclo.linea}</span> : null}
             <SelloSaldo i={i} />
           </span>
           <span className="monto">
@@ -168,9 +275,28 @@ function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: st
                 {i.moneda} {num(n(i.cantidad).times(n(i.precio)), 2)}
               </span>
             ) : null}
+            {doble ? (
+              <span className="detalle">
+                {rd(i.cantidad)} + {usd(i.saldoUsd ?? "0")}
+                {noConf ? <span className="cap-sin-dato"> · US$ no confirmado</span> : null}
+              </span>
+            ) : null}
           </span>
         </summary>
         <div className="cuerpo">
+          {tc ? (
+            <div className="reg-ficha-tc">
+              {ciclo ? (
+                <p className="reg-ciclo-ficha">
+                  <strong>{ciclo.linea}</strong>
+                  {ciclo.nota ? <span className="chico tenue"> {ciclo.nota}</span> : null}
+                </p>
+              ) : (
+                <p className="chico tenue">Escribe el día de corte y los días para pagar para ver tu fecha límite.</p>
+              )}
+              <UsoDeTarjeta i={i} ctx={datos.ctx} />
+            </div>
+          ) : null}
           <form action={guardarRegistro} className="cap-form reg-form">
             <input type="hidden" name="mes" value={mes} />
             <CamposRegistro i={i} hoy={datos.ctx.hoy} />

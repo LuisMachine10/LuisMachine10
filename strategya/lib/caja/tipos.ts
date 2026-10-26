@@ -1,6 +1,7 @@
 // Modelo del Calendario de Caja. Todos los montos viajan como texto decimal ("1500.50") y se operan
 // con big.js: nunca pasan por float.
 
+import type { CicloTarjeta } from "./ciclo";
 import type { Fecha } from "./fechas";
 import type { TasasUSD } from "./tasas";
 
@@ -128,7 +129,19 @@ export interface Cuenta {
    * desde el asistente; al leer, el enlace llega aparte (LecturaCaja.enlaces).
    */
   registroId?: string;
+  /**
+   * Tarjeta en RD$ con parte en dólares (registro único: limite_usd / saldo_usd). Esa parte se lleva como una
+   * segunda posición en US$ (clave `claveUSD(id)`): lo que se debía en US$ al empezar el Presupuesto y su límite.
+   */
+  usd?: { saldoInicial: string; limite: string | null };
+  /** Tarjeta: ciclo del registro único (día de corte, días para pagar, día en que quieres pagar). */
+  ciclo?: CicloTarjeta | null;
 }
+
+/** Clave de la parte en US$ de una tarjeta en dos monedas (posiciones del motor y cuadres «<id>#usd»). */
+export const claveUSD = (id: string) => `${id}#usd`;
+export const esClaveUSD = (id: string) => id.endsWith("#usd");
+export const idDeClave = (id: string) => (esClaveUSD(id) ? id.slice(0, -4) : id);
 
 export interface Categoria {
   id: string;
@@ -150,6 +163,8 @@ export interface Recurrente {
   moneda: Moneda;
   /** Solo pago_tarjeta: paga el total adeudado en la tarjeta destino ese día. */
   pagoTotal: boolean;
+  /** Tarjeta en dos monedas: a qué parte va el pago (null = según la moneda del monto). */
+  parte?: Moneda | null;
   cuenta: string | null;
   destino: string | null;
   categoria: string | null;
@@ -183,6 +198,11 @@ export interface Movimiento {
    * por monto − interes. null o vacío = todo capital.
    */
   interes?: string | null;
+  /**
+   * Tarjeta en dos monedas: a qué parte va (pago: la del destino; cargo: la de la cuenta). null = según la
+   * moneda del monto (US$ → la parte en US$).
+   */
+  parte?: Moneda | null;
 }
 
 export interface Omitido {
@@ -195,6 +215,8 @@ export interface SaldoReal {
   cuentaId: string;
   /** Lo que dice el banco. En tarjeta, la deuda (positiva). */
   saldo: string;
+  /** true = sale del saldo en US$ escrito en Mis cuentas (no es una fila de caja_saldos_reales). */
+  sintetico?: boolean;
 }
 
 export interface NotaDia {
