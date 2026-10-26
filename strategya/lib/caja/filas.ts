@@ -2,6 +2,7 @@
 // lib/caja/datos.ts (PostgREST) y las pruebas de base (SQL directo).
 
 import Big from "big.js";
+import { esTipoFin } from "../finanzas/catalogo";
 import { cicloDe } from "./ciclo";
 import { sumarDias } from "./fechas";
 import { type Categoria, claveUSD, type ConfigCaja, type Cuenta, type DatosCaja, type Movimiento, type NotaDia, type Omitido, type Recurrente, type SaldoReal } from "./tipos";
@@ -24,12 +25,19 @@ export const COLUMNAS = {
  * pago de tarjeta o préstamo. Aparte de COLUMNAS para que las pruebas que leen una base anterior a esa
  * migración sigan leyendo igual. La app lee siempre COLUMNAS_COMPLETAS.
  */
-export const COLUMNAS_COMPLETAS = {
+export const COLUMNAS_TARJETAS = {
   ...COLUMNAS,
   caja_cuentas: `${COLUMNAS.caja_cuentas}, moneda`,
   // parte: tarjetas en dos monedas (migración 20261028000100_tarjetas_ciclo.sql).
   caja_recurrentes: `${COLUMNAS.caja_recurrentes}, parte`,
   caja_movimientos: `${COLUMNAS.caja_movimientos}, interes::text, parte`,
+} as const;
+
+/** Lo que lee la app: hasta el Núcleo v2 (inversiones fuera del Presupuesto y cargos de la cuota de un préstamo). */
+export const COLUMNAS_COMPLETAS = {
+  ...COLUMNAS_TARJETAS,
+  caja_recurrentes: `${COLUMNAS_TARJETAS.caja_recurrentes}, registro_destino`,
+  caja_movimientos: `${COLUMNAS_TARJETAS.caja_movimientos}, registro_origen, registro_destino, cargos::text, categoria_cargos`,
 } as const;
 
 /** Orden en que se leen (la simulación depende del orden de recurrentes y movimientos). */
@@ -98,6 +106,7 @@ export function filasADatos(f: FilasCaja): DatosCaja {
         hasta: r.hasta == null ? null : fecha(r.hasta),
         activo: r.activo !== false,
         ...(r.parte === "DOP" || r.parte === "USD" ? { parte: r.parte } : {}),
+        ...(r.registro_destino != null ? { registroDestino: String(r.registro_destino) } : {}),
       }),
     ),
     movimientos: f.movimientos.map(
@@ -115,6 +124,10 @@ export function filasADatos(f: FilasCaja): DatosCaja {
         recurrenteId: s(m.recurrente_id),
         ...(m.interes != null ? { interes: String(m.interes) } : {}),
         ...(m.parte === "DOP" || m.parte === "USD" ? { parte: m.parte } : {}),
+        ...(m.registro_origen != null ? { registroOrigen: String(m.registro_origen) } : {}),
+        ...(m.registro_destino != null ? { registroDestino: String(m.registro_destino) } : {}),
+        ...(m.cargos != null ? { cargos: String(m.cargos) } : {}),
+        ...(m.categoria_cargos != null ? { categoriaCargos: String(m.categoria_cargos) } : {}),
       }),
     ),
     omitidos: f.omitidos.map((o): Omitido => ({ fecha: fecha(o.fecha), recurrenteId: String(o.recurrente_id) })),
@@ -133,7 +146,7 @@ export function ultimaEdicion(f: FilasCaja): string | null {
 
 /** Lo que el Presupuesto lee del registro único por cada cuenta enlazada (caja_cuentas → activos). */
 export const COLUMNAS_ENLACE =
-  "id, registro_id, activos(clase, moneda, tasa::text, dia_corte, dias_para_pagar, dia_pago, limite_usd::text, saldo_usd::text, saldo_usd_fecha)";
+  "id, registro_id, activos(clase, moneda, tasa::text, dia_corte, dias_para_pagar, dia_pago, limite_usd::text, saldo_usd::text, saldo_usd_fecha, tipo, tiene_debito, cargos_cuota::text)";
 
 export interface FilaEnlace {
   id: string;
@@ -159,6 +172,9 @@ export function conRegistro(datos: DatosCaja, filas: FilaEnlace[]): Record<strin
     const c = datos.cuentas.find((x) => x.id === e.id);
     if (!a || !c) continue;
     const clase = String(a.clase);
+    if (esTipoFin(a.tipo)) c.tipoFin = a.tipo;
+    if (a.tiene_debito === true) c.debito = true;
+    if (a.cargos_cuota != null && new Big(String(a.cargos_cuota)).gt(0)) c.cargosCuota = String(a.cargos_cuota);
     if ((clase === "prestamo" || clase === "deuda") && a.tasa && new Big(String(a.tasa)).gt(0)) c.tasaAnual = String(a.tasa);
     if (clase !== "tarjeta") continue;
     const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));

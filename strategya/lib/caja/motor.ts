@@ -226,6 +226,8 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       destino: string | null,
       interes: Big = CERO,
       parte: Moneda | null = null,
+      cargos: Big = CERO,
+      registroDestino: string | null = null,
     ): boolean => {
       let ok = true;
       if (tipo === "ingreso") {
@@ -237,10 +239,13 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       } else {
         const pago = tipo === "pago_tarjeta";
         ok = mover(lado(cuenta, moneda, pago ? null : parte), m.times(-1), moneda, tasa);
-        const capital = pago && interes.gt(0) ? m.minus(interes) : m;
+        // La deuda baja solo por el capital: lo que no es interés ni cargos de la cuota (seguro…).
+        const noCapital = pago ? interes.plus(cargos) : CERO;
+        const capital = noCapital.gt(0) ? m.minus(noCapital) : m;
         ok = mover(lado(destino, moneda, pago ? parte : null), capital, moneda, tasa) && ok;
-        if (tipo === "pago_tarjeta" && interes.gt(0) && dop) salidas = salidas.plus(convertir(interes, moneda, "DOP", tasa) ?? CERO);
-        if (destino && cuentas.get(destino)?.tipo === "ahorro" && dop) ahorro = ahorro.plus(dop);
+        if (pago && noCapital.gt(0) && dop) salidas = salidas.plus(convertir(noCapital, moneda, "DOP", tasa) ?? CERO);
+        // Ahorro: a una cuenta de ahorro del Presupuesto o a una inversión que no vive en él (fila del registro).
+        if (((destino && cuentas.get(destino)?.tipo === "ahorro") || (!destino && registroDestino)) && dop) ahorro = ahorro.plus(dop);
       }
       return ok && (moneda !== "USD" || dop !== null);
     };
@@ -251,7 +256,8 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       const tasa = tasaDeCambio(it.tasa, datos.tasasUSD, d);
       const dop = aDOP(it.monto, it.moneda, it.tasa, datos.tasasUSD, d);
       const interes = it.tipo === "pago_tarjeta" && it.interes ? new Big(it.interes) : CERO;
-      if (!aplicar(it.tipo, m, it.moneda, tasa, dop, it.cuenta, it.destino, interes, it.parte ?? null)) sinTasa.add(`${d} · movimiento registrado en US$`);
+      const cargos = it.tipo === "pago_tarjeta" && it.cargos ? new Big(it.cargos) : CERO;
+      if (!aplicar(it.tipo, m, it.moneda, tasa, dop, it.cuenta, it.destino, interes, it.parte ?? null, cargos, it.registroDestino ?? null)) sinTasa.add(`${d} · movimiento registrado en US$`);
       if (it.tipo === "ingreso") tieneIngreso = true;
       registrados.push({ ...it, montoDOP: dop ? dop.toString() : null, tasaUsada: it.moneda === "USD" ? tasaPara(it.moneda, it.tasa, datos.tasasUSD, d) : undefined });
     }
@@ -294,7 +300,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
         continue;
       }
       if (d >= hoy) {
-        if (!aplicar(r.tipo, new Big(monto), moneda, tasa, dop, r.cuenta, r.destino, CERO, r.parte ?? null)) sinTasa.add(`${d} · ${r.nombre}`);
+        if (!aplicar(r.tipo, new Big(monto), moneda, tasa, dop, r.cuenta, r.destino, CERO, r.parte ?? null, CERO, r.registroDestino ?? null)) sinTasa.add(`${d} · ${r.nombre}`);
         if (r.tipo === "ingreso") tieneIngreso = true;
         planificados.push(oc);
       } else {
@@ -490,9 +496,10 @@ export function movimientosDelMes(datos: DatosCaja, mes: Mes): TotalesMes {
     else if (m.tipo === "gasto") gastos = gastos.plus(dop);
     else {
       if (m.tipo === "pago_tarjeta") pagos = pagos.plus(dop);
-      // El interés de un pago de deuda sí es gasto (gasto financiero); el capital no.
+      // El interés y los cargos de un pago de deuda sí son gasto; el capital no.
       if (m.tipo === "pago_tarjeta" && m.interes && new Big(m.interes).gt(0)) gastos = gastos.plus(aDOP(m.interes, m.moneda, m.tasa, datos.tasasUSD, m.fecha) ?? CERO);
-      if (m.destino && cuentas.get(m.destino)?.tipo === "ahorro") ahorro = ahorro.plus(dop);
+      if (m.tipo === "pago_tarjeta" && m.cargos && new Big(m.cargos).gt(0)) gastos = gastos.plus(aDOP(m.cargos, m.moneda, m.tasa, datos.tasasUSD, m.fecha) ?? CERO);
+      if ((m.destino && cuentas.get(m.destino)?.tipo === "ahorro") || (!m.destino && m.registroDestino)) ahorro = ahorro.plus(dop);
     }
   }
   movimientos.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));

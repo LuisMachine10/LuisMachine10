@@ -15,6 +15,8 @@ import { claveUSD, type DatosCaja } from "../caja/tipos";
 import { DIAS_MAXIMOS_TASA } from "../caja/tasas";
 import { diasEntre } from "../caja/fechas";
 import { CERO, n, suma } from "./decimal";
+import { esTipoFin, seEnlazaSola, type TipoFin, tipoInicial } from "../finanzas/catalogo";
+import { leerRenovaciones, type Renovacion } from "../finanzas/mutuo";
 import { type Contexto, type FxMoneda, valorDOP } from "./posicion";
 import {
   type Activo,
@@ -80,11 +82,35 @@ export interface ItemRegistro {
   actualizadoEn: string | null;
   /** De dónde sale `cantidad`. */
   vigente: { fuente: "escrito" | "presupuesto"; movimientos: number };
+  // ── Núcleo v2 (catálogo de tipos, migración 20261029000100_nucleo_v2.sql) ──
+  /** Tipo del catálogo (lib/finanzas/catalogo.ts). */
+  tipo: TipoFin;
+  /** false = se dedujo al migrar: la pantalla pide confirmarlo. */
+  tipoConfirmado: boolean;
+  /** Alto rendimiento: tiene tarjeta de débito (entonces sirve para pagar). */
+  tieneDebito: boolean | null;
+  /** Cuenta donde caen intereses, cupones o dividendos de lo que no capitaliza. */
+  pagaA: string | null;
+  /** Retención del interés escrita (fracción). null = la del tipo. */
+  retencion: Dec | null;
+  /** Comisión de administración al año (fracción). null = no confirmado. */
+  comisionAdmin: Dec | null;
+  /** Días del plazo (certificado, mutuo). */
+  plazoDias: number | null;
+  /** Mutuo/reporto: renovaciones anotadas. */
+  renovaciones: Renovacion[];
+  /** Lo «elegible» que cambió del comportamiento por defecto del tipo. */
+  cambiosTipo: Record<string, { valor: unknown; fecha: string }>;
+  /** Préstamo: cargos dentro de la cuota (seguro…). */
+  cargosCuota: Dec | null;
 }
 
-/** Columnas que se piden a personal.activos (numeric como texto). */
-export const COLUMNAS_REGISTRO =
+/** Columnas de personal.activos hasta las tarjetas (antes del Núcleo v2): las pruebas de esas migraciones las usan. */
+export const COLUMNAS_REGISTRO_TARJETAS =
   "id, clase, subtipo, nombre, institucion, simbolo, moneda, cantidad::text, precio::text, tasa::text, vencimiento, tipo_rf, saldo_fecha, limite::text, dia_pago, cuota::text, origen, unido_a, capitaliza, frecuencia_pago, reinvierte, aporte_pct::text, plan_inicio, orden, actualizado_en, dia_corte, dias_para_pagar, limite_usd::text, saldo_usd::text, saldo_usd_fecha";
+
+/** Columnas que se piden a personal.activos (numeric como texto). */
+export const COLUMNAS_REGISTRO = `${COLUMNAS_REGISTRO_TARJETAS}, tipo, tipo_confirmado, tiene_debito, paga_a, retencion::text, comision_admin::text, plazo_dias, renovaciones, cambios_tipo, cargos_cuota::text`;
 
 type F = Record<string, unknown>;
 const txt = (v: unknown): string | null => (v === null || v === undefined ? null : String(v));
@@ -100,7 +126,22 @@ const esFrecuencia = (v: unknown): v is FrecuenciaPago => FRECUENCIAS_PAGO.some(
 /** Fila de personal.activos (columnas COLUMNAS_REGISTRO) → modelo. `cajaId` = cuenta del Presupuesto enlazada. */
 export function filaARegistro(f: F, cajaId: string | null = null): ItemRegistro {
   const cantidad = txt(f.cantidad) ?? "0";
+  // Una base anterior al Núcleo v2 no trae tipo: se deduce con la misma regla de la migración.
+  const ti = esTipoFin(f.tipo)
+    ? { tipo: f.tipo, seguro: f.tipo_confirmado === true }
+    : tipoInicial({ clase: String(f.clase), subtipo: txt(f.subtipo), nombre: String(f.nombre ?? ""), institucion: String(f.institucion ?? ""), simbolo: txt(f.simbolo), tipoRF: txt(f.tipo_rf) });
+  const cambios = f.cambios_tipo && typeof f.cambios_tipo === "object" && !Array.isArray(f.cambios_tipo) ? (f.cambios_tipo as ItemRegistro["cambiosTipo"]) : {};
   return {
+    tipo: ti.tipo,
+    tipoConfirmado: ti.seguro,
+    tieneDebito: typeof f.tiene_debito === "boolean" ? f.tiene_debito : null,
+    pagaA: txt(f.paga_a),
+    retencion: txt(f.retencion),
+    comisionAdmin: txt(f.comision_admin),
+    plazoDias: f.plazo_dias === null || f.plazo_dias === undefined ? null : Number(f.plazo_dias),
+    renovaciones: leerRenovaciones(f.renovaciones),
+    cambiosTipo: cambios,
+    cargosCuota: txt(f.cargos_cuota),
     id: String(f.id),
     clase: String(f.clase) as ClaseRegistro,
     subtipo: txt(f.subtipo),
@@ -160,17 +201,27 @@ export function aActivo(i: ItemRegistro): Activo {
     cajaId: i.cajaId,
     cantidadEscrita: i.cantidadEscrita,
     plan: i.plan,
+    tipo: i.tipo,
+    tieneDebito: i.tieneDebito,
+    pagaA: i.pagaA,
+    retencion: i.retencion,
+    comisionAdmin: i.comisionAdmin,
+    plazoDias: i.plazoDias,
+    renovaciones: i.renovaciones,
   };
 }
 
 export const esDeuda = (i: Pick<ItemRegistro, "clase">) => esClaseDeuda(i.clase);
 export const esInversion = (i: Pick<ItemRegistro, "clase">) => esClaseInversion(i.clase);
 
-/** ¿Puede ser cuenta del Presupuesto? Saldos en RD$ o US$ (no unidades, ni bienes, ni €). */
+/**
+ * ¿El Presupuesto la usa (sola, sin pedirlo)? Lo que paga o recibe según su tipo (manual, sección B): efectivo,
+ * cuentas, tarjetas, préstamos y las inversiones de saldo en renta fija. En RD$ o US$. La misma regla que
+ * personal.se_enlaza_sola en la base.
+ */
 export function sirveParaPresupuesto(i: ItemRegistro): boolean {
   if (i.unidoA || (i.moneda !== "DOP" && i.moneda !== "USD")) return false;
-  if (esDeuda(i)) return true;
-  return (i.clase === "efectivo" || i.clase === "ahorros" || i.clase === "rentafija") && n(i.precio).eq(1);
+  return seEnlazaSola(i.tipo, n(i.precio).eq(1)) && (esDeuda(i) || i.clase !== "rentavariable");
 }
 
 /** Cuentas del Presupuesto que mueven saldo: efectivo y cuentas (los demás quedan como destino de ahorro). */

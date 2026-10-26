@@ -10,12 +10,11 @@ export default async function CapitalFuturo({ searchParams }: { searchParams: Pr
   // Empieza a leer el Portafolio ya, en paralelo con lo demás de la página (una sola lectura por petición).
   precargarCapital();
   const sp = await searchParams;
-  const reubicar = typeof sp.reubicar === "string" && typeof sp.a === "string" ? { vencido: sp.reubicar, destino: sp.a } : null;
   return (
     <PaginaCapital
       actual="futuro"
       sp={sp}
-      vista={(datos, mes) => <VistaFuturo datos={datos} mes={mes} anios={typeof sp.anios === "string" ? sp.anios : null} reubicar={reubicar} />}
+      vista={(datos, mes) => <VistaFuturo datos={datos} mes={mes} anios={typeof sp.anios === "string" ? sp.anios : null} />}
     />
   );
 }

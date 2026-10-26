@@ -46,7 +46,8 @@ describe("posición y tipo de cambio", () => {
     expect(fx.USD).toMatchObject({ origen: "bcrd", fecha: "2026-10-14", url: "https://bcrd/x" });
     expect(fx.USD.valor!.toFixed()).toBe("62.35");
     expect(anteriorUSD).toEqual({ valor: new Big("62.10"), fecha: "2026-10-13" });
-    expect(fx.EUR).toMatchObject({ origen: "manual", fecha: "2026-09-30" });
+    // € (Núcleo v2): ya no se usa el manual; sin el EUR/USD del BCE de la misma fecha queda «no confirmado».
+    expect(fx.EUR).toMatchObject({ origen: "ninguno", valor: null });
   });
 
   it("sin serie ni tipo manual, la moneda queda sin valorar en vez de valer 1", () => {

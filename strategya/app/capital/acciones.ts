@@ -16,6 +16,7 @@ import {
   modoCierre,
   numeroForm,
   nuevoId,
+  pctForm,
   rutaSegura,
   SECCIONES_PARAMETROS,
   type SeccionParametros,
@@ -24,8 +25,10 @@ import { activoAFila, type AnalisisArchivo, analizarArchivo, cargaParaBase, TAMA
 import { esMes, hoyRD } from "@/lib/capital/fechas";
 import Big from "big.js";
 import { fechaDeSaldo, planDeFormulario, registroDeFormulario } from "@/lib/capital/formulario-registro";
-import { conOmision, leerPrefAportes, reubicarParte, sinOmision } from "@/lib/capital/aportes";
 import { guardarPreferenciaCapital, leerPreferenciaCapital, leerPrefRegistro } from "@/lib/capital/preferencias";
+import { CATALOGO, esTipoFin, type TipoFin } from "@/lib/finanzas/catalogo";
+import { leerRenovaciones, renovar } from "@/lib/finanzas/mutuo";
+import { anotarMovimiento } from "@/lib/caja/anotar";
 import { SECCIONES_IPS } from "@/lib/capital/tipos";
 import { Registro, validarActivo, validarCierre, validarIps, validarParametros, validarTransaccion } from "@/lib/capital/validar";
 import { datosCapital, parametrosGuardados } from "@/lib/datos-capital";
@@ -303,12 +306,27 @@ const ID_REGISTRO = /^[A-Za-z0-9_.:-]{1,80}$/;
 export async function guardarRegistro(form: FormData): Promise<void> {
   const c = camposDe(form);
   const resultado = await intentar(async () => {
-    const r = registroDeFormulario(c, hoyRD(new Date()));
-    if (!r.ok) throw new Error(r.error);
     const db = await personal();
-    const fila = { ...r.valor, actualizado_en: new Date().toISOString() };
+    // Las cuentas que pueden recibir intereses, cupones o dividendos (efectivo y cuentas de banco).
+    const lista = await db.from("activos").select("id, tipo").is("unido_a", null);
+    sinError(lista.error, "tus cuentas");
+    const cuentas = ((lista.data ?? []) as { id: string; tipo: string }[]).filter((x) => esTipoFin(x.tipo)) as { id: string; tipo: TipoFin }[];
+    const r = registroDeFormulario(c, hoyRD(new Date()), cuentas);
+    if (!r.ok) throw new Error(r.error);
+    const fila: Record<string, unknown> = { ...r.valor, actualizado_en: new Date().toISOString() };
     if (c.id) {
       if (!ID_REGISTRO.test(c.id)) throw new Error("Esa fila no existe. Recarga la página.");
+      // Lo «elegible» que Mena cambia del comportamiento por defecto del tipo queda anotado (campo, valor y fecha).
+      const previa = await db.from("activos").select("tipo, capitaliza, tiene_debito, cambios_tipo").eq("id", c.id).maybeSingle();
+      sinError(previa.error, `«${r.valor.nombre}»`);
+      if (!previa.data) throw new Error("Esa fila ya no existe. Recarga la página.");
+      const antes = previa.data as { tipo: string; capitaliza: boolean | null; tiene_debito: boolean | null; cambios_tipo: Record<string, unknown> | null };
+      const cambios = { ...(antes.cambios_tipo ?? {}) } as Record<string, { valor: unknown; fecha: string }>;
+      const hoy = hoyRD(new Date());
+      if (r.valor.capitaliza !== undefined && r.valor.capitaliza !== antes.capitaliza) cambios.capitaliza = { valor: r.valor.capitaliza, fecha: hoy };
+      if (r.valor.tipo === "alto_rendimiento" && r.valor.tiene_debito !== antes.tiene_debito) cambios.tiene_debito = { valor: r.valor.tiene_debito, fecha: hoy };
+      if (r.valor.tipo !== antes.tipo) cambios.tipo = { valor: r.valor.tipo, fecha: hoy };
+      fila.cambios_tipo = cambios;
       const { error, count } = await db.from("activos").update(fila, { count: "exact" }).eq("id", c.id);
       sinError(error, `«${r.valor.nombre}»`);
       if (!count) throw new Error("Esa fila ya no existe. Recarga la página.");
@@ -321,7 +339,9 @@ export async function guardarRegistro(form: FormData): Promise<void> {
       sinError(error, `«${r.valor.nombre}»`);
     }
     revalidatePath("/caja", "layout");
-    return `${r.valor.nombre} guardado`;
+    const regla = CATALOGO[r.valor.tipo];
+    const enPresupuesto = regla.grupo === "cuenta" || regla.grupo === "deuda" ? " Ya aparece sola en tu Presupuesto." : "";
+    return `${r.valor.nombre} guardado.${enPresupuesto}`;
   });
   volver("/capital/cuentas", c.mes, resultado);
 }
@@ -331,10 +351,24 @@ export async function eliminarRegistro(form: FormData): Promise<void> {
   const resultado = await intentar(async () => {
     if (!c.id || !ID_REGISTRO.test(c.id)) throw new Error("Falta la fila");
     const db = await personal();
-    const enUso = await db.from("caja_cuentas").select("id", { count: "exact", head: true }).eq("registro_id", c.id);
-    if (enUso.count) throw new Error("La usa el Presupuesto. Primero quítala en Presupuesto → Configuración → Tus cuentas; luego bórrala aquí.");
+    // Todo lo que paga o recibe está en el Presupuesto (solo). Si su cuenta allá no tiene historia, se quita con ella;
+    // si tiene movimientos o fijos, no se borra nada (se perdería esa historia).
+    const enl = await db.from("caja_cuentas").select("id").eq("registro_id", c.id);
+    sinError(enl.error, "la fila");
+    for (const k of (enl.data ?? []) as { id: string }[]) {
+      for (const [tabla, col] of [["caja_movimientos", "cuenta"], ["caja_movimientos", "destino"], ["caja_recurrentes", "cuenta"], ["caja_recurrentes", "destino"]] as const) {
+        const u = await db.from(tabla).select("id", { count: "exact", head: true }).eq(col, k.id);
+        sinError(u.error, "la fila");
+        if (u.count) throw new Error("Tiene movimientos o pagos fijos en el Presupuesto: no se puede borrar sin perder esa historia. Si ya no la usas, déjala en 0.");
+      }
+      const s1 = await db.from("caja_saldos_reales").delete().eq("cuenta_id", k.id);
+      sinError(s1.error, "la fila");
+      const s2 = await db.from("caja_cuentas").delete().eq("id", k.id);
+      sinError(s2.error, "la fila");
+    }
     const { error } = await db.from("activos").delete().eq("id", c.id);
     sinError(error, "la fila");
+    revalidatePath("/caja", "layout");
     return "Borrada (sus transacciones se conservan)";
   });
   volver("/capital/cuentas", c.mes, resultado);
@@ -375,9 +409,9 @@ export async function decidirUnion(form: FormData): Promise<void> {
   volver(c.volver === "/capital" ? "/capital" : "/capital/cuentas", c.mes, resultado);
 }
 
-// ─────────────────────────────── Plan de aportes y proyecciones ───────────────────────────────
+// ─────────────────────────────── Plan del mes y proyecciones ───────────────────────────────
 
-/** Reglas de un instrumento para las proyecciones (capitaliza, pago de intereses, reinversión, % del aporte). */
+/** Reglas de un instrumento para las proyecciones (tasa, si capitaliza, cada cuánto paga, si reinvierte, vencimiento). */
 export async function guardarPlan(form: FormData): Promise<void> {
   const c = camposDe(form);
   const resultado = await intentar(async () => {
@@ -385,148 +419,103 @@ export async function guardarPlan(form: FormData): Promise<void> {
     const r = planDeFormulario(c);
     if (!r.ok) throw new Error(r.error);
     const db = await personal();
-    const { error } = await db.from("activos").update({ ...r.valor, actualizado_en: new Date().toISOString() }).eq("id", c.id);
+    const { aporte_pct: _a, plan_inicio: _i, ...fila } = r.valor;
+    const { error } = await db.from("activos").update({ ...fila, actualizado_en: new Date().toISOString() }).eq("id", c.id);
     sinError(error, "el plan");
-    return "Plan guardado";
+    return "Reglas guardadas";
   });
   volver("/capital/futuro", c.mes, resultado);
 }
 
 /**
- * «Sí, lo hice»: el aporte del mes se registra UNA vez. Queda como compra en el libro del Portafolio
- * (con su mes del plan) y, si salió de una cuenta del Presupuesto, como movimiento allá (ahorro
- * realizado). El saldo del instrumento sube por el movimiento (si el Presupuesto lo usa) o directamente.
+ * «Registrar la transferencia» de una línea de «Lo que planeaste ahorrar este mes»: un movimiento del Presupuesto
+ * («Mover entre mis cuentas», categoría de ahorro e inversión) hacia el instrumento exacto, que confirma su fijo.
+ * La misma validación de listas que el Presupuesto (el ahorro sale de efectivo o de una cuenta).
  */
-export async function confirmarAporte(form: FormData): Promise<void> {
+export async function registrarLinea(form: FormData): Promise<void> {
+  const c = camposDe(form);
+  const fd = new FormData();
+  for (const [k, v] of Object.entries({ tipo: "transferencia", fecha: c.fecha, monto: c.monto, moneda: c.moneda, cuenta: c.cuenta, destino: c.destino, categoria: c.categoria, recurrenteId: c.recurrenteId, nota: c.nota, unidades: c.unidades })) {
+    if (v) fd.set(k, v);
+  }
+  const r = await anotarMovimiento(fd);
+  volver(c.volver === "/capital" ? "/capital" : "/capital/futuro", c.mes, r.ok ? { ok: r.mensaje ?? "Anotado" } : { error: r.mensaje ?? "No se pudo anotar" });
+}
+
+/**
+ * Mutuo / reporto: Mena anota la renovación (tasa nueva, días, el interés que ganó, si lo deja o lo retira y un
+ * aporte adicional). Se guarda el evento, el capital nuevo y la tasa; el interés retirado entra al Presupuesto como
+ * «Otros ingresos» en la cuenta que elija, y el aporte sale de la cuenta que elija («Mover entre mis cuentas»).
+ */
+export async function registrarRenovacion(form: FormData): Promise<void> {
   const c = camposDe(form);
   const resultado = await intentar(async () => {
-    if (!c.activoId || !ID_REGISTRO.test(c.activoId) || !esMes(c.aporteMes)) throw new Error("Faltan datos del aporte. Recarga la página.");
-    if (c.aporteMes > hoyRD(new Date()).slice(0, 7)) throw new Error("Ese mes todavía no llega: confirma el aporte cuando lo hagas.");
+    if (!c.id || !ID_REGISTRO.test(c.id)) throw new Error("Falta el mutuo. Recarga la página.");
     const fecha = c.fecha || hoyRD(new Date());
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw new Error("La fecha no es válida.");
-    const datos = await datosCapital();
-    const a = datos.ctx.activos.find((x) => x.id === c.activoId);
-    if (!a) throw new Error("Ese instrumento ya no está en tu Portafolio.");
-    if (datos.aportesConfirmados.some((x) => x.activoId === a.id && x.mes === c.aporteMes)) throw new Error(`El aporte de ${c.aporteMes} a «${a.nombre}» ya estaba confirmado.`);
-    const unidades = a.clase === "rentavariable";
-    const cantidad = numeroForm(unidades ? c.cantidad : c.monto);
-    const precio = unidades ? numeroForm(c.precio) : "1";
-    if (!/^\d+(\.\d+)?$/.test(cantidad) || !new Big(cantidad).gt(0)) throw new Error(unidades ? "Escribe cuántas unidades compraste, por ejemplo 2." : "Escribe el monto que aportaste, por ejemplo 5,000.");
-    if (!/^\d+(\.\d+)?$/.test(precio)) throw new Error("Escribe el precio de cada unidad, por ejemplo 101.25.");
-    const montoMoneda = new Big(cantidad).times(precio);
+    const plazo = Number(c.plazoDias || "30");
+    if (!Number.isInteger(plazo) || plazo < 1 || plazo > 3660) throw new Error("El plazo va en días, por ejemplo 30.");
+    const tasa = pctForm(numeroForm(c.tasa));
+    if (!tasa || !/^\d+(\.\d+)?$/.test(tasa) || new Big(tasa).gt(1)) throw new Error("Escribe la tasa nueva en % al año, por ejemplo 8.75.");
+    const interes = numeroForm(c.interes) || "0";
+    const aporte = numeroForm(c.aporte) || "0";
+    if (!/^\d+(\.\d+)?$/.test(interes) || !/^\d+(\.\d+)?$/.test(aporte)) throw new Error("El interés y el aporte van en números, por ejemplo 750.");
+    const deja = c.deja === "si";
     const db = await personal();
-
-    // 1. En el Presupuesto (si salió de una de sus cuentas): ahorro realizado, sin anotarlo dos veces.
-    let movimientoId: string | null = null;
-    if (c.cuenta) {
-      const caja = datos.caja.datos;
-      const origen = caja?.cuentas.find((x) => x.id === c.cuenta);
-      if (!caja || !origen) throw new Error("Esa cuenta ya no está en el Presupuesto. Recarga la página.");
-      const monedaOrigen = origen.moneda ?? "DOP";
-      if (a.moneda !== monedaOrigen) {
-        throw new Error(
-          `«${origen.nombre}» está en ${monedaOrigen === "USD" ? "US$" : "RD$"} y «${a.nombre}» en ${a.moneda === "USD" ? "US$" : a.moneda}: elige una cuenta en la misma moneda o deja «¿De qué cuenta salió?» en «De ninguna».`,
-        );
-      }
-      let categoria = caja.categorias.find((k) => k.tipo === "ahorro_inversion")?.id ?? null;
-      if (!categoria) {
-        const nueva = await db.from("caja_categorias").insert({ nombre: "Ahorro e inversión", tipo: "ahorro_inversion" }).select("id").single();
-        sinError(nueva.error, "la categoría de ahorro");
-        categoria = (nueva.data as { id: string }).id;
-      }
-      const destino = a.cajaId ?? null;
-      const mov = await db
-        .from("caja_movimientos")
-        .insert({ fecha, tipo: destino ? "transferencia" : "gasto", monto: montoMoneda.toFixed(), moneda: a.moneda, cuenta: origen.id, destino, categoria, nota: `Aporte a ${a.nombre}`.slice(0, 500) })
-        .select("id")
-        .single();
-      sinError(mov.error, "el movimiento en el Presupuesto");
-      movimientoId = (mov.data as { id: string }).id;
+    const a = await db.from("activos").select("id, nombre, tipo, moneda, cantidad::text, renovaciones").eq("id", c.id).maybeSingle();
+    sinError(a.error, "el mutuo");
+    const f = a.data as { id: string; nombre: string; tipo: string; moneda: string; cantidad: string; renovaciones: unknown } | null;
+    if (!f || f.tipo !== "mutuo") throw new Error("Ese instrumento no es un mutuo o reporto.");
+    if (!deja && new Big(interes).gt(0) && !c.cuentaInteres) throw new Error("¿A qué cuenta te pagaron el interés? Elígela (entra como «Otros ingresos»).");
+    if (new Big(aporte).gt(0) && !c.cuentaAporte) throw new Error("¿De qué cuenta salió el aporte? Elígela.");
+    const ev = renovar(f.cantidad, { fecha, plazoDias: plazo, tasa, interes, dejaInteres: deja, aporte });
+    // 1. El aporte: «Mover entre mis cuentas» hacia el mutuo (sale de tu cuenta; el cuadre de abajo deja el capital nuevo).
+    const avisos: string[] = [];
+    if (new Big(aporte).gt(0)) {
+      const caja = await db.from("caja_cuentas").select("id").eq("registro_id", f.id).maybeSingle();
+      const fd = new FormData();
+      const destino = (caja.data as { id: string } | null)?.id ?? `r:${f.id}`;
+      for (const [k, v] of Object.entries({ tipo: "transferencia", fecha, monto: aporte, moneda: f.moneda, cuenta: c.cuentaAporte!, destino, categoria: await categoriaDe("ahorro_inversion", "Ahorro e inversión"), nota: `Aporte al renovar ${f.nombre}` })) fd.set(k, v);
+      const r = await anotarMovimiento(fd);
+      if (!r.ok) throw new Error(r.mensaje ?? "No se pudo anotar el aporte");
     }
-
-    // 2. El saldo del instrumento: si el Presupuesto lo usa y el aporte salió de una cuenta, ya lo movió el movimiento.
-    if (!(a.cajaId && movimientoId)) {
-      const nueva = new Big(a.cantidad).plus(cantidad).toFixed();
-      const cambio: Record<string, unknown> = { cantidad: nueva, actualizado_en: new Date().toISOString() };
-      if (a.cajaId) cambio.saldo_fecha = fechaDeSaldo(hoyRD(new Date()));
-      const { error } = await db.from("activos").update(cambio).eq("id", a.id);
-      sinError(error, "el saldo del instrumento");
+    // 2. El interés retirado: «Otros ingresos» en la cuenta que eligió.
+    if (!deja && new Big(interes).gt(0)) {
+      const fd = new FormData();
+      for (const [k, v] of Object.entries({ tipo: "ingreso", fecha, monto: interes, moneda: f.moneda, cuenta: c.cuentaInteres!, categoria: await categoriaDe("otro_ingreso", "Intereses y dividendos"), nota: `Interés de ${f.nombre}` })) fd.set(k, v);
+      const r = await anotarMovimiento(fd);
+      if (!r.ok) avisos.push(`El interés no se anotó en el Presupuesto: ${r.mensaje}`);
     }
-
-    // 3. En el libro del Portafolio, con su mes del plan.
-    const { error } = await db.from("transacciones").insert({
-      id: nuevoId("ap"), activo_id: a.id, simbolo: a.simbolo ?? "", tipo: "compra", fecha, cantidad, precio, comision: "0", moneda: a.moneda,
-      aporte_mes: c.aporteMes, movimiento_id: movimientoId,
-    });
-    sinError(error, "el aporte en el libro");
-    // Si estaba omitido ese mes, deja de estarlo.
-    if (datos.prefAportes.omitidos.some((x) => x.activoId === a.id && x.mes === c.aporteMes)) {
-      await guardarPreferenciaCapital("aportes", sinOmision(datos.prefAportes, a.id, c.aporteMes));
-    }
+    // 3. El evento y el capital nuevo (al empezar el día siguiente a la renovación, como los saldos escritos).
+    const lista = [...leerRenovaciones(f.renovaciones), ev];
+    const { error } = await db
+      .from("activos")
+      .update({ renovaciones: lista, cantidad: ev.capitalNuevo, saldo_fecha: fechaDeSaldo(fecha), tasa, plazo_dias: plazo, vencimiento: sumarDiasISO(fecha, plazo), actualizado_en: new Date().toISOString() })
+      .eq("id", f.id);
+    sinError(error, "la renovación");
     revalidatePath("/caja", "layout");
-    return movimientoId ? `Aporte a ${a.nombre} confirmado y anotado en tu Presupuesto como ahorro` : `Aporte a ${a.nombre} confirmado`;
-  });
-  volver(c.volver === "/capital" ? "/capital" : "/capital/futuro", c.mes, resultado);
-}
-
-/** «Omitir este mes»: ese aporte deja de pedirse (con motivo opcional). No mueve dinero ni borra nada. */
-export async function omitirAporte(form: FormData): Promise<void> {
-  const c = camposDe(form);
-  const resultado = await intentar(async () => {
-    if (!c.activoId || !ID_REGISTRO.test(c.activoId) || !esMes(c.aporteMes)) throw new Error("Faltan datos del aporte. Recarga la página.");
-    const datos = await datosCapital();
-    const a = datos.ctx.activos.find((x) => x.id === c.activoId);
-    if (!a) throw new Error("Ese instrumento ya no está en tu Portafolio.");
-    if (datos.aportesConfirmados.some((x) => x.activoId === a.id && x.mes === c.aporteMes)) throw new Error(`El aporte de ${c.aporteMes} a «${a.nombre}» ya estaba confirmado: no se puede omitir.`);
-    const motivo = (c.motivo ?? "").trim().slice(0, 200) || null;
-    const e = await guardarPreferenciaCapital("aportes", conOmision(datos.prefAportes, { activoId: a.id, mes: c.aporteMes, motivo, fecha: hoyRD(new Date()) }));
-    if (e) throw new Error(`No se pudo guardar: ${e}`);
-    return `Listo: el aporte de ${c.aporteMes} a ${a.nombre} queda omitido${motivo ? ` (${motivo})` : ""}`;
-  });
-  volver(c.volver === "/capital" ? "/capital" : "/capital/futuro", c.mes, resultado);
-}
-
-/** Deshacer «Omitir este mes»: el aporte vuelve a quedar pendiente. */
-export async function deshacerOmisionAporte(form: FormData): Promise<void> {
-  const c = camposDe(form);
-  const resultado = await intentar(async () => {
-    if (!c.activoId || !ID_REGISTRO.test(c.activoId) || !esMes(c.aporteMes)) throw new Error("Faltan datos del aporte. Recarga la página.");
-    const pref = leerPrefAportes((await leerPreferenciaCapital("aportes")).valor);
-    const e = await guardarPreferenciaCapital("aportes", sinOmision(pref, c.activoId, c.aporteMes));
-    if (e) throw new Error(`No se pudo guardar: ${e}`);
-    return "Listo: el aporte vuelve a estar pendiente";
-  });
-  volver(c.volver === "/capital" ? "/capital" : "/capital/futuro", c.mes, resultado);
-}
-
-/**
- * Un instrumento venció: Mena confirmó a dónde pasa su parte del ahorro (pantalla de confirmación en
- * Proyecciones). Se escribe el reparto nuevo (aporte_pct de los tocados y, si cambia de categoría, el plan
- * por categoría). Nada se mueve de dinero y nada pasa sin este «Sí».
- */
-export async function reubicarAporte(form: FormData): Promise<void> {
-  const c = camposDe(form);
-  const resultado = await intentar(async () => {
-    if (!c.vencidoId || !c.destinoId || !ID_REGISTRO.test(c.vencidoId) || !ID_REGISTRO.test(c.destinoId)) throw new Error("Faltan los instrumentos. Recarga la página.");
-    const datos = await datosCapital();
-    const r = reubicarParte(datos.ctx, c.vencidoId, c.destinoId);
-    if (!r) throw new Error("Ya no se puede pasar esa parte (¿ya lo hiciste o cambió el plan?). Recarga la página.");
-    const db = await personal();
-    for (const [id, pct] of Object.entries(r.aportePct)) {
-      const { error } = await db.from("activos").update({ aporte_pct: pct, actualizado_en: new Date().toISOString() }).eq("id", id);
-      sinError(error, "el reparto");
-    }
-    if (r.planClases) {
-      const actual = await parametrosGuardados();
-      const reg = new Registro();
-      const p = validarParametros({ ...actual, planClases: r.planClases }, reg, "parámetros", false);
-      if (!reg.ok) throw new Error(errores(reg));
-      const { error } = await db.from("parametros").upsert({ id: 1, datos: p, actualizado_en: new Date().toISOString() }, { onConflict: "id" });
-      sinError(error, "el reparto por categoría");
-    }
-    const v = datos.ctx.activos.find((x) => x.id === c.vencidoId)!;
-    const d = datos.ctx.activos.find((x) => x.id === c.destinoId)!;
-    return `Listo: la parte de «${v.nombre}» pasa a «${d.nombre}»`;
+    return `Renovado: ${f.nombre} queda en ${ev.capitalNuevo} (${deja ? "dejaste el interés adentro" : "retiraste el interés"}).${avisos.length ? ` ${avisos.join(" ")}` : ""}`;
   });
   volver("/capital/futuro", c.mes, resultado);
 }
+
+function sumarDiasISO(f: string, n: number): string {
+  const d = new Date(`${f}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** La categoría del Presupuesto de ese tipo (la primera) o una nueva con ese nombre. */
+async function categoriaDe(tipo: "ahorro_inversion" | "otro_ingreso", nombre: string): Promise<string> {
+  const db = await personal();
+  const r = await db.from("caja_categorias").select("id, nombre").eq("tipo", tipo).order("n").limit(20);
+  sinError(r.error, "la categoría");
+  const lista = (r.data ?? []) as { id: string; nombre: string }[];
+  const igual = lista.find((x) => x.nombre === nombre) ?? lista[0];
+  if (igual) return igual.id;
+  const nueva = await db.from("caja_categorias").insert({ nombre, tipo }).select("id").single();
+  sinError(nueva.error, "la categoría");
+  return (nueva.data as { id: string }).id;
+}
+
+

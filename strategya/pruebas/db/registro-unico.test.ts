@@ -11,7 +11,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { COLUMNAS, type FilasCaja, filasADatos, ORDEN } from "../../lib/caja/filas";
 import { simular } from "../../lib/caja/motor";
-import { COLUMNAS_REGISTRO, conSaldosVigentes, filaARegistro, sugerirUniones } from "../../lib/capital/registro";
+import { COLUMNAS_REGISTRO_TARJETAS, conSaldosVigentes, filaARegistro, sugerirUniones } from "../../lib/capital/registro";
 import { como, debeFallar } from "./base";
 
 const RAIZ = join(import.meta.dirname, "..", "..");
@@ -42,7 +42,7 @@ async function leerCaja(c: pg.PoolClient | pg.Pool): Promise<FilasCaja> {
 
 async function registro(c: pg.PoolClient | pg.Pool) {
   const enl = (await c.query("select id, registro_id from personal.caja_cuentas")).rows as { id: string; registro_id: string }[];
-  const filas = (await c.query(`select ${COLUMNAS_REGISTRO} from personal.activos order by orden, id`)).rows;
+  const filas = (await c.query(`select ${COLUMNAS_REGISTRO_TARJETAS} from personal.activos order by orden, id`)).rows;
   return filas.map((f) => filaARegistro(f, enl.find((e) => e.registro_id === f.id)?.id ?? null));
 }
 

@@ -4,6 +4,7 @@
 import type { CicloTarjeta } from "./ciclo";
 import type { Fecha } from "./fechas";
 import type { TasasUSD } from "./tasas";
+import type { TipoFin } from "../finanzas/catalogo";
 
 export const TIPOS_CUENTA = ["banco", "efectivo", "ahorro", "tarjeta", "prestamo"] as const;
 export type TipoCuenta = (typeof TIPOS_CUENTA)[number];
@@ -138,6 +139,12 @@ export interface Cuenta {
   ciclo?: CicloTarjeta | null;
   /** Tarjeta: día en que quieres pagar (registro único), aunque no tenga ciclo completo. */
   diaPago?: number | null;
+  /** Núcleo v2: tipo del catálogo de su fila del registro (decide en qué formularios aparece). */
+  tipoFin?: TipoFin;
+  /** Alto rendimiento: tiene tarjeta de débito. */
+  debito?: boolean;
+  /** Préstamo: cargos dentro de la cuota (seguro…), del registro único. */
+  cargosCuota?: string | null;
 }
 
 /** Clave de la parte en US$ de una tarjeta en dos monedas (posiciones del motor y cuadres «<id>#usd»). */
@@ -169,6 +176,8 @@ export interface Recurrente {
   parte?: Moneda | null;
   cuenta: string | null;
   destino: string | null;
+  /** Línea de ahorro hacia una inversión que no vive en el Presupuesto (fila del registro). */
+  registroDestino?: string | null;
   categoria: string | null;
   frecuencia: Frecuencia;
   /** "15, 30": días del mes (frecuencia mensual). El 31 cae el último día en meses más cortos. */
@@ -205,6 +214,14 @@ export interface Movimiento {
    * moneda del monto (US$ → la parte en US$).
    */
   parte?: Moneda | null;
+  /** Rescate o venta de una inversión que no vive en el Presupuesto: la fila del registro de donde sale. */
+  registroOrigen?: string | null;
+  /** Ahorro hacia una inversión que no vive en el Presupuesto: la fila del registro a donde va. */
+  registroDestino?: string | null;
+  /** Pago de préstamo: cargos dentro de la cuota (seguro…). Gasto aparte: la deuda baja por monto − interés − cargos. */
+  cargos?: string | null;
+  /** Categoría de gasto de los cargos (vacío = «Sin categoría»). */
+  categoriaCargos?: string | null;
 }
 
 export interface Omitido {

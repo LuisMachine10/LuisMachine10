@@ -13,8 +13,7 @@ import { sumarMeses } from "@/lib/capital/fechas";
 import { Tornado } from "./Graficos";
 import { GraficoSerie, type SerieGrafico } from "./GraficoSerie";
 import { Dato, Kpi, Mas, Mosaicos, Panel, SinDatos } from "./Piezas";
-import { ConfirmarReubicacion, PanelVencidos } from "./Aportes";
-import { PanelAportesMes, PanelPlan, PanelProyeccion } from "./Proyecciones";
+import { PanelPlan, PanelPlanAhorro, PanelProyeccion } from "./Proyecciones";
 
 type Props = { datos: DatosCapital; mes: string };
 
@@ -332,13 +331,11 @@ function FormularioGenerales({ datos, mes }: Props) {
   );
 }
 
-export function VistaFuturo({ datos, mes, anios, reubicar }: Props & { anios?: string | null; reubicar?: { vencido: string; destino: string } | null }) {
+export function VistaFuturo({ datos, mes, anios }: Props & { anios?: string | null }) {
   return (
     <>
-      {reubicar ? <ConfirmarReubicacion datos={datos} mes={mes} vencidoId={reubicar.vencido} destinoId={reubicar.destino} /> : null}
       <PanelProyeccion datos={datos} mes={mes} anios={anios} />
-      <PanelAportesMes datos={datos} mes={mes} />
-      <PanelVencidos datos={datos} mes={mes} />
+      <PanelPlanAhorro datos={datos} mes={mes} />
       <PanelIndependencia datos={datos} mes={mes} />
       <PanelPlan datos={datos} mes={mes} />
       <details className="cap-grupo cap-ancho">

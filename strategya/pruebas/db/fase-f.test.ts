@@ -13,7 +13,6 @@ import { separarPago } from "../../lib/caja/deudas";
 import { hoyRD } from "../../lib/caja/fechas";
 import type { TasasUSD } from "../../lib/caja/tasas";
 import type { DatosCaja } from "../../lib/caja/tipos";
-import { leerPrefAportes } from "../../lib/capital/aportes";
 import { revisarConexion } from "../../lib/capital/conexion";
 import { COLUMNAS_REGISTRO, conSaldosVigentes, filaARegistro } from "../../lib/capital/registro";
 import { baseNueva, como, debeFallar } from "./base";
@@ -178,29 +177,8 @@ describe("2 · cuentas en US$ con el dólar oficial del BCRD de la fecha", () =>
   });
 });
 
-describe("3 · «Omitir este mes» se guarda sin cifras y solo para su dueño", () => {
-  it("la preferencia «aportes» guarda instrumento, mes y motivo; otro usuario no la ve", async () => {
-    await como(pool, "authenticated", MENA, async (c) => {
-      const valor = { omitidos: [{ activoId: "carro", mes: "2026-09", motivo: "pagué el seguro", fecha: "2026-10-26" }] };
-      await c.query("select personal.guardar_preferencia('aportes', $1::jsonb)", [JSON.stringify(valor)]);
-      const leida = (await c.query("select valor from personal.preferencias where clave = 'aportes'")).rows[0].valor;
-      expect(leerPrefAportes(leida)).toEqual(valor);
-      await c.query("savepoint s");
-      await c.query("set local role authenticated");
-      await c.query("select set_config('request.jwt.claim.sub', $1, true)", [INTRUSO]);
-      expect((await c.query("select count(*)::int as n from personal.preferencias where clave = 'aportes'")).rows[0].n).toBe(0);
-      await c.query("rollback to savepoint s");
-    });
-  });
-
-  it("reubicar la parte de un vencido escribe fracciones válidas (0 a 1)", async () => {
-    await como(pool, "authenticated", MENA, async (c) => {
-      await sembrar(c);
-      await c.query("update personal.activos set aporte_pct = '0.000000' where id = 'banco'");
-      await debeFallar(c, "update personal.activos set aporte_pct = 1.5 where id = 'banco'", /aporte_pct/);
-    });
-  });
-});
+// 3 · «Omitir este mes» y reubicar la parte de un vencido se retiraron en el Núcleo v2 (el plan va en montos por
+// instrumento): ver pruebas/db/nucleo-v2.test.ts.
 
 describe("6 · mantenimiento: limpieza semanal del historial de pg_cron", () => {
   it("queda programada los domingos y borra solo lo de más de 14 días", async () => {

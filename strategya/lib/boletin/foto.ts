@@ -5,25 +5,28 @@
 import Big from "big.js";
 import { cambioDelMes, indicadores } from "../capital/cierres";
 import { matrizRiesgo, tonoGravedad } from "../capital/matriz";
-import { aportesDeMes, type PrefAportes } from "../capital/aportes";
-import { ahorroPresupuestado } from "../capital/proyeccion";
+import type { PlanDelMes } from "../finanzas/plan";
 import { cicloDe, cicloVigente, fechasDelCiclo, proximoCorte } from "../caja/ciclo";
 import { sumarDias } from "../caja/fechas";
 import type { ItemRegistro } from "../capital/registro";
 import type { DatosCapital } from "../datos-capital";
 import type { FotoDinero } from "../../supabase/functions/_shared/boletin/tipos.ts";
 
-export function fotoTuDinero(datos: Pick<DatosCapital, "ctx" | "configurado" | "registroCompleto" | "aportesConfirmados"> & { prefAportes?: PrefAportes }): FotoDinero {
+export function fotoTuDinero(datos: Pick<DatosCapital, "ctx" | "configurado" | "registroCompleto"> & { plan?: PlanDelMes | null; aportesConfirmados?: unknown }): FotoDinero {
   const { ctx } = datos;
   const mes = ctx.hoy.slice(0, 7);
   const hayAlgo = datos.configurado || datos.registroCompleto.length > 0 || ctx.activos.length > 0;
   const ind = indicadores(ctx, mes);
   const cambio = hayAlgo ? cambioDelMes(ctx, mes) : null;
 
-  // Los del mes (sin los vencidos); «Omitir este mes» cuenta como respondido, no como pendiente.
-  const plan = aportesDeMes(ctx, mes, ahorroPresupuestado(ctx), datos.aportesConfirmados, datos.prefAportes ?? { omitidos: [] });
-  const pendientes = plan.filter((x) => x.estado === "pendiente");
-  const suma = (xs: { monto: Big }[]) => xs.reduce((s, x) => s.plus(x.monto), new Big(0));
+  // «Lo que planeaste ahorrar este mes»: las líneas del plan (instrumento + monto) y cuánto falta de cada una.
+  const lineas = datos.plan?.lineas ?? [];
+  const pendientes = lineas.filter((l) => l.estado !== "hecha");
+  const total = lineas.reduce((s, l) => s.plus(l.planeadoDOP ?? 0), new Big(0));
+  const falta = pendientes.reduce((s, l) => {
+    const f = l.planeadoDOP && l.hechoDOP ? l.planeadoDOP.minus(l.hechoDOP) : (l.planeadoDOP ?? new Big(0));
+    return s.plus(f.gt(0) ? f : 0);
+  }, new Big(0));
 
   const matriz = hayAlgo ? matrizRiesgo(ctx) : [];
   const evaluados = matriz.filter((r) => !r.sinDato);
@@ -34,7 +37,7 @@ export function fotoTuDinero(datos: Pick<DatosCapital, "ctx" | "configurado" | "
     cambio: cambio ? cambio.cambio.toFixed(2) : null,
     cambio_pct: cambio?.pct ? cambio.pct.times(100).toFixed(2) : null,
     previo: cambio?.previo ?? null,
-    aportes: plan.length ? { plan: plan.length, pendientes: pendientes.length, total: suma(plan).toFixed(2), pendiente: suma(pendientes).toFixed(2) } : null,
+    aportes: lineas.length ? { plan: lineas.length, pendientes: pendientes.length, total: total.toFixed(2), pendiente: falta.toFixed(2) } : null,
     riesgos: evaluados
       .filter((r) => tonoGravedad(r) === "alto")
       .map((r) => ({ titulo: r.titulo, impacto: r.impacto, probabilidad: r.probabilidad })),

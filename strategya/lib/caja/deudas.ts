@@ -37,6 +37,8 @@ export function interesConTasa(deuda: Big, tasaAnual: string, pago: Big): Big {
 export interface SeparacionPago {
   /** Interés guardado en el movimiento (null = todo capital). */
   interes: string | null;
+  /** Cargos dentro de la cuota (seguro…) guardados en el movimiento (null = ninguno). Gasto aparte. */
+  cargos: string | null;
   capital: string;
   como: "escrito" | "tasa" | "todo";
   /** Con tasa: lo que se debía y la tasa usada (para decírselo a Mena). */
@@ -45,23 +47,42 @@ export interface SeparacionPago {
 }
 
 /**
- * Decide el interés de un pago. `interesEscrito`: undefined = Mena no escribió el capital; null o texto =
- * lo que se deduce de lo que escribió.
+ * Decide el interés (y los cargos de la cuota) de un pago. `interesEscrito`: undefined = Mena no escribió el
+ * capital; null o texto = lo que no fue capital según lo que escribió (monto − capital). Los cargos de la cuota
+ * (seguro…) salen de lo que Mena escriba o, en un préstamo, de los «cargos dentro de la cuota» de Mis cuentas:
+ * son gasto aparte y NO bajan la deuda (manual, sección E). Interés de tarjeta: solo el que Mena anota de su estado
+ * de cuenta (nunca se calcula).
  */
 export function separarPago(
   datos: DatosCaja,
   pago: { monto: string; moneda: Moneda; destino: string | null; fecha: Fecha },
   interesEscrito: string | null | undefined,
+  cargosEscritos?: string | null,
 ): SeparacionPago {
   const monto = new Big(pago.monto);
-  if (interesEscrito !== undefined) {
-    const i = interesEscrito ? new Big(interesEscrito) : CERO;
-    return { interes: i.gt(0) ? i.toFixed() : null, capital: monto.minus(i).toFixed(), como: i.gt(0) ? "escrito" : "todo" };
-  }
   const c = pago.destino ? datos.cuentas.find((x) => x.id === pago.destino) : undefined;
-  if (!c || c.tipo !== "prestamo" || !c.tasaAnual || monedaDe(c) !== pago.moneda) return { interes: null, capital: monto.toFixed(), como: "todo" };
+  const esPrestamo = !!c && c.tipo === "prestamo" && monedaDe(c) === pago.moneda;
+  // Cargos: los escritos o los de la cuota del préstamo; nunca más que el pago.
+  let cargos = cargosEscritos !== undefined ? (cargosEscritos ? new Big(cargosEscritos) : CERO) : esPrestamo && c?.cargosCuota ? new Big(c.cargosCuota) : CERO;
+  if (cargos.gt(monto)) cargos = monto;
+  const k = cargos.gt(0) ? cargos.toFixed() : null;
+  if (interesEscrito !== undefined) {
+    // Lo que no fue capital = interés + cargos.
+    const resto = interesEscrito ? new Big(interesEscrito) : CERO;
+    if (cargos.gt(resto)) cargos = resto;
+    const i = resto.minus(cargos);
+    return { interes: i.gt(0) ? i.toFixed() : null, cargos: cargos.gt(0) ? cargos.toFixed() : null, capital: monto.minus(resto).toFixed(), como: resto.gt(0) ? "escrito" : "todo" };
+  }
+  if (!c || !esPrestamo || !c.tasaAnual) return { interes: null, cargos: k, capital: monto.minus(cargos).toFixed(), como: "todo" };
   const deuda = deudaAntesDe(datos, c.id, pago.fecha);
-  if (!deuda) return { interes: null, capital: monto.toFixed(), como: "todo" };
-  const i = interesConTasa(deuda, c.tasaAnual, monto);
-  return { interes: i.gt(0) ? i.toFixed() : null, capital: monto.minus(i).toFixed(), como: i.gt(0) ? "tasa" : "todo", deuda: deuda.toFixed(), tasa: c.tasaAnual };
+  if (!deuda) return { interes: null, cargos: k, capital: monto.minus(cargos).toFixed(), como: "todo" };
+  const i = interesConTasa(deuda, c.tasaAnual, monto.minus(cargos));
+  return {
+    interes: i.gt(0) ? i.toFixed() : null,
+    cargos: k,
+    capital: monto.minus(i).minus(cargos).toFixed(),
+    como: i.gt(0) ? "tasa" : "todo",
+    deuda: deuda.toFixed(),
+    tasa: c.tasaAnual,
+  };
 }

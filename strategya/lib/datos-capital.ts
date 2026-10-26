@@ -3,7 +3,8 @@ import Big from "big.js";
 import { hoyRD } from "@/lib/capital/fechas";
 import { leerCaja } from "@/lib/caja/datos";
 import type { DatosCaja } from "@/lib/caja/tipos";
-import { leerPrefAportes, type PrefAportes } from "@/lib/capital/aportes";
+import { aportesProyeccion, planDelMes, type PlanDelMes } from "@/lib/finanzas/plan";
+import type { AportePlan } from "@/lib/capital/proyeccion";
 import { type FilaTransaccion, filaATransaccion } from "@/lib/capital/importar";
 import { armarFx, type Contexto, type ObservacionFx, type PrecioMercado, type Referencia, type ResultadoPresupuesto } from "@/lib/capital/posicion";
 import { aActivo, COLUMNAS_REGISTRO, conSaldosVigentes, esInversion, filaARegistro, type ItemRegistro } from "@/lib/capital/registro";
@@ -40,10 +41,14 @@ export interface DatosCapital {
   registroCompleto: ItemRegistro[];
   /** Aportes del plan ya confirmados («Sí, lo hice»): transacciones con su mes del plan. */
   aportesConfirmados: { id: string; activoId: string; mes: string; fecha: string | null; monto: string; movimientoId: string | null }[];
-  /** El Presupuesto: sus datos (para elegir de qué cuenta sale un aporte) o el motivo si no se pudo leer. */
+  /** El Presupuesto: sus datos o el motivo si no se pudo leer. */
   caja: { datos: DatosCaja | null; error: string | null };
-  /** Aportes que Mena omitió («Omitir este mes»), de personal.preferencias (clave «aportes»). */
-  prefAportes: PrefAportes;
+  /** Cuenta del Presupuesto → fila del registro. */
+  enlaces: Record<string, string>;
+  /** «Lo que planeaste ahorrar este mes» y la fórmula del sobrante (null sin Presupuesto). */
+  plan: PlanDelMes | null;
+  /** Aportes EXACTOS por instrumento para las proyecciones (las líneas del plan). */
+  aportes: Map<string, AportePlan>;
 }
 
 const SERIES_REFERENCIA: Record<string, string> = {
@@ -65,6 +70,7 @@ interface MercadoCapital {
   }[];
   referencias: { serie_id: string; valor: string; fecha_dato: string; url_dato: string | null }[];
   tarea: EstadoPrecios | null;
+  eurusd: ObservacionFx[];
 }
 
 /** Lo que el Portafolio lee de `mercado` (igual para todos): por la caché compartida, 2 minutos. */
@@ -73,14 +79,14 @@ function mercadoCapital(): Promise<MercadoCapital> {
     "capital",
     120,
     async (mdb) => {
-      const [fxRes, cotRes, refRes, tareaRes] = await Promise.all([
+      const [fxRes, cotRes, refRes, tareaRes, eurRes] = await Promise.all([
         mdb
           .from("observaciones")
           .select("valor::text, fecha_dato, recogido_en, url_dato")
           .eq("serie_id", "USDDOP_VENTA")
           .is("hora_dato", null)
           .order("fecha_dato", { ascending: false })
-          .limit(2),
+          .limit(15),
         mdb
           .from("cotizaciones_cartera")
           .select("simbolo, fecha, precio::text, cierre_anterior::text, hora_dato, recogido_en, url_dato, fuente")
@@ -93,12 +99,22 @@ function mercadoCapital(): Promise<MercadoCapital> {
           .order("fecha_dato", { ascending: false })
           .limit(20),
         mdb.from("estado_tareas").select("estado, inicio, ultima_ok, error").eq("tarea", "precios-cartera").maybeSingle(),
+        // € en pesos: el EUR/USD de referencia del BCE (se cruza con el dólar del BCRD de la misma fecha).
+        mdb
+          .from("observaciones")
+          .select("valor::text, fecha_dato, recogido_en, url_dato")
+          .eq("serie_id", "EURUSD")
+          .eq("fuente_id", "bce_fx")
+          .order("fecha_dato", { ascending: false })
+          .limit(15),
       ]);
       return {
         fx: exigir(fxRes, "el tipo de cambio") as unknown as ObservacionFx[],
         cotizaciones: exigir(cotRes, "los precios de la cartera") as unknown as MercadoCapital["cotizaciones"],
         referencias: exigir(refRes, "las referencias") as unknown as MercadoCapital["referencias"],
         tarea: exigir(tareaRes, "el estado de la tarea de precios") as EstadoPrecios | null,
+        // Sin el euro del BCE no se cae el Portafolio: lo que está en € queda «no confirmado».
+        eurusd: eurRes.error ? [] : ((eurRes.data ?? []) as unknown as ObservacionFx[]),
       };
     },
     [ETIQUETAS.cotizaciones, ETIQUETAS.rd],
@@ -114,7 +130,7 @@ export const datosCapital = cache(async (): Promise<DatosCapital> => {
   const hoy = hoyRD(ahora);
   const db = await personal();
   // El Presupuesto es otro módulo: si no responde, el Portafolio sigue con lo escrito y lo dice.
-  const [pRes, aRes, tRes, cRes, iRes, merc, cajaLeida, resRes, prefAp] = await Promise.all([
+  const [pRes, aRes, tRes, cRes, iRes, merc, cajaLeida, resRes] = await Promise.all([
     db.from("parametros").select("datos, actualizado_en").eq("id", 1).maybeSingle(),
     db.from("activos").select(COLUMNAS_REGISTRO).order("orden").order("id"),
     db
@@ -130,7 +146,6 @@ export const datosCapital = cache(async (): Promise<DatosCapital> => {
       (e: Error) => ({ datos: null, error: e.message, enlaces: null }),
     ),
     db.rpc("resultado_mes", { p_mes: hoy }),
-    db.from("preferencias").select("valor").eq("clave", "aportes").limit(1),
   ]);
   // Sin el Presupuesto, el enlace de cada cuenta se lee aparte (para no dejar borrar lo que usa).
   let enlacesCaja = cajaLeida.enlaces;
@@ -169,7 +184,7 @@ export const datosCapital = cache(async (): Promise<DatosCapital> => {
   for (const f of filasC) cierres[f.mes] = leerCierre(f.mes, f.datos);
   const filaI = exigir(iRes, "la política de inversión") as { datos: unknown } | null;
 
-  const { fx, anteriorUSD } = armarFx(merc.fx, p);
+  const { fx, anteriorUSD } = armarFx(merc.fx, p, merc.eurusd);
 
   // Precio vigente por símbolo: la cotización más reciente; «anterior» = pc de la fuente o la del día previo.
   const precios: Record<string, PrecioMercado> = {};
@@ -210,7 +225,9 @@ export const datosCapital = cache(async (): Promise<DatosCapital> => {
     registroCompleto,
     aportesConfirmados,
     caja: { datos: cajaLeida.datos, error: cajaLeida.error },
-    prefAportes: leerPrefAportes(prefAp.error ? null : ((prefAp.data ?? [])[0] as { valor: unknown } | undefined)?.valor),
+    enlaces: enlacesCaja,
+    plan: cajaLeida.datos?.config ? planDelMes(cajaLeida.datos, hoy.slice(0, 7), hoy, enlacesCaja) : null,
+    aportes: cajaLeida.datos?.config ? aportesProyeccion(cajaLeida.datos, hoy, enlacesCaja) : new Map(),
   };
 });
 

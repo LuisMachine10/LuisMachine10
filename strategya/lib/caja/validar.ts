@@ -114,6 +114,15 @@ function revisarCuentas(tipo: string, cuenta: string | null, destino: string | n
   return null;
 }
 
+/** Prefijo de una inversión del registro que no vive en el Presupuesto (acciones, fondos por cuotas) en las listas. */
+export const PREFIJO_REGISTRO = "r:";
+
+/** «r:<id>» → la fila del registro; un id normal → la cuenta del Presupuesto. */
+export function partirCuenta(v: string | null): { caja: string | null; registro: string | null } {
+  if (!v) return { caja: null, registro: null };
+  return v.startsWith(PREFIJO_REGISTRO) ? { caja: null, registro: v.slice(PREFIJO_REGISTRO.length) || null } : { caja: v, registro: null };
+}
+
 export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> {
   const fecha = texto(c.fecha);
   if (!esFecha(fecha)) return mal("Fecha inválida.");
@@ -125,13 +134,21 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
   // La tasa también sirve en pesos cuando el dinero entra o sale de una cuenta en US$.
   const tasa = leerMonto(c.tasa, "Tasa", { positivo: true });
   if (!tasa.ok) return tasa;
-  const cuenta = opcional(c.cuenta);
-  const destino = c.tipo === "transferencia" || c.tipo === "pago_tarjeta" ? opcional(c.destino) : null;
-  const e = revisarCuentas(c.tipo, cuenta, destino) ?? revisarCategoria(c.tipo, opcional(c.categoria));
+  const cuentaCruda = opcional(c.cuenta);
+  const destinoCrudo = c.tipo === "transferencia" || c.tipo === "pago_tarjeta" ? opcional(c.destino) : null;
+  const e = revisarCuentas(c.tipo, cuentaCruda, destinoCrudo) ?? revisarCategoria(c.tipo, opcional(c.categoria));
   if (e) return mal(e);
+  // Una inversión que no vive en el Presupuesto («r:<id>»): solo en un ahorro (destino) o un rescate (origen).
+  const o = partirCuenta(cuentaCruda);
+  const d = partirCuenta(destinoCrudo);
+  if ((o.registro || d.registro) && c.tipo !== "transferencia") return mal("Esa inversión solo puede recibir ahorro o salir en un «Rescate o venta». Elige una cuenta.");
+  if (o.registro && d.registro) return mal("De una inversión a otra no se pasa directo: primero rescátala a una cuenta y luego ahorra en la otra.");
+  const cuenta = o.caja;
+  const destino = d.caja;
   // Pago de tarjeta o préstamo: «¿cuánto fue capital?». Escrito → interés = monto − capital. Vacío → sin
   // decidir aquí (la acción lo calcula con la tasa del préstamo o lo deja todo como capital).
   let interes: string | null | undefined;
+  let cargos: string | null | undefined;
   if (c.tipo === "pago_tarjeta") {
     const cap = leerMonto(c.capital, "Capital");
     if (!cap.ok) return { ok: false, error: `${cap.error} Escribe solo la parte que baja tu deuda, por ejemplo 7,500, o déjalo vacío.` };
@@ -139,6 +156,13 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
       if (new Big(cap.valor).gt(monto.valor!)) return mal("El capital no puede ser mayor que el pago. Escribe la parte del pago que baja tu deuda.");
       const i = new Big(monto.valor!).minus(cap.valor);
       interes = i.eq(0) ? null : i.toFixed();
+    }
+    // Cargos dentro de la cuota (seguro…): gasto aparte que no baja la deuda. Vacío = los de Mis cuentas.
+    const k = leerMonto(c.cargos, "Cargos");
+    if (!k.ok) return { ok: false, error: `${k.error} Escribe solo la cifra del seguro u otros cargos, por ejemplo 1,200, o déjalo vacío.` };
+    if (k.valor !== null) {
+      if (new Big(k.valor).gt(monto.valor!)) return mal("Los cargos no pueden ser mayores que el pago.");
+      cargos = new Big(k.valor).eq(0) ? null : k.valor;
     }
   }
   const parte = leerParte(c);
@@ -154,7 +178,11 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
     nota: opcional(c.nota),
     recurrenteId: opcional(c.recurrenteId),
     ...(interes !== undefined ? { interes } : {}),
+    ...(cargos !== undefined ? { cargos } : {}),
     ...(parte ? { parte } : {}),
+    ...(o.registro ? { registroOrigen: o.registro } : {}),
+    ...(d.registro ? { registroDestino: d.registro } : {}),
+    ...(c.tipo === "pago_tarjeta" && opcional(c.categoriaCargos) ? { categoriaCargos: opcional(c.categoriaCargos) } : {}),
   });
 }
 
@@ -178,9 +206,13 @@ export function validarRecurrente(c: Campos): Resultado<Omit<Recurrente, "id">> 
   const monto = leerMonto(c.monto, "Monto", { requerido: !pagoTotal, positivo: !pagoTotal });
   if (!monto.ok) return monto;
   const cuenta = opcional(c.cuenta);
-  const destino = c.tipo === "transferencia" || c.tipo === "pago_tarjeta" ? opcional(c.destino) : null;
-  const e = revisarCuentas(c.tipo, cuenta, destino) ?? revisarCategoria(c.tipo, opcional(c.categoria));
+  const destinoCrudo = c.tipo === "transferencia" || c.tipo === "pago_tarjeta" ? opcional(c.destino) : null;
+  const e = revisarCuentas(c.tipo, cuenta, destinoCrudo) ?? revisarCategoria(c.tipo, opcional(c.categoria));
   if (e) return mal(e);
+  if (cuenta?.startsWith(PREFIJO_REGISTRO)) return mal("Un pago fijo sale de efectivo o de una cuenta.");
+  const d = partirCuenta(destinoCrudo);
+  if (d.registro && c.tipo !== "transferencia") return mal("Esa inversión solo puede recibir ahorro.");
+  const destino = d.caja;
   const dias = texto(c.dias);
   let cadaN: number | null = null;
   let fecha: string | null = null;
@@ -218,6 +250,7 @@ export function validarRecurrente(c: Campos): Resultado<Omit<Recurrente, "id">> 
     hasta,
     activo: c.activo === undefined ? true : c.activo === "on" || c.activo === "true",
     ...(c.tipo === "pago_tarjeta" && leerParte(c) ? { parte: leerParte(c) } : {}),
+    ...(d.registro ? { registroDestino: d.registro } : {}),
   });
 }
 

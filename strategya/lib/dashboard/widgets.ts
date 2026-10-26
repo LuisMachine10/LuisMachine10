@@ -70,7 +70,7 @@ export const WIDGETS_PORTAFOLIO: readonly FichaWidget[] = [
   { id: "pf-participacion", titulo: "Participación por categoría", que: "Cómo está repartido tu dinero, contra tu meta.", grupo: "capital-hoy", tamano: 2, visible: true },
   { id: "pf-retorno", titulo: "Retorno esperado", que: "Lo que cada categoría promete pagar al año según sus tasas.", grupo: "capital-futuro", tamano: 1, visible: true },
   { id: "pf-futuro", titulo: "El futuro de cada categoría", que: "Cuánto tendría cada una con tus aportes y el interés compuesto.", grupo: "capital-futuro", tamano: 2, visible: true },
-  { id: "pf-aportes", titulo: "Aportes del mes", que: "Lo que tu presupuesto manda a invertir este mes, por confirmar.", grupo: "capital-futuro", tamano: 1, visible: true },
+  { id: "pf-aportes", titulo: "Lo que planeaste ahorrar este mes", que: "Tus líneas de ahorro e inversión del mes (instrumento y monto): hechas, a medias o por hacer.", grupo: "capital-futuro", tamano: 1, visible: true },
   { id: "pf-puente", titulo: "Puente de patrimonio e indicadores", que: "Por qué cambió tu patrimonio, y tus números clave al lado.", grupo: "capital-riesgo", tamano: 3, visible: true },
   { id: "pf-riesgos", titulo: "Matriz de riesgos", que: "Liquidez, concentración, dólar y deuda: qué tan probable y qué tan grave.", grupo: "capital-riesgo", tamano: 2, visible: true },
   { id: "pf-dolar", titulo: "Cuánto dependes del dólar", que: "Qué parte de tu patrimonio está en otra moneda y el tipo de cambio usado.", grupo: "capital-riesgo", tamano: 1, visible: true },

@@ -7,11 +7,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { COLUMNAS, COLUMNAS_COMPLETAS, conRegistro, type FilaEnlace, type FilasCaja, filasADatos, ORDEN } from "../../lib/caja/filas";
+import { COLUMNAS, COLUMNAS_TARJETAS, conRegistro, type FilaEnlace, type FilasCaja, filasADatos, ORDEN } from "../../lib/caja/filas";
 import { aJsonSQL } from "../../lib/caja/importar";
 import { simular } from "../../lib/caja/motor";
 import { claveUSD } from "../../lib/caja/tipos";
-import { COLUMNAS_REGISTRO, conSaldosVigentes, filaARegistro } from "../../lib/capital/registro";
+import { COLUMNAS_REGISTRO_TARJETAS, conSaldosVigentes, filaARegistro } from "../../lib/capital/registro";
 import { como, debeFallar } from "./base";
 
 const RAIZ = join(import.meta.dirname, "..", "..");
@@ -42,7 +42,7 @@ async function leer(c: pg.PoolClient | pg.Pool, columnas: Record<string, string>
 
 /** El Presupuesto como lo lee la app después de la migración: columnas completas y lo que viene del registro. */
 async function leerCompleto(c: pg.PoolClient | pg.Pool) {
-  const datos = filasADatos(await leer(c, COLUMNAS_COMPLETAS));
+  const datos = filasADatos(await leer(c, COLUMNAS_TARJETAS));
   // Lo mismo que pide la app por PostgREST (COLUMNAS_ENLACE), con los numeric como texto.
   const enl = (
     await c.query(`select c.id, c.registro_id,
@@ -94,7 +94,7 @@ beforeAll(async () => {
 
   const caja = await leer(pool);
   // La simulación de antes, como la leía la app antes de esta migración (con moneda e interés de la Fase F).
-  const conFaseF = { ...COLUMNAS_COMPLETAS, caja_recurrentes: COLUMNAS.caja_recurrentes, caja_movimientos: `${COLUMNAS.caja_movimientos}, interes::text` };
+  const conFaseF = { ...COLUMNAS_TARJETAS, caja_recurrentes: COLUMNAS.caja_recurrentes, caja_movimientos: `${COLUMNAS.caja_movimientos}, interes::text` };
   antes = {
     activos: (await pool.query(`select ${REGISTRO_ANTES} from personal.activos order by id`)).rows,
     caja,
@@ -159,7 +159,7 @@ describe("ciclo y doble moneda en la base", () => {
       const vx = datos.cuentas.find((x) => x.id === "vx")!;
       expect(vx).toMatchObject({ ciclo: { diaCorte: 15, diasParaPagar: 28, diaPago: 30 }, usd: { saldoInicial: "0", limite: "2000" } });
       expect(datos.saldos.filter((s) => s.sintetico)).toEqual([{ fecha: "2026-10-26", cuentaId: "vx#usd", saldo: "450", sintetico: true }]);
-      const filas = (await c.query(`select ${COLUMNAS_REGISTRO} from personal.activos order by orden, id`)).rows;
+      const filas = (await c.query(`select ${COLUMNAS_REGISTRO_TARJETAS} from personal.activos order by orden, id`)).rows;
       const porRegistro = new Map(Object.entries(enlaces).map(([cj, rg]) => [rg, cj]));
       const items = conSaldosVigentes(filas.map((f) => filaARegistro(f, porRegistro.get(String(f.id)) ?? null)), datos, "2026-10-26");
       expect(items.find((i) => i.id === "tc-x")).toMatchObject({ cantidad: "12500", saldoUsd: "450", limiteUsd: "2000", diaCorte: 15, diasParaPagar: 28, diaPago: 30, pagos: ["2026-10-20"] });

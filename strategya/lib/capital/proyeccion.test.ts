@@ -1,9 +1,8 @@
-// Motor de proyección con aportes del Presupuesto. Cifras SINTÉTICAS redondas para revisar a mano.
+// Motor de proyección: interés compuesto mes a mes de un instrumento. Cifras SINTÉTICAS redondas para revisar a mano.
+// Las reglas por tipo y los aportes en monto del plan del mes: lib/finanzas/proyeccion.test.ts.
 import { describe, expect, it } from "vitest";
-import { activosEjemplo, contextoEjemplo, parametrosEjemplo } from "./apoyo-pruebas";
 import { Big, CERO } from "./decimal";
-import { aportesDelPlan, horizonteMeses, proyectarInstrumento, proyectarPortafolio, type Reglas, reglasDe, repartoClases } from "./proyeccion";
-import { planVacio } from "./tipos";
+import { proyectarInstrumento, type Reglas } from "./proyeccion";
 
 const base = (r: Partial<Reglas> = {}): Reglas => ({ tasa: new Big("0.12"), capitaliza: true, cadaMeses: 1, reinvierte: false, aporte: CERO, desdeMes: 1, vence: null, supuesto: false, ...r });
 const fin = (pts: ReturnType<typeof proyectarInstrumento>) => pts[pts.length - 1];
@@ -59,35 +58,3 @@ describe("interés compuesto de un instrumento", () => {
   });
 });
 
-describe("reglas por defecto y del plan", () => {
-  it("cupón sin plan: no capitaliza, paga cada mes; con plan, manda lo que escribió Mena", () => {
-    const cupon = { ...activosEjemplo()[3], tipoRF: "cupon" as const, plan: planVacio() };
-    expect(reglasDe(cupon, CERO, "2026-10-15")).toMatchObject({ capitaliza: false, cadaMeses: 1, supuesto: true, vence: 12 });
-    const conPlan = { ...cupon, plan: { ...planVacio(), capitaliza: false, frecuenciaPago: "semestral" as const, reinvierte: true } };
-    expect(reglasDe(conPlan, CERO, "2026-10-15")).toMatchObject({ capitaliza: false, cadaMeses: 6, reinvierte: true, supuesto: false });
-  });
-});
-
-describe("reparto del ahorro presupuestado (por clase y por instrumento)", () => {
-  it("usa la meta de la política si no hay plan; dentro de la clase, partes iguales o lo escrito", () => {
-    const ctx = contextoEjemplo();
-    expect(repartoClases(ctx)!.origen).toBe("meta");
-    const ap = aportesDelPlan(ctx, new Big(10000));
-    // Meta: efectivo 10 %, ahorros 10 % (2 cuentas → 500 c/u), renta fija 50 %, renta variable 30 %.
-    expect(ap.map((x) => [x.activo.id, x.monto.toFixed()])).toEqual([["a1", "1000"], ["a2", "500"], ["a3", "500"], ["a4", "5000"], ["a5", "3000"]]);
-    const activos = activosEjemplo().map((a) => (a.id === "a2" ? { ...a, plan: { ...planVacio(), aportePct: "1" } } : a));
-    const ap2 = aportesDelPlan(contextoEjemplo({ activos, p: { ...parametrosEjemplo(), planClases: { efectivo: "0", ahorros: "1", rentafija: "0", rentavariable: "0" } } }), new Big(10000));
-    expect(ap2.map((x) => [x.activo.id, x.monto.toFixed()])).toEqual([["a2", "10000"], ["a3", "0"]]);
-  });
-
-  it("proyección total: lo aportado + lo que ganaron los intereses = total, mes a mes", () => {
-    const ctx = contextoEjemplo();
-    const p = proyectarPortafolio(ctx, 24, new Big(10000));
-    const ult = p.puntos[24];
-    expect(ult.total.toFixed()).toBe(ult.aportado.plus(ult.interes).toFixed());
-    // 24 × 10,000, menos los 13 aportes de 5,000 del certificado que vence en oct. 2027 (deja de recibir).
-    expect(ult.aportado.minus(p.puntos[0].aportado).toFixed()).toBe("175000");
-    expect(p.puntos[0].interes.toFixed()).toBe("0");
-    expect(horizonteMeses(ctx, "5")).toBe(60);
-  });
-});

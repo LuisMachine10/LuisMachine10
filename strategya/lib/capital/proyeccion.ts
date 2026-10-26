@@ -1,26 +1,31 @@
-// Proyecciones con aportes del Presupuesto (pedido de Mena, oct. 2026): «basado en mi presupuesto se
-// determina cuánto va a cada tipo de inversión, y de ahí se agrega mensualmente en las proyecciones».
+// Proyecciones del Portafolio (Núcleo v2, manual de lógica financiera secciones A y C).
 //
-// Reparto: el ahorro presupuestado del mes (contrato personal.presupuesto_ahorro_mensual) se divide por
-// clase (planClases, o la meta de asignación de la Política) y, dentro de cada clase, entre sus
-// instrumentos (aporte_pct de cada uno, o partes iguales).
+// Aportes: EXACTAMENTE las líneas del plan del mes («Lo que planeaste ahorrar este mes»: instrumento + monto en su
+// moneda, lib/finanzas/plan.ts). Ya no hay reparto por porcentajes: la Política de inversión solo compara.
 //
-// Interés compuesto mes a mes, con big.js (sin float): la tasa anual se aplica como tasa nominal ÷ 12.
-//   · Capitaliza dentro del instrumento: el interés del mes se suma al saldo y gana interés el mes siguiente.
-//   · No capitaliza: el interés se va juntando y se paga cada 1, 3, 6 o 12 meses (o todo al vencer). Si
-//     Mena lo reinvierte, entra al saldo (así crea ella misma el interés compuesto); si no, queda cobrado.
-//   · El aporte del mes entra al final del mes (empieza a ganar el mes siguiente), desde plan_inicio.
-//   · Al vencer: se paga lo pendiente y el instrumento deja de ganar y de recibir aportes (sin suponer
-//     una reinversión que Mena no escribió).
-// Es una proyección con los supuestos de Mena, no un pronóstico: la pantalla lo dice siempre.
+// Cada instrumento rinde según su TIPO (lib/finanzas/catalogo.ts), mes a mes con big.js (tasa anual ÷ 12):
+//   · Efectivo, cuenta corriente y bienes no rinden. La cuenta de ahorro: por ahora su interés mínimo no se cuenta.
+//   · Alto rendimiento y fondo abierto capitalizan (el interés se queda adentro y gana interés).
+//   · Certificado, fondo cerrado y fideicomiso: lo que Mena eligió (capitaliza o paga a una cuenta). Sin elegir, NO
+//     se proyecta su interés (no se supone) y la pantalla lo pide.
+//   · Mutuo/reporto: no capitaliza solo. Cada plazo (30 días ≈ 1 mes) se renueva: si Mena deja el interés (lo que
+//     escribió en su plan o lo que hizo en su última renovación) entra al capital; si no, se cobra.
+//   · Bono, acción/ETF: el cupón o dividendo se cobra en una cuenta (no capitaliza).
+//   · Retención del interés: la del instrumento o la del tipo (certificados bancarios 10 %). Comisión de
+//     administración de puesto de bolsa: solo si está anotada; si no, «no confirmado» (no se inventa).
+//   · El aporte del mes entra al final del mes (gana desde el siguiente). Al vencer (certificado, bono) se paga lo
+//     pendiente y deja de ganar y de recibir aportes: no se supone una renovación que Mena no escribió.
+// Es una proyección con los datos de Mena, no un pronóstico: la pantalla lo dice siempre.
 
+import { CATALOGO, capitalizaDe, retencionDe, tasaQueCuenta, type TipoFin, tipoInicial } from "../finanzas/catalogo";
+import { estadoMutuo, mesesDePlazo } from "../finanzas/mutuo";
 import { Big, CERO, n, redondearTrabajo } from "./decimal";
 import { mesesEntre } from "./fechas";
-import { type Contexto, valorDOP } from "./posicion";
+import { type Contexto, fxDe, valorDOP } from "./posicion";
 import { type Activo, type Clase, FRECUENCIAS_PAGO, IDS_CLASE } from "./tipos";
 
 export interface Reglas {
-  /** Tasa anual (fracción). */
+  /** Tasa anual (fracción) que cuenta. */
   tasa: Big;
   capitaliza: boolean;
   /** Si no capitaliza: meses entre pagos de interés; 0 = todo al vencer. */
@@ -30,22 +35,40 @@ export interface Reglas {
   aporte: Big;
   /** Primer mes (1 = el próximo cierre de mes) en que entra aporte. */
   desdeMes: number;
+  /** Último mes con aporte (null = sin fin). */
+  hastaMes?: number | null;
   /** Mes en que vence (1 = este mes), o null. */
   vence: number | null;
-  /** true si capitaliza/frecuencia no los escribió Mena (la pantalla lo dice). */
+  /** Retención del interés (fracción). */
+  retencion?: Big;
+  /** Comisión de administración al año (fracción). null = no se descuenta. */
+  comision?: Big | null;
+  /** true si algo no lo escribió Mena y se usa lo del tipo (la pantalla lo dice). */
   supuesto: boolean;
+  /** Tipo elegible sin elegir (certificado, fondo cerrado, fideicomiso): su interés no se proyecta. */
+  sinElegir?: boolean;
+  /** Puesto de bolsa sin comisión anotada: «no confirmado». */
+  comisionNoConfirmada?: boolean;
+  /** De dónde sale la regla de reinversión de un mutuo. */
+  origenReinversion?: "plan" | "ultima_renovacion" | "no_capitaliza_solo";
 }
 
 export interface PuntoInstrumento {
   mes: number;
   /** Lo que hay dentro del instrumento (incluye interés ya ganado y aún no pagado). */
   saldo: Big;
-  /** Intereses pagados que NO se reinvirtieron (dinero que salió del instrumento). */
+  /** Intereses (netos) pagados que NO se reinvirtieron: dinero que salió a una cuenta. */
   cobrado: Big;
   /** Saldo inicial + aportes. */
   aportado: Big;
-  /** Lo que ganaron los intereses: saldo + cobrado − aportado. */
+  /** Lo que ganaron los intereses (neto de retención y comisiones): saldo + cobrado − aportado. */
   interes: Big;
+  /** Interés bruto acumulado (antes de retención). */
+  bruto: Big;
+  /** Retención acumulada. */
+  retenido: Big;
+  /** Comisiones acumuladas. */
+  comisiones: Big;
 }
 
 /** Mes a mes desde el saldo de hoy (mes 0) hasta `meses`. */
@@ -54,12 +77,21 @@ export function proyectarInstrumento(saldo0: Big, r: Reglas, meses: number): Pun
   let devengado = CERO;
   let cobrado = CERO;
   let aportado = saldo0;
+  let bruto = CERO;
+  let retenido = CERO;
+  let comisiones = CERO;
   const tasaMes = r.tasa.div(12);
-  const pts: PuntoInstrumento[] = [{ mes: 0, saldo: saldo0, cobrado: CERO, aportado, interes: CERO }];
+  const ret = r.retencion ?? CERO;
+  const comMes = r.comision && r.comision.gt(0) ? r.comision.div(12) : null;
+  const pts: PuntoInstrumento[] = [{ mes: 0, saldo: saldo0, cobrado: CERO, aportado, interes: CERO, bruto, retenido, comisiones }];
   for (let t = 1; t <= meses; t++) {
     const activo = r.vence === null || t <= r.vence;
     if (activo) {
-      const interes = redondearTrabajo(principal.times(tasaMes));
+      const b = redondearTrabajo(principal.times(tasaMes));
+      const retiene = redondearTrabajo(b.times(ret));
+      const interes = b.minus(retiene);
+      bruto = bruto.plus(b);
+      retenido = retenido.plus(retiene);
       if (r.capitaliza) principal = principal.plus(interes);
       else {
         devengado = devengado.plus(interes);
@@ -70,81 +102,90 @@ export function proyectarInstrumento(saldo0: Big, r: Reglas, meses: number): Pun
           devengado = CERO;
         }
       }
-      if (t >= r.desdeMes && t !== r.vence && r.aporte.gt(0)) {
+      if (comMes) {
+        const c = redondearTrabajo(principal.times(comMes));
+        principal = principal.minus(c);
+        comisiones = comisiones.plus(c);
+      }
+      const conAporte = t >= r.desdeMes && (r.hastaMes === null || r.hastaMes === undefined || t <= r.hastaMes) && t !== r.vence;
+      if (conAporte && r.aporte.gt(0)) {
         principal = principal.plus(r.aporte);
         aportado = aportado.plus(r.aporte);
       }
     }
     const saldo = principal.plus(devengado);
-    pts.push({ mes: t, saldo, cobrado, aportado, interes: saldo.plus(cobrado).minus(aportado) });
+    pts.push({ mes: t, saldo, cobrado, aportado, interes: saldo.plus(cobrado).minus(aportado), bruto, retenido, comisiones });
   }
   return pts;
 }
 
-/** Reglas de un instrumento: lo que Mena escribió en su plan o, si falta, un supuesto razonable y dicho. */
-export function reglasDe(a: Activo, aporte: Big, hoy: string): Reglas {
+/** Tipo del instrumento (sin tipo, el de su clase con la misma regla de la migración). */
+export function tipoDe(a: Activo): TipoFin {
+  return a.tipo ?? tipoInicial({ clase: a.clase, subtipo: a.subtipo ?? null, nombre: a.nombre, institucion: a.inst, simbolo: a.simbolo, tipoRF: a.tipoRF }).tipo;
+}
+
+/** Las reglas de un instrumento según su tipo y lo que Mena eligió. */
+export function reglasDe(a: Activo, aporte: Big, hoy: string, op: { desdeMes?: number; hastaMes?: number | null } = {}): Reglas {
+  const tipo = tipoDe(a);
+  const regla = CATALOGO[tipo];
   const plan = a.plan;
-  const supuesto = plan?.capitaliza === null || plan?.capitaliza === undefined;
-  let capitaliza = plan?.capitaliza ?? true;
+  let tasa = n(tasaQueCuenta(tipo, a.tasa));
+  let capitaliza = capitalizaDe(tipo, plan?.capitaliza ?? null);
+  let supuesto = false;
+  let sinElegir = false;
   let cadaMeses = 1;
-  let reinvierte = plan?.reinvierte ?? false;
-  if (supuesto) {
-    // Cupón: paga cada mes y no se reinvierte. Lo demás (ahorros, fondos, acumula) se supone capitalizable.
-    if (a.clase === "rentafija" && a.tipoRF === "cupon") {
-      capitaliza = false;
-      cadaMeses = 1;
+  let reinvierte = false;
+  let origenReinversion: Reglas["origenReinversion"];
+  if (capitaliza === null) {
+    // Elegible sin elegir: no se supone; su interés no se proyecta.
+    sinElegir = true;
+    capitaliza = true;
+    tasa = CERO;
+  } else if (!capitaliza) {
+    if (tipo === "mutuo") {
+      cadaMeses = mesesDePlazo(a.plazoDias);
+      const ultima = estadoMutuo(a.cantidad, a.renovaciones ?? []).dejaInteres;
+      if (plan?.reinvierte !== null && plan?.reinvierte !== undefined) {
+        reinvierte = plan.reinvierte;
+        origenReinversion = "plan";
+      } else if (ultima !== null) {
+        reinvierte = ultima;
+        origenReinversion = "ultima_renovacion";
+      } else origenReinversion = "no_capitaliza_solo";
+    } else {
+      const f = FRECUENCIAS_PAGO.find((x) => x.id === plan?.frecuenciaPago);
+      if (!f) supuesto = tasa.gt(0);
+      cadaMeses = f?.meses ?? 1;
+      // Cupones, dividendos e intereses que se pagan a una cuenta: se cobran (no vuelven solos al instrumento).
       reinvierte = false;
     }
-  } else if (!capitaliza) {
-    const f = FRECUENCIAS_PAGO.find((x) => x.id === plan?.frecuenciaPago) ?? FRECUENCIAS_PAGO[0];
-    cadaMeses = f.meses;
   }
-  const vence = a.venc && a.venc >= hoy ? Math.max(1, mesesEntre(hoy.slice(0, 7), a.venc.slice(0, 7))) : null;
-  const desdeMes = plan?.inicio && plan.inicio > hoy ? Math.max(1, mesesEntre(hoy.slice(0, 7), plan.inicio.slice(0, 7))) : 1;
-  return { tasa: n(a.tasa), capitaliza, cadaMeses, reinvierte, aporte, desdeMes, vence: a.venc && a.venc < hoy ? 0 : vence, supuesto };
+  const vence = tipo === "mutuo" ? null : a.venc && a.venc >= hoy ? Math.max(1, mesesEntre(hoy.slice(0, 7), a.venc.slice(0, 7))) : a.venc && a.venc < hoy ? 0 : null;
+  const comision = a.comisionAdmin ? n(a.comisionAdmin) : null;
+  return {
+    tasa,
+    capitaliza,
+    cadaMeses,
+    reinvierte,
+    aporte,
+    desdeMes: op.desdeMes ?? 1,
+    hastaMes: op.hastaMes ?? null,
+    vence,
+    retencion: n(retencionDe(tipo, a.retencion ?? null)),
+    comision,
+    supuesto,
+    sinElegir,
+    comisionNoConfirmada: regla.comisionPuesto && comision === null && tasa.gt(0),
+    origenReinversion,
+  };
 }
 
-/** Reparto por clase (fracciones): planClases o la meta de asignación; si no hay nada escrito, null. */
-export function repartoClases(ctx: Contexto): { pct: Record<Clase, Big>; origen: "plan" | "meta" } | null {
-  const fuente = ctx.p.planClases ? "plan" : "meta";
-  const crudo = ctx.p.planClases ?? ctx.p.metaAsignacion;
-  const pct = Object.fromEntries(IDS_CLASE.map((c) => [c, n(crudo[c])])) as Record<Clase, Big>;
-  const suma = IDS_CLASE.reduce((s, c) => s.plus(pct[c]), CERO);
-  if (suma.lte(0)) return null;
-  // Si no suman 100 %, se reparte en proporción (y la pantalla muestra la suma).
-  if (!suma.eq(1)) for (const c of IDS_CLASE) pct[c] = pct[c].div(suma);
-  return { pct, origen: fuente };
-}
-
-export interface AporteInstrumento {
-  activo: Activo;
-  pctClase: Big;
-  pctEnClase: Big;
+/** Aporte mensual de un instrumento según el plan del mes (en su moneda), con el mes desde y hasta cuándo entra. */
+export interface AportePlan {
   monto: Big;
-  /**
-   * Ya venció: su parte NO se reparte sola entre los demás (Fase F: nada automático). Queda «sin destino»
-   * hasta que Mena confirme a dónde va (Proyecciones → «Venció…»). No se pide como aporte del mes.
-   */
-  vencido: boolean;
-}
-
-/** Cuánto va a cada instrumento al mes: ahorro × % de su clase × % dentro de la clase. */
-export function aportesDelPlan(ctx: Contexto, ahorroMensual: Big | null): AporteInstrumento[] {
-  const rep = repartoClases(ctx);
-  if (!rep || !ahorroMensual || ahorroMensual.lte(0)) return [];
-  const out: AporteInstrumento[] = [];
-  for (const c of IDS_CLASE) {
-    const lista = ctx.activos.filter((a) => a.clase === c);
-    if (!lista.length || rep.pct[c].lte(0)) continue;
-    const escritos = lista.some((a) => a.plan?.aportePct !== null && a.plan?.aportePct !== undefined);
-    const sumaEscritos = lista.reduce((s, a) => s.plus(n(a.plan?.aportePct ?? null)), CERO);
-    for (const a of lista) {
-      const pctEnClase = escritos ? (sumaEscritos.gt(0) ? n(a.plan?.aportePct ?? null).div(sumaEscritos) : CERO) : new Big(1).div(lista.length);
-      const monto = ahorroMensual.times(rep.pct[c]).times(pctEnClase).round(2, Big.roundHalfEven);
-      out.push({ activo: a, pctClase: rep.pct[c], pctEnClase, monto, vencido: !!(a.venc && a.venc < ctx.hoy) });
-    }
-  }
-  return out;
+  moneda: string;
+  desdeMes?: number;
+  hastaMes?: number | null;
 }
 
 export interface ProyeccionClase {
@@ -162,21 +203,35 @@ export interface ProyeccionPortafolio {
   porClase: ProyeccionClase[];
   porInstrumento: { activo: Activo; reglas: Reglas; aporte: Big; pts: PuntoInstrumento[] }[];
   sinValorar: Activo[];
+  /** Suma de los aportes del plan del mes (RD$). null = no hay líneas. */
   ahorroMensual: Big | null;
+  /** Líneas del plan cuyo instrumento no está en el Portafolio o no tiene tipo de cambio. */
+  aportesSinDestino: string[];
 }
 
-export function proyectarPortafolio(ctx: Contexto, meses: number, ahorroMensual: Big | null): ProyeccionPortafolio {
-  const aportes = new Map(aportesDelPlan(ctx, ahorroMensual).filter((x) => !x.vencido).map((x) => [x.activo.id, x.monto]));
+/** Proyección con los aportes EXACTOS del plan del mes (id del registro → monto en su moneda). */
+export function proyectarPortafolio(ctx: Contexto, meses: number, aportes: Map<string, AportePlan> = new Map()): ProyeccionPortafolio {
   const porInstrumento: ProyeccionPortafolio["porInstrumento"] = [];
   const sinValorar: Activo[] = [];
+  let ahorro = CERO;
+  const usados = new Set<string>();
   for (const a of ctx.activos) {
     const v = valorDOP(ctx, a);
     if (v === null) {
       sinValorar.push(a);
       continue;
     }
-    const aporte = aportes.get(a.id) ?? CERO;
-    const reglas = reglasDe(a, aporte, ctx.hoy);
+    const ap = aportes.get(a.id);
+    let aporte = CERO;
+    if (ap) {
+      const fx = fxDe(ctx, ap.moneda as Activo["moneda"]);
+      if (fx) {
+        aporte = ap.monto.times(fx);
+        usados.add(a.id);
+        ahorro = ahorro.plus(aporte);
+      }
+    }
+    const reglas = reglasDe(a, aporte, ctx.hoy, { desdeMes: ap?.desdeMes, hastaMes: ap?.hastaMes });
     porInstrumento.push({ activo: a, reglas, aporte, pts: proyectarInstrumento(v, reglas, meses) });
   }
   const puntos: ProyeccionPortafolio["puntos"] = [];
@@ -200,13 +255,15 @@ export function proyectarPortafolio(ctx: Contexto, meses: number, ahorroMensual:
       interes: sum((p) => p.interes, meses),
     };
   });
-  return { meses, puntos, porClase, porInstrumento, sinValorar, ahorroMensual };
-}
-
-/** Ahorro mensual presupuestado (RD$) desde el contrato del Presupuesto, o null. */
-export function ahorroPresupuestado(ctx: Contexto): Big | null {
-  const a = ctx.presupuesto?.ahorroMensual;
-  return a ? new Big(a) : null;
+  return {
+    meses,
+    puntos,
+    porClase,
+    porInstrumento,
+    sinValorar,
+    ahorroMensual: aportes.size ? ahorro : null,
+    aportesSinDestino: [...aportes.keys()].filter((id) => !usados.has(id)),
+  };
 }
 
 /** Horizonte en meses: el de la página (?anios=), o el de los parámetros, o 10 años. */
@@ -214,4 +271,13 @@ export function horizonteMeses(ctx: Contexto, anios?: string | null): number {
   const pedido = anios && /^\d{1,2}$/.test(anios) ? Number(anios) : null;
   const h = pedido ?? (n(ctx.p.horizonte).gt(0) ? Math.round(Number(n(ctx.p.horizonte).toFixed(0))) : 10);
   return Math.min(40, Math.max(1, h)) * 12;
+}
+
+/** «Cuánto te deja al mes» una cuenta de alto rendimiento (o cualquier instrumento que rinde): saldo × tasa ÷ 12, neto de retención. */
+export function cuantoDejaAlMes(a: Activo): Big | null {
+  const tipo = tipoDe(a);
+  const tasa = n(tasaQueCuenta(tipo, a.tasa));
+  if (tasa.lte(0)) return null;
+  const b = n(a.cantidad).times(n(a.precio || "1")).times(tasa).div(12);
+  return b.times(new Big(1).minus(n(retencionDe(tipo, a.retencion ?? null)))).round(2, Big.roundHalfUp);
 }

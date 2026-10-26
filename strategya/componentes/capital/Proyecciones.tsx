@@ -1,16 +1,19 @@
-// Proyecciones con los aportes del Presupuesto: cuánto va a cada inversión cada mes, el crecimiento con
-// interés compuesto («lo que aportaste» y «lo que ganaron tus intereses»), los aportes del mes por
-// confirmar («Sí, lo hice») y el plan de cada instrumento. Son cálculos con tus supuestos, no pronósticos.
+// Proyecciones (Núcleo v2): cómo crece tu dinero con los aportes EXACTOS de «Lo que planeaste ahorrar este mes» y con
+// las reglas de cada tipo de instrumento (lib/finanzas/catalogo.ts). La Política de inversión solo compara: no reparte.
+// Cada instrumento muestra cómo rinde según su tipo, lo que eligió Mena (lo elegible) y, en un mutuo, sus renovaciones.
+// Son cálculos con tus datos, no pronósticos.
 
 import Link from "next/link";
-import { guardarParametros, guardarPlan } from "@/app/capital/acciones";
+import { guardarPlan, registrarRenovacion } from "@/app/capital/acciones";
 import { CERO, n } from "@/lib/capital/decimal";
 import { sumarMeses } from "@/lib/capital/fechas";
 import { aPct } from "@/lib/capital/formulario";
 import { num, pct, rd } from "@/lib/capital/formato";
-import { ahorroPresupuestado, aportesDelPlan, horizonteMeses, proyectarPortafolio, repartoClases } from "@/lib/capital/proyeccion";
-import { CLASES, FRECUENCIAS_PAGO, nombreClase } from "@/lib/capital/tipos";
+import { cuantoDejaAlMes, horizonteMeses, proyectarPortafolio, type Reglas, tipoDe } from "@/lib/capital/proyeccion";
+import { FRECUENCIAS_PAGO, nombreClase } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
+import { aparece, CATALOGO, retencionDe } from "@/lib/finanzas/catalogo";
+import { estadoMutuo } from "@/lib/finanzas/mutuo";
 import { GraficoSerie } from "./GraficoSerie";
 import { Kpi, Mosaicos, Panel, SinDatos } from "./Piezas";
 
@@ -18,21 +21,21 @@ type Props = { datos: DatosCapital; mes: string; anios?: string | null };
 
 const HORIZONTES = ["1", "3", "5", "10", "20"];
 
-function OrigenAhorro({ datos }: { datos: DatosCapital }) {
-  const a = ahorroPresupuestado(datos.ctx);
-  if (!a) return null;
-  return (
-    <span className="sello">
-      Fuente: tu Presupuesto ({datos.ctx.presupuesto?.mes}) · categorías de ahorro e inversión · <Link href="/caja/resultados">ver</Link>
-    </span>
-  );
+/** Lo que la proyección supone de un instrumento, en palabras (solo lo que no escribió Mena o lo que falta). */
+function avisoReglas(r: Reglas): string | null {
+  if (r.sinElegir) return "elige si capitaliza o te paga a una cuenta: mientras tanto su interés no se proyecta";
+  if (r.origenReinversion === "ultima_renovacion") return "al renovar hace lo de tu última renovación";
+  if (r.origenReinversion === "no_capitaliza_solo") return "no capitaliza solo: el interés se cobra (anota tus renovaciones si lo dejas adentro)";
+  if (r.supuesto) return "sin frecuencia de pago escrita: se cuenta cada mes";
+  if (r.comisionNoConfirmada) return "comisión de administración no confirmada: no se descuenta";
+  return null;
 }
 
 export function PanelProyeccion({ datos, mes, anios, compacto = false }: Props & { compacto?: boolean }) {
   const { ctx } = datos;
   const meses = horizonteMeses(ctx, anios);
-  const ahorro = ahorroPresupuestado(ctx);
-  const pr = proyectarPortafolio(ctx, meses, ahorro);
+  const pr = proyectarPortafolio(ctx, meses, datos.aportes);
+  const ahorro = pr.ahorroMensual;
   const hoy = pr.puntos[0];
   const fin = pr.puntos[meses];
   const anos = meses / 12;
@@ -47,13 +50,14 @@ export function PanelProyeccion({ datos, mes, anios, compacto = false }: Props &
   }
   const puntos = pr.puntos.filter((p) => p.mes % (meses > 60 ? 3 : 1) === 0 || p.mes === meses);
   const fecha = (m: number) => sumarMeses(ctx.hoy, m);
+  const avisos = pr.porInstrumento.map((x) => ({ x, aviso: avisoReglas(x.reglas) })).filter((a) => a.aviso);
   return (
     <>
       {compacto ? null : (
         <Mosaicos etiqueta="Proyección del portafolio" columnas={4}>
           <Kpi rotulo="Hoy" valor={num(hoy.total)} unidad="RD$" meta="lo que tienes invertido" tono="neutra" />
-          <Kpi rotulo={`En ${num(anos, 0)} ${anos === 1 ? "año" : "años"}`} valor={num(fin.total)} unidad="RD$" meta="proyección con tus supuestos" tono="neutra" />
-          <Kpi rotulo="Lo que aportarías" valor={num(fin.aportado.minus(hoy.aportado))} unidad="RD$" meta={ahorro ? `${rd(ahorro)} al mes` : "sin ahorro en tu Presupuesto"} tono="neutra" />
+          <Kpi rotulo={`En ${num(anos, 0)} ${anos === 1 ? "año" : "años"}`} valor={num(fin.total)} unidad="RD$" meta="proyección con tus datos" tono="neutra" />
+          <Kpi rotulo="Lo que aportarías" valor={num(fin.aportado.minus(hoy.aportado))} unidad="RD$" meta={ahorro ? `${rd(ahorro)} al mes según tu plan` : "sin líneas de ahorro en tu plan"} tono="neutra" />
           <Kpi rotulo="Lo que ganarían tus intereses" valor={num(fin.interes)} unidad="RD$" meta={fin.total.gt(0) ? `${pct(fin.interes.div(fin.total), 0)} del total` : "—"} tono="neutra" />
         </Mosaicos>
       )}
@@ -74,13 +78,12 @@ export function PanelProyeccion({ datos, mes, anios, compacto = false }: Props &
         <p className="cap-nota" style={{ marginTop: 0 }}>
           {ahorro ? (
             <>
-              Cada mes entran <strong>{rd(ahorro)}</strong> de tu Presupuesto, repartidos por categoría. El área clara es lo que tú pones; la de arriba, lo que ganan tus
-              intereses (interés compuesto).
+              Cada mes entran <strong>{rd(ahorro)}</strong>: exactamente las líneas de «Lo que planeaste ahorrar este mes», cada una a su instrumento. El área clara es lo que tú
+              pones; la de arriba, lo que ganan tus intereses (interés compuesto) según el tipo de cada instrumento.
             </>
           ) : (
             <>
-              Tu Presupuesto todavía no aparta nada para ahorro e inversión: la proyección solo muestra cómo crece lo que ya tienes.{" "}
-              <Link href="/caja/ajustes">Agrega una categoría de ahorro en el Presupuesto</Link>.
+              Tu plan del mes no tiene líneas de ahorro: la proyección solo muestra cómo crece lo que ya tienes. <Link href="/caja/plan#t-plan-lineas">Escribe cuánto vas a ahorrar y en qué</Link>.
             </>
           )}
         </p>
@@ -135,98 +138,66 @@ export function PanelProyeccion({ datos, mes, anios, compacto = false }: Props &
           </table>
         </div>
         <div className="cap-pie-proy">
-          <OrigenAhorro datos={datos} />
-          <span className="sello">Proyección con tus tasas y reglas: tasa anual ÷ 12 cada mes, en pesos de hoy, sin cambiar el dólar. No es un pronóstico.</span>
-          {pr.porInstrumento.some((x) => x.reglas.supuesto) ? (
-            <span className="sello">{pr.porInstrumento.filter((x) => x.reglas.supuesto).length} instrumento(s) sin plan: se supone que capitalizan (los de cupón, que cobras cada mes). Ajústalo abajo.</span>
+          <span className="sello">
+            Fuente de los aportes: tu Plan del mes en el Presupuesto · <Link href="/caja/plan">ver</Link>
+          </span>
+          <span className="sello">Proyección con tus tasas y el tipo de cada instrumento: tasa anual ÷ 12 cada mes, en pesos de hoy, sin cambiar el dólar. No es un pronóstico.</span>
+          {avisos.length && !compacto ? (
+            <ul className="chico tenue" style={{ margin: 0, paddingLeft: 18 }}>
+              {avisos.map(({ x, aviso }) => (
+                <li key={x.activo.id}>
+                  {x.activo.nombre}: {aviso}.
+                </li>
+              ))}
+            </ul>
           ) : null}
+          {pr.aportesSinDestino.length ? <span className="sello">{pr.aportesSinDestino.length} línea(s) del plan van a algo que no tiene valor en RD$ hoy (sin tipo de cambio): no se proyectan.</span> : null}
         </div>
       </Panel>
     </>
   );
 }
 
-export { PanelAportesMes } from "./Aportes";
+export { PanelPlanAhorro } from "./Aportes";
 
-/** Reparto por categoría y reglas de cada instrumento (tasa, capitaliza, pagos, reinversión, % del aporte). */
+/** Cómo rinde cada instrumento según su tipo y lo que Mena eligió (lo elegible), más las renovaciones de un mutuo. */
 export function PanelPlan({ datos, mes }: Props) {
   const { ctx } = datos;
-  const rep = repartoClases(ctx);
-  const ahorro = ahorroPresupuestado(ctx);
-  const plan = ctx.p.planClases;
-  const suma = plan ? CLASES.reduce((s, c) => s.plus(n(plan[c.id])), CERO) : null;
-  const aportes = new Map(aportesDelPlan(ctx, ahorro).filter((x) => !x.vencido).map((x) => [x.activo.id, x.monto]));
+  const cuentas = (datos.caja.datos?.cuentas ?? []).filter((c) => c.tipoFin && aparece({ tipo: c.tipoFin, debito: c.debito }, "ingreso", "cuenta"));
   return (
-    <Panel titulo="Tu plan de aportes" id="cap-t-plan" ancho extra={<span className="tenue chico">{rep?.origen === "plan" ? "reparto propio" : "según tu Política"}</span>}>
-      <form action={guardarParametros} className="cap-form" key={JSON.stringify(plan)}>
-        <input type="hidden" name="seccion" value="planClases" />
-        <input type="hidden" name="volver" value="/capital/futuro" />
-        <input type="hidden" name="mes" value={mes} />
-        <h3 className="cap-rotulo">1. Cuánto de tu ahorro va a cada categoría</h3>
-        <div className="reg-campos">
-          {CLASES.map((c) => (
-            <label className="cap-campo" key={c.id}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <span className={`cap-muestra ${c.id}`} aria-hidden="true" /> {c.nom} %
-              </span>
-              <input
-                name={`plan.${c.id}`}
-                inputMode="decimal"
-                defaultValue={plan ? aPct(plan[c.id]) : ""}
-                placeholder={`Ej.: ${aPct(ctx.p.metaAsignacion[c.id] || "0") || "25"}`}
-              />
-              <span className="ayuda">{ahorro && rep ? `${rd(ahorro.times(rep.pct[c.id]).round(0))} al mes` : "—"}</span>
-            </label>
-          ))}
-        </div>
-        <p className="tenue chico" style={{ margin: 0 }}>
-          {plan ? `Tu reparto suma ${pct(suma, 0)}${suma && !suma.eq(1) ? ": se reparte en proporción" : ""}.` : "Vacío = se usa la meta por categoría de tu Política."} Dentro de cada categoría, el reparto
-          entre instrumentos se escribe abajo (vacío = partes iguales).
-        </p>
-        <div className="cap-botones">
-          <button type="submit" className="boton">
-            Guardar reparto
-          </button>
-          {plan ? (
-            <button type="submit" name="planClases" value="meta" className="boton secundario">
-              Usar la meta de mi Política
-            </button>
-          ) : null}
-        </div>
-      </form>
-      <h3 className="cap-rotulo" style={{ marginTop: 18 }}>
-        2. Las reglas de cada instrumento
-      </h3>
+    <Panel titulo="Cómo rinde cada instrumento" id="cap-t-plan" ancho extra={<span className="tenue chico">según su tipo</span>}>
       <details className="cap-mas">
         <summary>¿Qué es capitalizar?</summary>
         <p className="cap-nota">
           <strong>Capitaliza</strong> cuando el interés se queda dentro del instrumento y al mes siguiente gana interés también (interés compuesto). Si <strong>no capitaliza</strong>,
-          te paga los intereses cada cierto tiempo: si los <strong>reinviertes</strong> (por ejemplo, cada mes en el mismo fondo), tú misma creas el interés compuesto; si no,
-          solo cobras.
+          te paga los intereses a una cuenta. Un mutuo no capitaliza solo: si al renovarlo dejas el interés adentro, tú mismo haces el interés compuesto.
         </p>
       </details>
       <ul className="cap-instrumentos plan-lista">
         {ctx.activos.map((a) => {
+          const tipo = tipoDe(a);
+          const regla = CATALOGO[tipo];
           const pl = a.plan;
           const cap = pl?.capitaliza === true ? "si" : pl?.capitaliza === false ? "no" : "";
+          const aporte = datos.aportes.get(a.id);
+          const deja = cuantoDejaAlMes(a);
+          const mutuo = tipo === "mutuo" ? estadoMutuo(a.cantidad, a.renovaciones ?? []) : null;
           return (
             <li key={a.id}>
-              <details className="cap-instrumento" key={JSON.stringify(pl)}>
+              <details className="cap-instrumento" key={JSON.stringify(pl) + (a.renovaciones?.length ?? 0)}>
                 <summary>
                   <span className="nombre">
                     {a.nombre}
                     <span className="detalle">
-                      {nombreClase(a.clase)} · {pct(a.tasa, 2)} al año ·{" "}
-                      {pl?.capitaliza === null || pl?.capitaliza === undefined
-                        ? "sin plan (supuesto)"
-                        : pl.capitaliza
-                          ? "capitaliza"
-                          : `paga ${FRECUENCIAS_PAGO.find((f) => f.id === pl.frecuenciaPago)?.nom.toLowerCase() ?? "cada mes"}${pl.reinvierte ? " y reinviertes" : ""}`}
+                      {regla.nom} · {regla.rinde}
+                      {n(a.tasa).gt(0) && tipo !== "ahorro" ? ` · ${pct(a.tasa, 2)} al año` : ""}
+                      {regla.capitaliza === "elegible" ? (pl?.capitaliza === true ? " · capitaliza" : pl?.capitaliza === false ? " · te paga a una cuenta" : " · elige cómo paga") : ""}
                     </span>
+                    {deja ? <span className="detalle">Te deja {rd(deja)} al mes</span> : null}
                   </span>
                   <span className="monto">
-                    {rd(aportes.get(a.id) ?? CERO)}
-                    <span className="detalle">al mes</span>
+                    {aporte ? (aporte.moneda === "DOP" ? rd(aporte.monto) : `${aporte.moneda} ${num(aporte.monto, 2)}`) : rd(CERO)}
+                    <span className="detalle">al mes (plan)</span>
                   </span>
                 </summary>
                 <div className="cuerpo">
@@ -234,54 +205,65 @@ export function PanelPlan({ datos, mes }: Props) {
                     <input type="hidden" name="id" value={a.id} />
                     <input type="hidden" name="mes" value={mes} />
                     <div className="reg-campos">
-                      <label className="cap-campo">
-                        Tasa al año %
-                        <input name="tasa" inputMode="decimal" defaultValue={n(a.tasa).gt(0) ? aPct(a.tasa) : ""} placeholder="Ej.: 9.5" />
-                      </label>
-                      <label className="cap-campo">
-                        ¿Capitaliza dentro del instrumento?
-                        <select name="capitaliza" defaultValue={cap}>
-                          <option value="">No lo sé (usar supuesto)</option>
-                          <option value="si">Sí, el interés se queda adentro</option>
-                          <option value="no">No, me paga los intereses</option>
-                        </select>
-                      </label>
-                      <label className="cap-campo p-nocap">
-                        ¿Cada cuánto te paga?
-                        <select name="frecuenciaPago" defaultValue={pl?.frecuenciaPago ?? "mensual"}>
-                          {FRECUENCIAS_PAGO.map((f) => (
-                            <option key={f.id} value={f.id}>
-                              {f.nom}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="cap-campo p-nocap">
-                        ¿Reinviertes lo que te paga?
-                        <select name="reinvierte" defaultValue={pl?.reinvierte ? "si" : "no"}>
-                          <option value="si">Sí, lo vuelvo a invertir</option>
-                          <option value="no">No, lo cobro</option>
-                        </select>
-                      </label>
-                      <label className="cap-campo">
-                        % del aporte de {nombreClase(a.clase)}
-                        <input name="aportePct" inputMode="decimal" defaultValue={pl?.aportePct ? aPct(pl.aportePct) : ""} placeholder="Ej.: 50 (vacío = partes iguales)" />
-                      </label>
-                      <label className="cap-campo">
-                        Recibe aportes desde
-                        <input type="date" name="inicio" defaultValue={pl?.inicio ?? ""} />
-                      </label>
-                      <label className="cap-campo">
-                        Vence el <span className="ayuda">(opcional)</span>
-                        <input type="date" name="venc" defaultValue={a.venc ?? ""} />
-                      </label>
+                      {regla.capitaliza !== "no_rinde" && tipo !== "ahorro" ? (
+                        <label className="cap-campo">
+                          Tasa al año %
+                          <input name="tasa" inputMode="decimal" defaultValue={n(a.tasa).gt(0) ? aPct(a.tasa) : ""} placeholder="Ej.: 9.5" />
+                        </label>
+                      ) : null}
+                      {regla.capitaliza === "elegible" ? (
+                        <label className="cap-campo">
+                          ¿Capitaliza o te paga a una cuenta?
+                          <select name="capitaliza" defaultValue={cap}>
+                            <option value="">Todavía no lo sé</option>
+                            <option value="si">Capitaliza: el interés se queda adentro</option>
+                            <option value="no">Me paga los intereses a una cuenta</option>
+                          </select>
+                        </label>
+                      ) : (
+                        <input type="hidden" name="capitaliza" value={regla.capitaliza === "si" || regla.capitaliza === "implicito" ? "si" : regla.capitaliza === "no_rinde" ? "" : "no"} />
+                      )}
+                      {regla.capitaliza === "elegible" || regla.capitaliza === "no" ? (
+                        <label className={`cap-campo${regla.capitaliza === "elegible" ? " p-nocap" : ""}`}>
+                          ¿Cada cuánto te paga?
+                          <select name="frecuenciaPago" defaultValue={pl?.frecuenciaPago ?? "mensual"}>
+                            {FRECUENCIAS_PAGO.map((f) => (
+                              <option key={f.id} value={f.id}>
+                                {f.nom}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      {tipo === "mutuo" ? (
+                        <label className="cap-campo">
+                          Al renovar, ¿dejas el interés adentro?
+                          <select name="reinvierte" defaultValue={pl?.reinvierte === true ? "si" : pl?.reinvierte === false ? "no" : ""}>
+                            <option value="">Como en mi última renovación</option>
+                            <option value="si">Sí, lo dejo (interés compuesto)</option>
+                            <option value="no">No, lo retiro a una cuenta</option>
+                          </select>
+                        </label>
+                      ) : null}
+                      {tipo !== "mutuo" && regla.grupo === "inversion" ? (
+                        <label className="cap-campo">
+                          Vence el <span className="ayuda">(opcional)</span>
+                          <input type="date" name="venc" defaultValue={a.venc ?? ""} />
+                        </label>
+                      ) : null}
                     </div>
+                    <p className="tenue chico" style={{ margin: 0 }}>
+                      {regla.grupo === "inversion" ? `Retención del interés: ${pct(retencionDe(tipo, a.retencion ?? null), 0)}${a.retencion ? " (la tuya)" : " (la del tipo)"}. ` : ""}
+                      {regla.comisionPuesto ? (a.comisionAdmin ? `Comisión de administración: ${pct(a.comisionAdmin, 2)} al año. ` : "Comisión de administración: no confirmada (escríbela en Mis cuentas si la sabes). ") : ""}
+                      Se cambian en Mis cuentas.
+                    </p>
                     <div className="cap-botones">
                       <button type="submit" className="boton">
-                        Guardar reglas
+                        Guardar
                       </button>
                     </div>
                   </form>
+                  {mutuo ? <Renovacion datos={datos} mes={mes} id={a.id} moneda={a.moneda} tasa={a.tasa} plazo={a.plazoDias ?? 30} mutuo={mutuo} cuentas={cuentas} /> : null}
                 </div>
               </details>
             </li>
@@ -289,5 +271,106 @@ export function PanelPlan({ datos, mes }: Props) {
         })}
       </ul>
     </Panel>
+  );
+}
+
+function Renovacion({
+  datos,
+  mes,
+  id,
+  moneda,
+  tasa,
+  plazo,
+  mutuo,
+  cuentas,
+}: {
+  datos: DatosCapital;
+  mes: string;
+  id: string;
+  moneda: string;
+  tasa: string;
+  plazo: number;
+  mutuo: ReturnType<typeof estadoMutuo>;
+  cuentas: NonNullable<DatosCapital["caja"]["datos"]>["cuentas"];
+}) {
+  const mias = cuentas.filter((c) => (c.moneda ?? "DOP") === moneda);
+  const sim = moneda === "DOP" ? "RD$" : moneda === "USD" ? "US$" : "€";
+  return (
+    <div className="plan-renovar">
+      <h4 className="cap-rotulo" style={{ marginTop: 14 }}>
+        Renovaciones
+      </h4>
+      <p className="chico" style={{ margin: "0 0 8px" }}>
+        {mutuo.renovaciones
+          ? `${mutuo.renovaciones} renovación(es) anotada(s): interés dejado ${sim} ${num(mutuo.interesDejado, 2)}, retirado ${sim} ${num(mutuo.interesRetirado, 2)}, aportes ${sim} ${num(mutuo.aportes, 2)}${mutuo.vence ? ` · el plazo vigente vence el ${mutuo.vence}` : ""}.`
+          : "Todavía no anotas renovaciones. Cuando venza el plazo, anota aquí lo que hiciste."}
+      </p>
+      <details className="ap-confirmar">
+        <summary className="boton chico">Anotar una renovación</summary>
+        <form action={registrarRenovacion} className="cap-form">
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="mes" value={mes} />
+          <div className="reg-campos">
+            <label className="cap-campo">
+              Fecha en que renovaste
+              <input type="date" name="fecha" defaultValue={datos.ctx.hoy} required />
+            </label>
+            <label className="cap-campo">
+              Interés que ganó el plazo que venció ({sim})
+              <input name="interes" inputMode="decimal" required placeholder="El que dice tu estado del puesto de bolsa" autoComplete="off" />
+            </label>
+            <label className="cap-campo">
+              ¿Qué hiciste con el interés?
+              <select name="deja" defaultValue={mutuo.dejaInteres === false ? "no" : "si"}>
+                <option value="si">Lo dejé adentro (se suma al capital)</option>
+                <option value="no">Lo retiré a una cuenta</option>
+              </select>
+            </label>
+            <label className="cap-campo">
+              Cuenta donde cayó el interés <span className="ayuda">(si lo retiraste)</span>
+              <select name="cuentaInteres" defaultValue="">
+                <option value="">—</option>
+                {mias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="cap-campo">
+              Aporte adicional ({sim}) <span className="ayuda">(opcional)</span>
+              <input name="aporte" inputMode="decimal" placeholder="Ej.: 5,000" autoComplete="off" />
+            </label>
+            <label className="cap-campo">
+              ¿De qué cuenta salió el aporte?
+              <select name="cuentaAporte" defaultValue="">
+                <option value="">—</option>
+                {mias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="cap-campo">
+              Tasa nueva % al año
+              <input name="tasa" inputMode="decimal" required defaultValue={n(tasa).gt(0) ? aPct(tasa) : ""} placeholder="Ej.: 8.75" autoComplete="off" />
+            </label>
+            <label className="cap-campo">
+              Días del nuevo plazo
+              <input name="plazoDias" inputMode="numeric" required defaultValue={String(plazo)} autoComplete="off" />
+            </label>
+          </div>
+          <p className="tenue chico" style={{ margin: 0 }}>
+            Capital nuevo = el de ahora ({sim} {num(mutuo.capital, 2)}) + el interés si lo dejas + el aporte. El interés retirado entra a tu Presupuesto como «Otros ingresos».
+          </p>
+          <div className="cap-botones">
+            <button type="submit" className="boton">
+              Guardar la renovación
+            </button>
+          </div>
+        </form>
+      </details>
+    </div>
   );
 }

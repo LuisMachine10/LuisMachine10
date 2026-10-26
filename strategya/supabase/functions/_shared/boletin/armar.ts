@@ -704,12 +704,12 @@ function seccionTuDinero(c: Ctx): Seccion | null {
       items.push({
         texto:
           f.aportes.pendientes > 0
-            ? `Aportes del mes: ${f.aportes.pendientes} de ${f.aportes.plan} pendientes por ${rd$(f.aportes.pendiente)} (plan del mes: ${rd$(f.aportes.total)}).`
-            : `Aportes del mes: los ${f.aportes.plan} del plan ya están confirmados (${rd$(f.aportes.total)}).`,
+            ? `Lo que planeaste ahorrar este mes: ${f.aportes.pendientes} de ${f.aportes.plan} líneas por hacer; faltan ${rd$(f.aportes.pendiente)} (plan del mes: ${rd$(f.aportes.total)}).`
+            : `Lo que planeaste ahorrar este mes: las ${f.aportes.plan} líneas ya están hechas (${rd$(f.aportes.total)}).`,
         medio: "Portafolio",
       });
     } else {
-      items.push({ texto: "Aportes del mes: no hay plan de aportes para este mes." });
+      items.push({ texto: "Lo que planeaste ahorrar este mes: no escribiste líneas de ahorro para este mes." });
     }
     const pagos = pagosTarjetaProximos(f, c.hoy);
     if (f.tarjetas) {

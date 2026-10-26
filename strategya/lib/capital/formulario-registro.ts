@@ -6,28 +6,45 @@ import { cicloDeFormulario } from "../caja/ciclo";
 import { Big } from "./decimal";
 import { esFecha, sumarMeses } from "./fechas";
 import { type Campos, numeroForm, pctForm } from "./formulario";
+import { CATALOGO, claseDeTipo, esDeudaFin, GRUPOS_ALTA, puedeRecibirCobros, type TipoFin, tipoInicial } from "../finanzas/catalogo";
 import { type ClaseRegistro, esClaseDeuda, FRECUENCIAS_PAGO, MONEDAS } from "./tipos";
 
-/** Lo que Mena elige en «¿Qué vas a agregar?»: clase + subtipo del registro. */
-export const TIPOS_ALTA = [
-  { id: "corriente", clase: "ahorros", subtipo: "corriente", nom: "Cuenta corriente o de nómina", grupo: "tienes", ayuda: "La cuenta del día a día: de ahí pagas y ahí te cae el sueldo." },
-  { id: "ahorro", clase: "ahorros", subtipo: "ahorro", nom: "Cuenta de ahorro", grupo: "tienes", ayuda: "Dinero guardado en el banco que puedes sacar cuando quieras." },
-  { id: "efectivo", clase: "efectivo", subtipo: null, nom: "Efectivo", grupo: "tienes", ayuda: "Billetera, caja de la casa." },
-  { id: "rentafija", clase: "rentafija", subtipo: null, nom: "Inversión de renta fija", grupo: "tienes", ayuda: "Certificado, bono, fondo de renta fija: te pagan una tasa." },
-  { id: "rentavariable", clase: "rentavariable", subtipo: null, nom: "Acciones o ETF", grupo: "tienes", ayuda: "Su precio sube y baja con el mercado." },
-  { id: "vehiculo", clase: "otros", subtipo: "vehiculo", nom: "Vehículo", grupo: "tienes", ayuda: "Lo que valdría si lo vendieras hoy." },
-  { id: "inmueble", clase: "otros", subtipo: "inmueble", nom: "Casa, apartamento o solar", grupo: "tienes", ayuda: "Lo que valdría si lo vendieras hoy." },
-  { id: "otro", clase: "otros", subtipo: "otro", nom: "Otro bien", grupo: "tienes", ayuda: "Algo de valor que podrías vender." },
-  { id: "tarjeta", clase: "tarjeta", subtipo: null, nom: "Tarjeta de crédito", grupo: "debes", ayuda: "Lo que debes hoy en la tarjeta." },
-  { id: "prestamo", clase: "prestamo", subtipo: null, nom: "Préstamo", grupo: "debes", ayuda: "Carro, casa, personal: lo que te falta por pagar." },
-  { id: "deuda", clase: "deuda", subtipo: null, nom: "Otra deuda", grupo: "debes", ayuda: "Lo que le debes a alguien y no es tarjeta ni préstamo." },
-] as const;
-export type TipoAlta = (typeof TIPOS_ALTA)[number]["id"];
+/**
+ * Lo que Mena elige en «¿Qué es?»: el TIPO del catálogo (lib/finanzas/catalogo.ts). Los bienes se separan en
+ * vehículo, inmueble u otro (su subtipo). Grupo «tienes» o «debes».
+ */
+export interface OpcionAlta {
+  id: string;
+  tipo: TipoFin;
+  subtipo: string | null;
+  nom: string;
+  grupo: "tienes" | "debes";
+  /** Sección del selector («Efectivo y cuentas», «Inversiones», «Bienes», «Lo que debes»). */
+  seccion: string;
+  ayuda: string;
+}
 
-export function tipoAltaDe(clase: string, subtipo: string | null): TipoAlta {
-  if (clase === "ahorros") return subtipo === "corriente" ? "corriente" : "ahorro";
-  if (clase === "otros") return subtipo === "vehiculo" ? "vehiculo" : subtipo === "inmueble" ? "inmueble" : "otro";
-  return (TIPOS_ALTA.find((t) => t.clase === clase)?.id ?? "otro") as TipoAlta;
+export const TIPOS_ALTA: readonly OpcionAlta[] = GRUPOS_ALTA.flatMap((g) =>
+  g.tipos.flatMap((t): OpcionAlta[] =>
+    t === "bien"
+      ? [
+          { id: "vehiculo", tipo: "bien", subtipo: "vehiculo", nom: "Vehículo", grupo: "tienes", seccion: g.nom, ayuda: CATALOGO.bien.ayuda },
+          { id: "inmueble", tipo: "bien", subtipo: "inmueble", nom: "Casa, apartamento o terreno", grupo: "tienes", seccion: g.nom, ayuda: CATALOGO.bien.ayuda },
+          { id: "otro", tipo: "bien", subtipo: "otro", nom: "Otro bien", grupo: "tienes", seccion: g.nom, ayuda: CATALOGO.bien.ayuda },
+        ]
+      : [{ id: t, tipo: t, subtipo: CATALOGO[t].subtipo ?? null, nom: CATALOGO[t].nom, grupo: esDeudaFin(t) ? "debes" : "tienes", seccion: g.nom, ayuda: CATALOGO[t].ayuda }],
+  ),
+);
+export type TipoAlta = string;
+
+/** Ids de antes (formularios viejos, pruebas): a qué tipo del catálogo equivalen. */
+const ALIAS_ALTA: Record<string, string> = { rentavariable: "accion_etf", deuda: "otra_deuda", rentafija: "certificado" };
+
+/** El id de «¿Qué es?» de una fila guardada. */
+export function tipoAltaDe(clase: string, subtipo: string | null, tipo?: TipoFin): TipoAlta {
+  const t = tipo ?? tipoInicial({ clase, subtipo, nombre: "" }).tipo;
+  if (t === "bien") return subtipo === "vehiculo" ? "vehiculo" : subtipo === "inmueble" ? "inmueble" : "otro";
+  return t;
 }
 
 export type ResultadoForm<T> = { ok: true; valor: T } | { ok: false; error: string };
@@ -79,15 +96,30 @@ export interface FilaAlta {
   limite_usd: string | null;
   saldo_usd?: string | null;
   saldo_usd_fecha?: string | null;
+  // ── Núcleo v2: el tipo del catálogo y lo «elegible» ──
+  tipo: TipoFin;
+  tipo_confirmado: boolean;
+  tiene_debito: boolean | null;
+  /** Elegible (certificado, fondo cerrado, fideicomiso): ¿capitaliza? Solo se escribe si el formulario lo trae. */
+  capitaliza?: boolean | null;
+  paga_a: string | null;
+  retencion: string | null;
+  comision_admin: string | null;
+  plazo_dias: number | null;
+  cargos_cuota: string | null;
 }
 
 /**
  * Lee el formulario de alta o edición. `saldoSinCambio` = true cuando Mena no tocó el saldo (se compara
  * con el que se le mostró): entonces no se reescribe, para no pisar lo que el Presupuesto ya anotó.
  */
-export function registroDeFormulario(c: Campos, hoy: string): ResultadoForm<FilaAlta> {
-  const tipo = TIPOS_ALTA.find((t) => t.id === c.tipo);
-  if (!tipo) return { ok: false, error: "Elige qué vas a agregar (cuenta, efectivo, inversión, bien, tarjeta o préstamo)." };
+export function registroDeFormulario(c: Campos, hoy: string, cuentas: readonly { id: string; tipo: TipoFin }[] = []): ResultadoForm<FilaAlta> {
+  const alta = TIPOS_ALTA.find((t) => t.id === (ALIAS_ALTA[c.tipo ?? ""] ?? c.tipo));
+  if (!alta) return { ok: false, error: "Elige qué es (efectivo, una cuenta, una inversión, un bien, una tarjeta o un préstamo)." };
+  const regla = CATALOGO[alta.tipo];
+  // Clase del motor: la del tipo (fondos y fideicomisos: renta fija o variable, según elija Mena).
+  const { clase: claseMotor } = claseDeTipo(alta.tipo, c.claseRV === "rentavariable" ? "rentavariable" : c.claseRV === "rentafija" ? "rentafija" : null);
+  const tipo = { clase: claseMotor as ClaseRegistro, subtipo: alta.tipo === "bien" ? alta.subtipo : (regla.subtipo ?? null) };
   const nombre = (c.nombre ?? "").trim();
   if (!nombre) return { ok: false, error: "Ponle un nombre que reconozcas, por ejemplo «Popular nómina» o «Visa BHD». No pongas números de cuenta." };
   if (nombre.length > 200) return { ok: false, error: "El nombre es muy largo: usa menos de 200 letras." };
@@ -113,9 +145,54 @@ export function registroDeFormulario(c: Campos, hoy: string): ResultadoForm<Fila
     dia_corte: null,
     dias_para_pagar: null,
     limite_usd: null,
+    tipo: alta.tipo,
+    tipo_confirmado: true,
+    tiene_debito: alta.tipo === "alto_rendimiento" ? c.debito === "si" : null,
+    paga_a: null,
+    retencion: null,
+    comision_admin: null,
+    plazo_dias: null,
+    cargos_cuota: null,
   };
+  // Lo elegible: certificado, fondo cerrado y fideicomiso eligen si capitalizan o pagan a una cuenta.
+  if (regla.capitaliza === "elegible" && c.capitaliza !== undefined) fila.capitaliza = c.capitaliza === "si" ? true : c.capitaliza === "no" ? false : null;
+  // A qué cuenta caen los intereses, cupones o dividendos (solo efectivo o una cuenta de banco).
+  if (regla.pagaACuenta !== "nunca" && c.pagaA) {
+    const destino = cuentas.find((x) => x.id === c.pagaA);
+    if (!destino || !puedeRecibirCobros(destino.tipo)) return { ok: false, error: "Los intereses, cupones o dividendos caen en efectivo o en una cuenta de banco: elige una de la lista." };
+    if (c.id && c.pagaA === c.id) return { ok: false, error: "Elige otra cuenta para cobrar: no puede ser la misma inversión." };
+    fila.paga_a = c.pagaA;
+  }
+  const pct01 = (v: string | undefined, que: string): ResultadoForm<string | null> => {
+    const t = numeroForm(v);
+    if (!t) return { ok: true, valor: null };
+    const x = pctForm(t);
+    if (aDecimal(x) === null || new Big(x).lt(0) || new Big(x).gt(1)) return { ok: false, error: `${que} va en %, entre 0 y 100. Por ejemplo 10.` };
+    return { ok: true, valor: x };
+  };
+  if (regla.grupo === "inversion" || alta.tipo === "alto_rendimiento") {
+    const r = pct01(c.retencion, "La retención");
+    if (!r.ok) return r;
+    fila.retencion = r.valor;
+  }
+  if (regla.comisionPuesto) {
+    const r = pct01(c.comision, "La comisión de administración");
+    if (!r.ok) return r;
+    fila.comision_admin = r.valor;
+  }
+  if ((alta.tipo === "certificado" || alta.tipo === "mutuo") && c.plazoDias) {
+    if (!/^\d{1,4}$/.test(c.plazoDias) || Number(c.plazoDias) < 1) return { ok: false, error: "El plazo va en días, por ejemplo 30." };
+    fila.plazo_dias = Number(c.plazoDias);
+  }
+  if (tipo.clase === "prestamo" || tipo.clase === "deuda") {
+    const k = monto(c.cargosCuota, "los cargos dentro de la cuota", "1,200", true);
+    if (!k.ok) return k;
+    if (k.valor && new Big(k.valor).lt(0)) return { ok: false, error: "Los cargos de la cuota no pueden ser negativos." };
+    fila.cargos_cuota = k.valor && new Big(k.valor).gt(0) ? k.valor : null;
+  }
+  const porUnidades = alta.tipo === "accion_etf" || ((alta.tipo === "fondo_abierto" || alta.tipo === "fondo_cerrado" || alta.tipo === "fideicomiso") && !!numeroForm(c.cantidad));
   const saldoCambio = c.saldoMostrado === undefined || numeroForm(c.saldo) !== numeroForm(c.saldoMostrado);
-  if (tipo.clase === "rentavariable") {
+  if (porUnidades) {
     const cant = monto(c.cantidad ?? c.saldo, "cuántas acciones o unidades tienes", "10");
     if (!cant.ok) return cant;
     const precio = monto(c.precio, "el precio de cada una", "101.25", true);

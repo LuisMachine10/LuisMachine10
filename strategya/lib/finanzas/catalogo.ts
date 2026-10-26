@@ -318,3 +318,66 @@ export const GRUPOS_ALTA: readonly { nom: string; tipos: readonly TipoFin[] }[] 
   { nom: "Bienes", tipos: ["bien"] },
   { nom: "Lo que debes", tipos: ["tarjeta", "prestamo", "otra_deuda"] },
 ];
+
+// ───────────────────────── Validación de un movimiento (igual que la base) ─────────────────────────
+
+/** Una cuenta o fila con su nombre, para los mensajes. null = no se conoce (la base tampoco la revisa). */
+export type FilaNombrada = (FilaCatalogo & { nombre: string }) | null;
+
+/** Como personal.nombre_tipo_fin (los mensajes de la base y de la pantalla dicen lo mismo). */
+export const NOMBRE_CORTO: Readonly<Record<TipoFin, string>> = {
+  efectivo: "efectivo", corriente: "cuenta corriente", ahorro: "cuenta de ahorro", alto_rendimiento: "cuenta de alto rendimiento",
+  certificado: "certificado", mutuo: "mutuo o reporto", bono: "bono", fondo_abierto: "fondo abierto", fondo_cerrado: "fondo cerrado",
+  accion_etf: "acción o ETF", fideicomiso: "fideicomiso", tarjeta: "tarjeta de crédito", prestamo: "préstamo", otra_deuda: "deuda", bien: "bien",
+};
+const ok = (f: FilaNombrada, formulario: Formulario, rol: Rol) => f === null || aparece(f, formulario, rol);
+const grupo = (f: FilaNombrada): GrupoFin | null => (f ? CATALOGO[f.tipo].grupo : null);
+
+/**
+ * ¿El movimiento respeta las listas del manual? Devuelve el error en palabras simples o null. Es la MISMA regla del
+ * trigger personal.caja_validar_cuentas (la prueba de base compara las dos con todas las combinaciones).
+ * `tipo`: ingreso | gasto | transferencia | pago_tarjeta. En una transferencia: si sale de una inversión es un
+ * rescate (va a efectivo o una cuenta); si va a una inversión es un ahorro (sale de efectivo o una cuenta); entre
+ * cuentas es mover o cambiar moneda. Las tarjetas y préstamos solo se pagan con «Pago de tarjeta o préstamo».
+ */
+export function errorDeCuentas(tipo: string, origen: FilaNombrada, destino: FilaNombrada): string | null {
+  if (tipo === "gasto") {
+    if (ok(origen, "pago", "cuenta")) return null;
+    const o = origen!;
+    if (grupo(o) === "inversion") return `«${o.nombre}» es una inversión: una inversión nunca se usa para pagar. Para gastar de ella, registra primero «Rescate o venta» hacia una cuenta.`;
+    if (o.tipo === "alto_rendimiento") return `«${o.nombre}» no tiene tarjeta de débito marcada: no sirve para pagar. Márcala en Mis cuentas o paga desde otra cuenta.`;
+    return `«${o.nombre}» (${NOMBRE_CORTO[o.tipo]}) no sirve para pagar: paga con efectivo, una cuenta o una tarjeta.`;
+  }
+  if (tipo === "ingreso") {
+    return ok(origen, "ingreso", "cuenta") ? null : `«${origen!.nombre}» (${NOMBRE_CORTO[origen!.tipo]}) no recibe ingresos: el dinero entra a efectivo o a una cuenta.`;
+  }
+  if (tipo === "pago_tarjeta") {
+    if (!ok(origen, "pago_deuda", "origen")) return `Un pago de tarjeta o préstamo sale de efectivo o de una cuenta, no de «${origen!.nombre}» (${NOMBRE_CORTO[origen!.tipo]}).`;
+    if (!ok(destino, "pago_deuda", "destino")) return `«${destino!.nombre}» no es una tarjeta ni un préstamo: para mover dinero usa «Mover entre mis cuentas».`;
+    return null;
+  }
+  if (tipo === "transferencia") {
+    if (grupo(origen) === "inversion") {
+      return ok(destino, "rescate", "destino") ? null : `El dinero de un rescate o venta va a efectivo o a una cuenta, no a «${destino!.nombre}» (${NOMBRE_CORTO[destino!.tipo]}).`;
+    }
+    if (grupo(destino) === "inversion") {
+      return ok(origen, "ahorro", "origen") ? null : `El ahorro sale de efectivo o de una cuenta, no de «${origen!.nombre}» (${NOMBRE_CORTO[origen!.tipo]}).`;
+    }
+    if (grupo(origen) === "deuda" || grupo(destino) === "deuda") return "Para pagar una tarjeta o un préstamo usa «Pago de tarjeta o préstamo»; para gastar con la tarjeta, «Gasto».";
+    if (grupo(origen) === "bien" || grupo(destino) === "bien") return "Un bien (casa, terreno, carro) no mueve dinero en el Presupuesto.";
+  }
+  return null;
+}
+
+/** Qué formulario es una transferencia según sus cuentas (para la pantalla y los textos). */
+export function formularioDeTransferencia(
+  origen: FilaCatalogo | null,
+  destino: FilaCatalogo | null,
+  monedaOrigen?: string,
+  monedaDestino?: string,
+): "rescate" | "ahorro" | "cambio" | "mover" {
+  if (origen && CATALOGO[origen.tipo].grupo === "inversion") return "rescate";
+  if (destino && CATALOGO[destino.tipo].grupo === "inversion") return "ahorro";
+  if (monedaOrigen && monedaDestino && monedaOrigen !== monedaDestino) return "cambio";
+  return "mover";
+}

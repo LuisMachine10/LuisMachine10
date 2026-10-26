@@ -6,7 +6,7 @@ import type { Activo, Cierres, Clase, Dec, Moneda, MonedaExtranjera, Parametros,
 import { CLASES } from "./tipos";
 import type { ItemRegistro } from "./registro";
 
-export type OrigenFx = "bcrd" | "manual" | "ninguno";
+export type OrigenFx = "bcrd" | "manual" | "cruce" | "ninguno";
 
 export interface FxMoneda {
   /** RD$ por unidad, o null si no hay ni serie ni tipo manual. */
@@ -15,6 +15,8 @@ export interface FxMoneda {
   fecha: string | null;
   url: string | null;
   recogidoEn: string | null;
+  /** € (origen «cruce»): EUR/USD del BCE × US$ de venta del BCRD de la MISMA fecha, con sus dos fuentes. */
+  cruce?: { eurusd: string; usddop: string; urlBce: string | null; urlBcrd: string | null };
 }
 
 export type FxVigente = Record<MonedaExtranjera, FxMoneda>;
@@ -85,10 +87,33 @@ export interface ResultadoPresupuesto {
 export const URL_BCRD_DOLAR = "https://www.bancentral.gov.do/";
 
 /**
- * Tipo de cambio vigente. US$: el último USDDOP_VENTA del BCRD si existe; si no, el manual de los
- * parámetros. €: no hay serie EUR/DOP en el catálogo, así que siempre es el manual (o ninguno).
+ * € en pesos: el BCRD no publica EUR/DOP. Se cruza el EUR/USD de referencia del BCE con el dólar de venta del BCRD de
+ * la MISMA fecha (la más reciente en que hay los dos), a 4 decimales, rotulado como cruce con sus dos fuentes. Si
+ * falta alguna de las dos: «no confirmado» (valor null): lo que está en € no se suma.
  */
-export function armarFx(usdVenta: ObservacionFx[], p: Parametros): { fx: FxVigente; anteriorUSD: Mercado["fxAnteriorUSD"] } {
+export function cruceEurDop(usdVenta: ObservacionFx[], eurusd: ObservacionFx[]): FxMoneda {
+  const usd = new Map(usdVenta.filter((o) => new Big(o.valor).gt(0)).map((o) => [o.fecha_dato.slice(0, 10), o]));
+  const e = [...eurusd]
+    .filter((o) => new Big(o.valor).gt(0))
+    .sort((a, b) => (a.fecha_dato < b.fecha_dato ? 1 : -1))
+    .find((o) => usd.has(o.fecha_dato.slice(0, 10)));
+  if (!e) return { valor: null, origen: "ninguno", fecha: null, url: null, recogidoEn: null };
+  const u = usd.get(e.fecha_dato.slice(0, 10))!;
+  return {
+    valor: new Big(e.valor).times(u.valor).round(4, Big.roundHalfUp),
+    origen: "cruce",
+    fecha: e.fecha_dato.slice(0, 10),
+    url: e.url_dato,
+    recogidoEn: e.recogido_en,
+    cruce: { eurusd: e.valor, usddop: u.valor, urlBce: e.url_dato, urlBcrd: u.url_dato ?? URL_BCRD_DOLAR },
+  };
+}
+
+/**
+ * Tipo de cambio vigente. US$: el último USDDOP_VENTA del BCRD si existe; si no, el manual de los parámetros.
+ * €: el cruce BCE × BCRD de la misma fecha (cruceEurDop); sin él, «no confirmado» (el € manual ya no se usa).
+ */
+export function armarFx(usdVenta: ObservacionFx[], p: Parametros, eurusd: ObservacionFx[] = []): { fx: FxVigente; anteriorUSD: Mercado["fxAnteriorUSD"] } {
   const ordenadas = [...usdVenta].sort((a, b) => (a.fecha_dato < b.fecha_dato ? 1 : -1));
   const ultima = ordenadas.find((o) => new Big(o.valor).gt(0));
   const manual = (m: MonedaExtranjera): FxMoneda => {
@@ -108,7 +133,7 @@ export function armarFx(usdVenta: ObservacionFx[], p: Parametros): { fx: FxVigen
     : manual("USD");
   const previa = ultima ? ordenadas.find((o) => o.fecha_dato < ultima.fecha_dato && new Big(o.valor).gt(0)) : undefined;
   return {
-    fx: { USD: usd, EUR: manual("EUR") },
+    fx: { USD: usd, EUR: cruceEurDop(usdVenta, eurusd) },
     anteriorUSD: previa ? { valor: new Big(previa.valor), fecha: previa.fecha_dato } : null,
   };
 }

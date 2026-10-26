@@ -9,7 +9,7 @@ import { CERO, n } from "@/lib/capital/decimal";
 import { mesCorto, mesLargo } from "@/lib/capital/fechas";
 import { num, pct, rd } from "@/lib/capital/formato";
 import { posicion, valorDOP } from "@/lib/capital/posicion";
-import { ahorroPresupuestado, horizonteMeses, proyectarPortafolio } from "@/lib/capital/proyeccion";
+import { horizonteMeses, proyectarPortafolio } from "@/lib/capital/proyeccion";
 import { balance } from "@/lib/capital/registro";
 import { CLASES, nombreClase } from "@/lib/capital/tipos";
 import type { FichaWidget } from "@/lib/dashboard/widgets";
@@ -19,7 +19,7 @@ import { PanelAsignacion } from "./Asignacion";
 import { GraficoSerie } from "./GraficoSerie";
 import { MatrizRiesgo } from "./Matriz";
 import { ConSigno, Pastilla } from "./Piezas";
-import { PanelAportesMes } from "./Proyecciones";
+import { PanelPlanAhorro } from "./Proyecciones";
 import { PanelImpactoDia, PanelTipoCambio, seriePatrimonio } from "./Resumen";
 import { SelloRegistros } from "./Sellos";
 
@@ -139,14 +139,14 @@ function Futuro({ ficha, datos, mes }: PropsWidgetPf) {
   const { ctx } = datos;
   if (!ctx.activos.length) return <WidgetVacio ficha={ficha} motivo="Anota tus inversiones para ver cómo crecerían." accion={{ href: "/capital/cuentas", texto: "Agregar inversiones" }} />;
   const meses = horizonteMeses(ctx, null);
-  const ahorro = ahorroPresupuestado(ctx);
-  const pr = proyectarPortafolio(ctx, meses, ahorro);
+  const pr = proyectarPortafolio(ctx, meses, datos.aportes);
+  const ahorro = pr.ahorroMensual;
   const max = pr.porClase.reduce((m, c) => (c.final.gt(m) ? c.final : m), CERO);
   return (
     <Marco
       ficha={ficha}
       enlace={{ href: `/capital/futuro?mes=${mes}`, texto: "Proyecciones" }}
-      pie={<span className="sello">Proyección a {meses / 12} años con tus tasas{ahorro ? ` y ${rd(ahorro)} al mes de tu Presupuesto` : ""}. No es un pronóstico.</span>}
+      pie={<span className="sello">Proyección a {meses / 12} años con tus tasas{ahorro ? ` y ${rd(ahorro)} al mes de tu plan de ahorro` : ""}. No es un pronóstico.</span>}
     >
       <ul className="pf-futuro">
         {pr.porClase
@@ -182,8 +182,8 @@ function Futuro({ ficha, datos, mes }: PropsWidgetPf) {
 
 function Aportes({ ficha, datos, mes }: PropsWidgetPf) {
   return (
-    <Embebido ficha={ficha} enlace={{ href: `/capital/futuro?mes=${mes}#cap-t-aportes`, texto: "Confirmar" }}>
-      <PanelAportesMes datos={datos} mes={mes} compacto volver="/capital" />
+    <Embebido ficha={ficha} enlace={{ href: `/capital/futuro?mes=${mes}#cap-t-aportes`, texto: "Ver y anotar" }}>
+      <PanelPlanAhorro datos={datos} mes={mes} compacto volver="/capital" />
     </Embebido>
   );
 }

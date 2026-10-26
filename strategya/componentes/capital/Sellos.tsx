@@ -30,6 +30,34 @@ export function SelloFx({ fx, moneda, ahora, hoy }: { fx: FxMoneda; moneda: "USD
       />
     );
   }
+  if (fx.origen === "cruce" && fx.cruce && fx.fecha) {
+    return (
+      <div className="sello" title="El BCRD no publica euro: es un cruce calculado con dos fuentes oficiales de la misma fecha.">
+        <span>€ {num(fx.valor!, 4)} · cruce del {fechaCorta(fx.fecha)}:</span>
+        <span>
+          {" "}
+          EUR/USD {fx.cruce.eurusd} (
+          {fx.cruce.urlBce ? (
+            <a href={fx.cruce.urlBce} target="_blank" rel="noreferrer">
+              BCE
+            </a>
+          ) : (
+            "BCE"
+          )}
+          ) × US$ {num(fx.cruce.usddop, 2)} (
+          {fx.cruce.urlBcrd ? (
+            <a href={fx.cruce.urlBcrd} target="_blank" rel="noreferrer">
+              BCRD venta
+            </a>
+          ) : (
+            "BCRD venta"
+          )}
+          )
+        </span>
+        {frescura({ fecha_dato: fx.fecha }, MAX_ANTIGUEDAD_MERCADO_MIN, ahora).desactualizado ? <span className="vencido">Dato viejo</span> : null}
+      </div>
+    );
+  }
   if (fx.origen === "manual") {
     const vencido = fx.fecha ? dias(fx.fecha, hoy) > MAX_DIAS_FX_MANUAL : true;
     return (
@@ -44,8 +72,8 @@ export function SelloFx({ fx, moneda, ahora, hoy }: { fx: FxMoneda; moneda: "USD
   }
   return (
     <div className="sello">
-      <span className="vencido">Sin tipo de cambio {moneda === "USD" ? "US$" : "€"}</span>
-      <span>· cárgalo en Cartera → Ajustes</span>
+      <span className="vencido">{moneda === "USD" ? "Sin tipo de cambio US$" : "€ no confirmado"}</span>
+      <span>{moneda === "USD" ? "· cárgalo en Cartera → Ajustes" : "· falta el EUR/USD del BCE o el dólar del BCRD de la misma fecha: lo que está en € no se suma"}</span>
     </div>
   );
 }

@@ -47,6 +47,14 @@ export function destinoInteres(categoria: string | null, categorias: Map<string,
   return cat?.tipo === "gasto_financiero" ? { clave: cat.id, tipo: "gasto_financiero", signo: 1 } : { clave: INTERESES_DEUDAS, tipo: "gasto_financiero", signo: 1 };
 }
 
+/** Línea de los cargos de la cuota de un préstamo: su categoría si es de gasto, costo u otro gasto; si no, «Sin categoría». */
+export function destinoCargos(categoria: string | null, categorias: Map<string, Categoria>): Destino {
+  const cat = categoria ? categorias.get(categoria) : undefined;
+  return cat && (cat.tipo === "gasto" || cat.tipo === "costo" || cat.tipo === "otro_gasto")
+    ? { clave: cat.id, tipo: cat.tipo, signo: 1 }
+    : { clave: SIN_CATEGORIA_GASTO, tipo: "gasto", signo: 1 };
+}
+
 export interface Destino {
   /** Id de la categoría o una de las claves especiales de arriba. */
   clave: string;
@@ -66,11 +74,13 @@ export function destinoDe(
   destino: string | null,
   categorias: Map<string, Categoria>,
   cuentas: Map<string, Cuenta>,
+  registroDestino: string | null = null,
 ): Destino | null {
   const cat = categoria ? categorias.get(categoria) : undefined;
   if (tipo === "transferencia" || tipo === "pago_tarjeta") {
     if (cat?.tipo === "ahorro_inversion") return { clave: cat.id, tipo: "ahorro_inversion", signo: 1 };
-    if (!cat && destino && cuentas.get(destino)?.tipo === "ahorro") return { clave: A_CUENTAS_DE_AHORRO, tipo: "ahorro_inversion", signo: 1 };
+    // Sin categoría: a una cuenta de ahorro del Presupuesto o a una inversión que no vive en él (fila del registro).
+    if (!cat && ((destino && cuentas.get(destino)?.tipo === "ahorro") || (!destino && registroDestino))) return { clave: A_CUENTAS_DE_AHORRO, tipo: "ahorro_inversion", signo: 1 };
     return null;
   }
   if (!cat) return tipo === "ingreso" ? { clave: SIN_CATEGORIA_INGRESO, tipo: "ingreso", signo: 1 } : { clave: SIN_CATEGORIA_GASTO, tipo: "gasto", signo: 1 };
@@ -222,7 +232,13 @@ export function estadoDeResultados(datos: DatosCaja, mes: Mes, opciones: { sim?:
       if (i) sumar(reales, destinoInteres(m.categoria, categorias), i);
       else sinTasa++;
     }
-    const d = destinoDe(m.tipo, m.categoria, m.destino, categorias, cuentas);
+    // Los cargos dentro de la cuota de un préstamo (seguro…): gasto (su categoría o «Sin categoría»).
+    if (m.tipo === "pago_tarjeta" && m.cargos && new Big(m.cargos).gt(0)) {
+      const k = aDOP(m.cargos, m.moneda, m.tasa, datos.tasasUSD, m.fecha);
+      if (k) sumar(reales, destinoCargos(m.categoriaCargos ?? null, categorias), k);
+      else sinTasa++;
+    }
+    const d = destinoDe(m.tipo, m.categoria, m.destino, categorias, cuentas, m.registroDestino ?? null);
     if (!d) continue;
     if (pide(m.tipo, m.categoria)) movSinCat++;
     if (!dop) {

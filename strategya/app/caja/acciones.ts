@@ -9,17 +9,11 @@ import { armarDesdeAsistente, type CuentaDelRegistro, leerAsistente } from "@/li
 import { leerRegistro } from "@/lib/capital/datos-registro";
 import { cuentasParaPresupuesto } from "@/lib/capital/registro";
 import { leerCaja } from "@/lib/caja/datos";
-import { COLUMNAS, filasADatos } from "@/lib/caja/filas";
 import Big from "big.js";
-import { separarPago } from "@/lib/caja/deudas";
 import { cicloDeFormulario } from "@/lib/caja/ciclo";
-import { enMoneda, rd } from "@/lib/caja/formato";
-import { type DatosCaja, esDeuda, type Movimiento } from "@/lib/caja/tipos";
-import { adicionalDesdeV1 } from "@/lib/caja/resultados";
 import { aJsonSQL, parsearImportacion, type ResumenImportacion } from "@/lib/caja/importar";
 import { esFecha, hoyRD } from "@/lib/caja/fechas";
 import {
-  type Campos,
   validarCategoria,
   validarConfig,
   validarCuenta,
@@ -28,56 +22,20 @@ import {
   validarSaldoReal,
 } from "@/lib/caja/validar";
 import { personal } from "@/lib/supabase/servidor";
+import {
+  anotarMovimiento,
+  bien,
+  cajaParaValidar,
+  campos,
+  descontarDelAdicional,
+  type EstadoAccion,
+  interesDelPago,
+  mal,
+  refrescar,
+  revisarListas,
+} from "@/lib/caja/anotar";
 
-export interface EstadoAccion {
-  ok: boolean;
-  mensaje: string | null;
-  /** Cambia en cada respuesta para que el formulario sepa que hubo una nueva. */
-  vez: number;
-}
-
-const bien = (mensaje: string): EstadoAccion => ({ ok: true, mensaje, vez: Date.now() });
-const mal = (mensaje: string): EstadoAccion => ({ ok: false, mensaje, vez: Date.now() });
-
-function campos(form: FormData): Campos {
-  const c: Campos = {};
-  for (const [k, v] of form.entries()) if (typeof v === "string") c[k] = v;
-  return c;
-}
-
-function refrescar() {
-  revalidatePath("/caja", "layout");
-  revalidatePath("/capital", "layout");
-  revalidatePath("/");
-}
-
-/**
- * Pago de tarjeta o préstamo: decide cuánto fue interés (lo escrito, o con la tasa del préstamo, o nada)
- * y lo explica en palabras. Devuelve el error si el destino no es una deuda y se escribió el capital.
- */
-async function interesDelPago(m: Omit<Movimiento, "id">): Promise<{ interes: string | null; frase: string } | { error: string }> {
-  if (m.tipo !== "pago_tarjeta") return { interes: null, frase: "" };
-  let datos: DatosCaja;
-  try {
-    datos = (await leerCaja()).datos;
-  } catch (e) {
-    return { error: `No se pudo leer tu Presupuesto para separar capital e interés: ${(e as Error).message}. Inténtalo de nuevo.` };
-  }
-  const destino = datos.cuentas.find((c) => c.id === m.destino);
-  if (!destino || !esDeuda(destino.tipo)) {
-    if (m.interes) return { error: "Solo los pagos a una tarjeta o a un préstamo llevan capital e interés. Elige la deuda que pagas." };
-    return { interes: null, frase: "" };
-  }
-  const sep = separarPago(datos, m, m.interes);
-  const mon = (x: string) => enMoneda(x, m.moneda);
-  const frase =
-    sep.como === "tasa"
-      ? ` De tu pago, ${mon(sep.capital)} bajó lo que debes y ${mon(sep.interes ?? "0")} fue interés (debías ${mon(sep.deuda ?? "0")} × ${new Big(sep.tasa ?? "0").times(100).toFixed(2)} % al año ÷ 12).`
-      : sep.como === "escrito"
-        ? ` ${mon(sep.capital)} bajó lo que debes y ${mon(sep.interes ?? "0")} fue interés o cargos.`
-        : ` Todo el pago bajó lo que debes en «${destino.nombre}».`;
-  return { interes: sep.interes, frase };
-}
+export type { EstadoAccion } from "@/lib/caja/anotar";
 
 function errorBase(e: { message: string } | null, que: string): EstadoAccion | null {
   return e ? mal(`No se pudo ${que}: ${e.message}`) : null;
@@ -91,34 +49,7 @@ const ID = /^[^\u0000-\u001f]{1,120}$/;
 
 /** Registrar (o confirmar / ajustar un planificado: llega con recurrenteId). */
 export async function registrarMovimiento(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
-  const r = validarMovimiento(campos(form));
-  if (!r.ok) return mal(r.error);
-  const m = r.valor;
-  const pago = await interesDelPago(m);
-  if ("error" in pago) return mal(pago.error);
-  const db = await personal();
-  const { error } = await db.from("caja_movimientos").insert({
-    fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta,
-    destino: m.destino, categoria: m.categoria, nota: m.nota, recurrente_id: m.recurrenteId, interes: pago.interes, parte: m.parte ?? null,
-  });
-  const e = errorBase(error, "registrar el movimiento");
-  if (e) return e;
-  let nota = "";
-  if (m.recurrenteId) {
-    // Si estaba omitido ese día, confirmar lo saca de omitidos.
-    await db.from("caja_omitidos").delete().eq("fecha", m.fecha).eq("recurrente_id", m.recurrenteId);
-    // Un fijo de antes sin categoría queda enlazado a la que se eligió al decir «Sí, ya se hizo».
-    if (m.categoria) {
-      const enlazado = await db.from("caja_recurrentes").update({ categoria: m.categoria, actualizado_en: new Date().toISOString() }).eq("id", m.recurrenteId).is("categoria", null).select("id");
-      if (!enlazado.error && enlazado.data?.length) {
-        const cat = await db.from("caja_categorias").select("id, nombre, adicional::text").eq("id", m.categoria).maybeSingle();
-        nota = " El fijo quedó en esa categoría desde ahora.";
-        if (cat.data) nota += await descontarDelAdicional(m.recurrenteId, cat.data as unknown as { id: string; nombre: string; adicional: string | null });
-      }
-    }
-  }
-  refrescar();
-  return bien(m.recurrenteId ? `Listo: ya se hizo.${pago.frase}${nota}` : `Anotado.${pago.frase}`);
+  return anotarMovimiento(form);
 }
 
 export async function editarMovimiento(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
@@ -127,14 +58,19 @@ export async function editarMovimiento(_p: EstadoAccion, form: FormData): Promis
   const r = validarMovimiento(c);
   if (!r.ok) return mal(r.error);
   const m = r.valor;
-  const pago = await interesDelPago(m);
+  const datos = await cajaParaValidar();
+  if (typeof datos === "string") return mal(datos);
+  const lista = await revisarListas(m, datos);
+  if (lista) return mal(lista);
+  const pago = await interesDelPago(m, datos);
   if ("error" in pago) return mal(pago.error);
   const db = await personal();
   const { error, count } = await db
     .from("caja_movimientos")
     .update(
       { fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda, tasa: m.tasa, cuenta: m.cuenta, destino: m.destino,
-        categoria: m.categoria, nota: m.nota, interes: pago.interes, parte: m.parte ?? null, actualizado_en: new Date().toISOString() },
+        categoria: m.categoria, nota: m.nota, interes: pago.interes, parte: m.parte ?? null, cargos: pago.cargos, categoria_cargos: m.categoriaCargos ?? null,
+        registro_origen: m.registroOrigen ?? null, registro_destino: m.registroDestino ?? null, actualizado_en: new Date().toISOString() },
       { count: "exact" },
     )
     .eq("id", c.id);
@@ -372,24 +308,6 @@ export async function guardarCategoria(_p: EstadoAccion, form: FormData): Promis
  * «Asígnale una categoría»: pone la categoría a un fijo o a un movimiento que no la tenía, sin tocar
  * nada más. Campos: cual (recurrente | movimiento), id, categoria.
  */
-/**
- * Para no contarlo dos veces: si la categoría ya tenía escrito un monto que incluía este fijo (como en la
- * versión anterior, donde no estaban enlazados), su adicional baja en lo que el fijo pone al mes.
- * Devuelve la frase para avisarle a Mena (vacía si no cambió nada).
- */
-async function descontarDelAdicional(recurrenteId: string, cat: { id: string; nombre: string; adicional: string | null }): Promise<string> {
-  if (!cat.adicional) return "";
-  const db = await personal();
-  const r = await db.from("caja_recurrentes").select(COLUMNAS.caja_recurrentes).eq("id", recurrenteId).maybeSingle();
-  if (r.error || !r.data) return "";
-  const vacio = { config: null, cuentas: [], categorias: [], movimientos: [], omitidos: [], saldos: [], notas: [] };
-  const [rec] = filasADatos({ ...vacio, recurrentes: [r.data as unknown as Record<string, unknown>] }).recurrentes;
-  const nuevo = adicionalDesdeV1(cat.adicional, [rec]);
-  if (nuevo === cat.adicional) return "";
-  const u = await db.from("caja_categorias").update({ adicional: nuevo, actualizado_en: new Date().toISOString() }).eq("id", cat.id);
-  return u.error ? "" : ` El monto adicional de «${cat.nombre}» pasó a ${rd(nuevo ?? "0")} para no contar este fijo dos veces.`;
-}
-
 export async function asignarCategoria(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
   const cual = String(form.get("cual") ?? "");
   const id = String(form.get("id") ?? "");

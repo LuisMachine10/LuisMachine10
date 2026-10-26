@@ -4,6 +4,9 @@
 // con una diferencia: todo monto, tasa o cantidad viaja como TEXTO decimal ("60", "0.05", "1234.5")
 // y se opera con big.js. Las tasas se guardan como fracción (0.045 = 4.5 %), igual que el artefacto.
 
+import type { TipoFin } from "../finanzas/catalogo";
+import type { Renovacion } from "../finanzas/mutuo";
+
 /** Número decimal como texto, sin exponente: "1234.5", "-0.05". */
 export type Dec = string;
 
@@ -214,6 +217,17 @@ export interface Activo {
   /** Lo que Mena escribió (si el Presupuesto la mueve, cantidad = saldo vigente). */
   cantidadEscrita?: Dec;
   plan?: PlanInstrumento;
+  // ── Núcleo v2: catálogo de tipos (lib/finanzas/catalogo.ts). Sin tipo, el motor lo deduce de la clase. ──
+  tipo?: TipoFin;
+  tieneDebito?: boolean | null;
+  /** Cuenta donde caen intereses, cupones o dividendos. */
+  pagaA?: string | null;
+  /** Retención del interés (fracción); null = la del tipo. */
+  retencion?: Dec | null;
+  /** Comisión de administración al año (fracción); null = no confirmado. */
+  comisionAdmin?: Dec | null;
+  plazoDias?: number | null;
+  renovaciones?: Renovacion[];
 }
 
 export interface Transaccion {
