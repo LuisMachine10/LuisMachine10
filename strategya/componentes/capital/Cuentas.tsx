@@ -6,13 +6,15 @@ import Link from "next/link";
 import { decidirUnion, eliminarRegistro, guardarRegistro, unirCuentas } from "@/app/capital/acciones";
 import { n } from "@/lib/capital/decimal";
 import { diaDelSaldo, TIPOS_ALTA, tipoAltaDe } from "@/lib/capital/formulario-registro";
+import { cuantoDejaAlMes } from "@/lib/capital/proyeccion";
+import { CATALOGO, GRUPOS_ALTA, puedeRecibirCobros, retencionDe } from "@/lib/finanzas/catalogo";
 import { aPct } from "@/lib/capital/formulario";
 import { num, pct, rd } from "@/lib/capital/formato";
 import type { PrefRegistro } from "@/lib/capital/preferencias";
-import { balance, clavePar, esDeuda, esDobleMoneda, type ItemRegistro, type ParUnion, sugerirUniones, usoTarjeta, valorRegistro } from "@/lib/capital/registro";
+import { aActivo, balance, clavePar, esDeuda, esDobleMoneda, type ItemRegistro, type ParUnion, sugerirUniones, usoTarjeta, valorRegistro } from "@/lib/capital/registro";
 import { cicloDe, cicloVigente, lineaCiclo, notaCiclo } from "@/lib/caja/ciclo";
 import type { Contexto } from "@/lib/capital/posicion";
-import { CLASES, CLASES_OTRAS, MONEDAS } from "@/lib/capital/tipos";
+import { MONEDAS } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
 import { fechaCorta } from "@/lib/formato";
 import { BotonEnviar } from "./BotonEnviar";
@@ -23,21 +25,21 @@ import { SelloFx } from "./Sellos";
 type Props = { datos: DatosCapital; mes: string; pref: PrefRegistro; revisar: boolean };
 
 const GRUPOS_TIENES = [
-  { id: "efectivo", nom: "Efectivo", de: (i: ItemRegistro) => i.clase === "efectivo" },
-  { id: "cuentas", nom: "Cuentas de banco", de: (i: ItemRegistro) => i.clase === "ahorros" },
-  { id: "inversiones", nom: "Inversiones", de: (i: ItemRegistro) => i.clase === "rentafija" || i.clase === "rentavariable" },
-  { id: "otros", nom: "Otros bienes", de: (i: ItemRegistro) => i.clase === "otros" },
+  { id: "efectivo", nom: "Efectivo", de: (i: ItemRegistro) => i.tipo === "efectivo" },
+  { id: "cuentas", nom: "Cuentas de banco", de: (i: ItemRegistro) => CATALOGO[i.tipo].grupo === "cuenta" && i.tipo !== "efectivo" },
+  { id: "inversiones", nom: "Inversiones", de: (i: ItemRegistro) => CATALOGO[i.tipo].grupo === "inversion" },
+  { id: "otros", nom: "Bienes", de: (i: ItemRegistro) => i.tipo === "bien" },
 ];
 const GRUPOS_DEBES = [
-  { id: "tarjetas", nom: "Tarjetas de crédito", de: (i: ItemRegistro) => i.clase === "tarjeta" },
-  { id: "prestamos", nom: "Préstamos y otras deudas", de: (i: ItemRegistro) => i.clase === "prestamo" || i.clase === "deuda" },
+  { id: "tarjetas", nom: "Tarjetas de crédito", de: (i: ItemRegistro) => i.tipo === "tarjeta" },
+  { id: "prestamos", nom: "Préstamos y otras deudas", de: (i: ItemRegistro) => i.tipo === "prestamo" || i.tipo === "otra_deuda" },
 ];
 
-const SUBTIPO: Record<string, string> = { corriente: "Corriente o nómina", ahorro: "Ahorro", vehiculo: "Vehículo", inmueble: "Inmueble", otro: "Otro bien" };
+const BIEN: Record<string, string> = { vehiculo: "Vehículo", inmueble: "Casa, apartamento o terreno", otro: "Otro bien" };
 
 function nombreTipo(i: ItemRegistro): string {
-  if (i.subtipo && SUBTIPO[i.subtipo]) return SUBTIPO[i.subtipo];
-  return CLASES.find((c) => c.id === i.clase)?.nom ?? CLASES_OTRAS.find((c) => c.id === i.clase)?.nom ?? i.clase;
+  if (i.tipo === "bien") return BIEN[i.subtipo ?? "otro"] ?? "Bien";
+  return CATALOGO[i.tipo].nom;
 }
 
 /** De dónde sale el saldo de una fila (discreto: texto chico y tenue; «sin dato» punteado). */
@@ -57,32 +59,29 @@ function SelloSaldo({ i }: { i: ItemRegistro }) {
 /** Lo que debes en US$ como se muestra en el formulario: a centavos (un pago desde pesos deja más decimales). */
 const usdMostrado = (i?: ItemRegistro) => (i?.saldoUsd ? n(i.saldoUsd).round(2).toFixed() : "");
 
-function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
-  const tipo = i ? tipoAltaDe(i.clase, i.subtipo) : "corriente";
+function CamposRegistro({ i, hoy, cobros }: { i?: ItemRegistro; hoy: string; cobros: { id: string; nombre: string }[] }) {
+  const tipo = i ? tipoAltaDe(i.clase, i.subtipo, i.tipo) : "corriente";
   const id = i?.id ?? "nuevo";
-  const saldo = i ? (i.clase === "rentavariable" ? i.cantidad : i.cantidad) : "";
+  const saldo = i ? i.cantidad : "";
+  const porUnidades = !!i && !n(i.precio).eq(1);
+  const pct100 = (x: string | null) => (x ? aPct(x) : "");
   return (
     <>
       {i ? <input type="hidden" name="id" value={i.id} /> : null}
-      {i && i.clase !== "rentavariable" ? <input type="hidden" name="saldoMostrado" value={saldo} /> : null}
+      {i && !porUnidades ? <input type="hidden" name="saldoMostrado" value={saldo} /> : null}
       <div className="reg-campos">
         <label className="cap-campo">
           ¿Qué es?
           <select name="tipo" defaultValue={tipo} required>
-            <optgroup label="Lo que tienes">
-              {TIPOS_ALTA.filter((t) => t.grupo === "tienes").map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nom}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Lo que debes">
-              {TIPOS_ALTA.filter((t) => t.grupo === "debes").map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nom}
-                </option>
-              ))}
-            </optgroup>
+            {GRUPOS_ALTA.map((g) => (
+              <optgroup key={g.nom} label={g.nom}>
+                {TIPOS_ALTA.filter((t) => t.seccion === g.nom).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nom}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </label>
         <label className="cap-campo">
@@ -109,16 +108,16 @@ function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
           <span className="reg-et-vale">¿Cuánto vale hoy?</span>
           <span className="cap-con-moneda">
             <span aria-hidden="true" className="reg-moneda"><span className="m-DOP">RD$</span><span className="m-USD">US$</span><span className="m-EUR">€</span></span>
-            <input name="saldo" inputMode="decimal" defaultValue={i && i.clase !== "rentavariable" ? saldo : ""} placeholder="Ej.: 25,000" autoComplete="off" id={`reg-${id}-saldo`} />
+            <input name="saldo" inputMode="decimal" defaultValue={i && !porUnidades ? saldo : ""} placeholder="Ej.: 25,000" autoComplete="off" id={`reg-${id}-saldo`} />
           </span>
         </label>
         <label className="cap-campo s-unidades">
-          Cantidad de acciones o unidades
-          <input name="cantidad" inputMode="decimal" defaultValue={i?.clase === "rentavariable" ? i.cantidad : ""} placeholder="Ej.: 10" autoComplete="off" />
+          Cantidad de acciones, cuotas o unidades <span className="ayuda">(en un fondo, vacío = lo anotas como saldo)</span>
+          <input name="cantidad" inputMode="decimal" defaultValue={porUnidades ? i!.cantidad : ""} placeholder="Ej.: 10" autoComplete="off" />
         </label>
         <label className="cap-campo s-unidades">
-          Precio de cada una <span className="ayuda">(si hay precio de mercado, se usa ese)</span>
-          <input name="precio" inputMode="decimal" defaultValue={i?.clase === "rentavariable" ? i.precio : ""} placeholder="Ej.: 101.25" autoComplete="off" />
+          Precio o valor cuota de cada una <span className="ayuda">(si hay precio de mercado, se usa ese)</span>
+          <input name="precio" inputMode="decimal" defaultValue={porUnidades ? i!.precio : ""} placeholder="Ej.: 101.25" autoComplete="off" />
         </label>
         <label className="cap-campo s-unidades">
           Símbolo <span className="ayuda">(opcional)</span>
@@ -131,6 +130,53 @@ function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
         <label className="cap-campo s-venc">
           Vence el <span className="ayuda">(opcional)</span>
           <input type="date" name="venc" defaultValue={i?.venc ?? ""} />
+        </label>
+        <label className="cap-campo s-claserv">
+          ¿De renta fija o variable? <span className="ayuda">(según su reglamento)</span>
+          <select name="claseRV" defaultValue={i?.clase === "rentavariable" ? "rentavariable" : "rentafija"}>
+            <option value="rentafija">Renta fija</option>
+            <option value="rentavariable">Renta variable</option>
+          </select>
+        </label>
+        <label className="cap-campo s-debito">
+          ¿Tiene tarjeta de débito? <span className="ayuda">(si sí, sirve para pagar)</span>
+          <select name="debito" defaultValue={i?.tieneDebito ? "si" : "no"}>
+            <option value="no">No</option>
+            <option value="si">Sí, pago con ella</option>
+          </select>
+        </label>
+        <label className="cap-campo s-capitaliza">
+          ¿Capitaliza o te paga a una cuenta?
+          <select name="capitaliza" defaultValue={i?.plan.capitaliza === true ? "si" : i?.plan.capitaliza === false ? "no" : ""}>
+            <option value="">Todavía no lo sé</option>
+            <option value="si">Capitaliza: el interés se queda adentro</option>
+            <option value="no">Me paga los intereses a una cuenta</option>
+          </select>
+        </label>
+        <label className="cap-campo s-pagaa">
+          ¿A qué cuenta te paga? <span className="ayuda">(intereses, cupones o dividendos)</span>
+          <select name="pagaA" defaultValue={i?.pagaA ?? ""}>
+            <option value="">Todavía no lo sé</option>
+            {cobros
+              .filter((c) => c.id !== i?.id)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label className="cap-campo s-plazo">
+          Plazo en días <span className="ayuda">(mutuo típico: 30)</span>
+          <input name="plazoDias" inputMode="numeric" maxLength={4} defaultValue={i?.plazoDias ? String(i.plazoDias) : ""} placeholder="Ej.: 30" autoComplete="off" />
+        </label>
+        <label className="cap-campo s-retencion">
+          Retención del interés % <span className="ayuda">(vacío = la del tipo{i ? `: ${aPct(retencionDe(i.tipo, null)) || "0"} %` : ""})</span>
+          <input name="retencion" inputMode="decimal" defaultValue={pct100(i?.retencion ?? null)} placeholder="Certificados bancarios: 10" autoComplete="off" />
+        </label>
+        <label className="cap-campo s-comision">
+          Comisión de administración % al año <span className="ayuda">(opcional: si no la sabes, queda «no confirmado»)</span>
+          <input name="comision" inputMode="decimal" defaultValue={pct100(i?.comisionAdmin ?? null)} placeholder="Ej.: 1.25" autoComplete="off" />
         </label>
         <label className="cap-campo s-tarjeta">
           ¿Y cuánto debes hoy en US$? <span className="ayuda">(si tu tarjeta tiene parte en dólares)</span>
@@ -174,6 +220,10 @@ function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
           Cuota mensual <span className="ayuda">(opcional)</span>
           <input name="cuota" inputMode="decimal" defaultValue={i?.cuota ?? ""} placeholder="Ej.: 9,500" autoComplete="off" />
         </label>
+        <label className="cap-campo s-cargos">
+          Cargos dentro de la cuota: seguro y otros <span className="ayuda">(gasto aparte: no bajan la deuda)</span>
+          <input name="cargosCuota" inputMode="decimal" defaultValue={i?.cargosCuota ?? ""} placeholder="Ej.: 1,200" autoComplete="off" />
+        </label>
       </div>
       <p className="tenue chico reg-nota s-tarjeta-nota">
         Tarjeta: con el día de corte y los días para pagar calculamos tu fecha límite. Ej.: corta el 15 y tienes 28 días → la fecha límite es 28 días después del
@@ -181,7 +231,7 @@ function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
       </p>
       <p className="tenue chico reg-nota">
         Basta un nombre que reconozcas: nunca pongas números de cuenta, de tarjeta ni cédula. El saldo que escribes es el de hoy; lo que anotes desde mañana en el
-        Presupuesto lo mueve solo. Hoy es {fechaCorta(hoy)}.
+        Presupuesto lo mueve solo. Si es efectivo, una cuenta, una tarjeta o un préstamo, aparece sola en el Presupuesto. Hoy es {fechaCorta(hoy)}.
       </p>
     </>
   );
@@ -245,8 +295,27 @@ function UsoDeTarjeta({ i, ctx }: { i: ItemRegistro; ctx: Contexto }) {
   );
 }
 
+/** Lo elegible que Mena cambió del comportamiento del tipo (queda anotado con su fecha). */
+function CambiosAnotados({ i }: { i: ItemRegistro }) {
+  const nombres: Record<string, (v: unknown) => string> = {
+    capitaliza: (v) => (v === true ? "capitaliza" : v === false ? "te paga a una cuenta" : "sin elegir"),
+    tiene_debito: (v) => (v ? "con tarjeta de débito" : "sin tarjeta de débito"),
+    tipo: (v) => `ahora es ${CATALOGO[v as keyof typeof CATALOGO]?.nom.toLowerCase() ?? String(v)}`,
+  };
+  const lista = Object.entries(i.cambiosTipo).filter(([k]) => nombres[k]);
+  if (!lista.length) return null;
+  return (
+    <p className="chico tenue" style={{ margin: "0 0 8px" }}>
+      Cambiaste: {lista.map(([k, x]) => `${nombres[k](x.valor)} (${fechaCorta(x.fecha)})`).join(" · ")}.
+    </p>
+  );
+}
+
 function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: string }) {
   const v = valorRegistro(datos.ctx, i);
+  const cobros = datos.registroCompleto.filter((x) => !x.unidoA && puedeRecibirCobros(x.tipo)).map((x) => ({ id: x.id, nombre: x.nombre }));
+  const deja = i.tipo === "alto_rendimiento" ? cuantoDejaAlMes(aActivo(i)) : null;
+  const pareceEuro = i.moneda === "DOP" && /\beuros?\b/i.test(i.nombre);
   const tc = i.clase === "tarjeta";
   const limites = tc ? [i.limite ? `límite ${rd(i.limite)}` : null, i.limiteUsd ? `${i.limite ? "" : "límite "}${usd(i.limiteUsd)}` : null].filter(Boolean).join(" · ") : null;
   const ciclo = lineaTarjeta(i, datos.ctx.hoy);
@@ -267,8 +336,10 @@ function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: st
           <span className="nombre">
             {i.nombre}
             {i.cajaId ? <span className="etiqueta reg-en-presupuesto">En el Presupuesto</span> : null}
+            {i.tipoConfirmado ? null : <span className="etiqueta alerta">tipo por confirmar</span>}
             <span className="detalle">{detalle.join(" · ")}</span>
             {ciclo ? <span className="detalle reg-ciclo">{ciclo.linea}</span> : null}
+            {deja ? <span className="detalle">Te deja {rd(deja)} al mes</span> : null}
             <SelloSaldo i={i} />
           </span>
           <span className="monto">
@@ -287,6 +358,17 @@ function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: st
           </span>
         </summary>
         <div className="cuerpo">
+          {i.tipoConfirmado ? null : (
+            <p className="cap-nota" style={{ marginTop: 0 }}>
+              Al pasar al catálogo de tipos dedujimos que es «{CATALOGO[i.tipo].nom}» (por su clase y su nombre). Revísalo en «¿Qué es?» y pulsa Guardar: así queda confirmado.
+            </p>
+          )}
+          {pareceEuro ? (
+            <p className="cap-nota baja" style={{ marginTop: 0 }}>
+              «{i.nombre}» está anotado en RD$. Si son euros, cambia la moneda a € (se convierte con el cruce oficial BCE × BCRD de la fecha).
+            </p>
+          ) : null}
+          <CambiosAnotados i={i} />
           {tc ? (
             <div className="reg-ficha-tc">
               {ciclo ? (
@@ -302,18 +384,14 @@ function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: st
           ) : null}
           <form action={guardarRegistro} className="cap-form reg-form">
             <input type="hidden" name="mes" value={mes} />
-            <CamposRegistro i={i} hoy={datos.ctx.hoy} />
+            <CamposRegistro i={i} hoy={datos.ctx.hoy} cobros={cobros} />
             <div className="cap-botones">
               <BotonEnviar className="boton" aviso="Guardando los cambios de «{nombre}»…">
                 Guardar cambios
               </BotonEnviar>
             </div>
           </form>
-          {i.cajaId ? (
-            <p className="tenue chico" style={{ marginTop: 10 }}>
-              La usa el Presupuesto: para borrarla, quítala primero en Presupuesto → Configuración.
-            </p>
-          ) : (
+          {(
             <details className="cap-borrar" style={{ marginTop: 10 }}>
               <summary className="boton secundario chico peligro">
                 <Icono nombre="basura" />
@@ -322,7 +400,9 @@ function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: st
               <form action={eliminarRegistro} className="cap-botones">
                 <input type="hidden" name="id" value={i.id} />
                 <input type="hidden" name="mes" value={mes} />
-                <span className="chico">¿Seguro? «{i.nombre}» sale de Mis cuentas (sus transacciones se conservan). No se puede deshacer.</span>
+                <span className="chico">
+                  ¿Seguro? «{i.nombre}» sale de Mis cuentas{i.cajaId ? " y del Presupuesto (solo si allá no tiene movimientos ni pagos fijos)" : ""} (sus transacciones se conservan). No se puede deshacer.
+                </span>
                 <BotonEnviar className="boton chico peligro" enviando="Borrando…">
                   Sí, borrar
                 </BotonEnviar>
@@ -515,7 +595,7 @@ export function VistaCuentas({ datos, mes, pref, revisar }: Props) {
             <Icono nombre="mas" />
             Agregar cuenta, bien o deuda
           </span>
-          <span className="tenue chico">Se anota una vez: el Presupuesto la usa sin pedírtela otra vez.</span>
+          <span className="tenue chico">Se anota una vez: según su tipo, aparece sola en el Presupuesto donde sirve.</span>
         </summary>
         <div className="cuerpo">
           {vacio ? (
@@ -529,7 +609,7 @@ export function VistaCuentas({ datos, mes, pref, revisar }: Props) {
           ) : null}
           <form action={guardarRegistro} className="cap-form reg-form">
             <input type="hidden" name="mes" value={mes} />
-            <CamposRegistro hoy={datos.ctx.hoy} />
+            <CamposRegistro hoy={datos.ctx.hoy} cobros={datos.registroCompleto.filter((x) => !x.unidoA && puedeRecibirCobros(x.tipo)).map((x) => ({ id: x.id, nombre: x.nombre }))} />
             <div className="cap-botones">
               <BotonEnviar className="boton boton-grande" aviso="Guardando «{nombre}»… aparece en tu lista en un momento.">
                 Guardar

@@ -2,6 +2,7 @@
 // cliente) a partir de los datos y la simulación. Puro.
 
 import Big from "big.js";
+import { esInversionFin, type TipoFin } from "../finanzas/catalogo";
 import { abreviado, rd } from "./formato";
 import {
   diaSemanaLunes,
@@ -222,21 +223,53 @@ export function armarPanel(datos: DatosCaja, sim: Simulacion, f: Fecha, tarjetas
 }
 
 /** Catálogos mínimos para los formularios del cliente. */
-export function catalogos(datos: DatosCaja): {
-  cuentas: (Pick<Cuenta, "id" | "nombre" | "tipo" | "moneda" | "tasaAnual"> & { dobleMoneda?: boolean })[];
+/** Lo que el formulario necesita de una inversión del registro que no vive en el Presupuesto (acciones, fondos por cuotas). */
+export interface InversionFuera {
+  id: string;
+  nombre: string;
+  tipo: TipoFin;
+  moneda: string;
+  precio: string;
+  cajaId: string | null;
+  unidoA: string | null;
+}
+
+export function catalogos(
+  datos: DatosCaja,
+  registro: readonly InversionFuera[] = [],
+): {
+  cuentas: (Pick<Cuenta, "id" | "nombre" | "tipo" | "moneda" | "tasaAnual" | "tipoFin" | "debito" | "cargosCuota"> & { dobleMoneda?: boolean; porUnidades?: boolean })[];
   categorias: Pick<Categoria, "id" | "nombre" | "tipo">[];
 } {
+  // Las inversiones que no están en el Presupuesto (no tienen saldo en él) solo sirven de destino de ahorro u origen de
+  // un rescate: van con «r:<id>». Solo en RD$ o US$ (el Presupuesto no lleva otras monedas).
+  const fuera = registro
+    .filter((i) => !i.cajaId && !i.unidoA && esInversionFin(i.tipo) && (i.moneda === "DOP" || i.moneda === "USD"))
+    .map((i) => ({
+      id: `r:${i.id}`,
+      nombre: i.nombre,
+      tipo: "ahorro" as const,
+      tipoFin: i.tipo,
+      ...(i.moneda === "USD" ? { moneda: "USD" as const } : {}),
+      ...(new Big(i.precio || "1").eq(1) ? {} : { porUnidades: true }),
+    }));
   return {
-    cuentas: [...datos.cuentas]
-      .sort((a, b) => a.orden - b.orden)
-      .map(({ id, nombre, tipo, moneda, tasaAnual, usd }) => ({
-        id,
-        nombre,
-        tipo,
-        ...(moneda && moneda !== "DOP" ? { moneda } : {}),
-        ...(tasaAnual ? { tasaAnual } : {}),
-        ...(usd ? { dobleMoneda: true } : {}),
-      })),
+    cuentas: [
+      ...[...datos.cuentas]
+        .sort((a, b) => a.orden - b.orden)
+        .map(({ id, nombre, tipo, moneda, tasaAnual, usd, tipoFin, debito, cargosCuota }) => ({
+          id,
+          nombre,
+          tipo,
+          ...(moneda && moneda !== "DOP" ? { moneda } : {}),
+          ...(tasaAnual ? { tasaAnual } : {}),
+          ...(usd ? { dobleMoneda: true } : {}),
+          ...(tipoFin ? { tipoFin } : {}),
+          ...(debito ? { debito } : {}),
+          ...(cargosCuota ? { cargosCuota } : {}),
+        })),
+      ...fuera,
+    ],
     categorias: datos.categorias.map(({ id, nombre, tipo }) => ({ id, nombre, tipo })),
   };
 }

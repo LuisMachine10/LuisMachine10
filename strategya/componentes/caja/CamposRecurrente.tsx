@@ -5,18 +5,11 @@
 // frecuencia decide si se piden días del mes, cada N días o una fecha.
 
 import { useState } from "react";
-import {
-  FRECUENCIAS,
-  MONEDAS,
-  NOMBRE_FRECUENCIA,
-  NOMBRE_TIPO,
-  type Frecuencia,
-  type Moneda,
-  type Recurrente,
-  TIPOS_MOVIMIENTO,
-  type TipoMovimiento,
-} from "@/lib/caja/tipos";
-import { AYUDA_MOVER, type OpcionCategoria, type OpcionCuenta, SelectCategoria, SelectCuenta, SelectParte } from "./CamposMovimiento";
+import { FRECUENCIAS, MONEDAS, NOMBRE_FRECUENCIA, type Frecuencia, type Moneda, type Recurrente } from "@/lib/caja/tipos";
+import { AYUDA_MOVER, cuentasDe, type Modo, modoDe, NOMBRE_MODO, type OpcionCategoria, type OpcionCuenta, SelectCategoria, SelectCuenta, SelectParte, TIPO_DE_MODO } from "./CamposMovimiento";
+
+/** Lo que puede ser un pago o cobro fijo (una línea del plan de ahorro es un fijo de «Ahorro o inversión»). */
+const MODOS_FIJO: readonly Modo[] = ["ingreso", "gasto", "ahorro", "mover", "pago_deuda"];
 
 export function CamposRecurrente({
   r,
@@ -26,15 +19,19 @@ export function CamposRecurrente({
 }: {
   r?: Recurrente;
   /** Valores de arranque de uno nuevo (p. ej., la categoría desde la que se agrega). */
-  inicial?: Partial<Pick<Recurrente, "tipo" | "categoria">>;
+  inicial?: Partial<Pick<Recurrente, "tipo" | "categoria">> & { modo?: Modo };
   cuentas: OpcionCuenta[];
   categorias: OpcionCategoria[];
 }) {
-  const [tipo, setTipo] = useState<TipoMovimiento>(r?.tipo ?? inicial?.tipo ?? "gasto");
+  const idDestino = r?.destino ?? (r?.registroDestino ? `r:${r.registroDestino}` : "");
+  const [modo, setModo] = useState<Modo>(
+    inicial?.modo ?? (r ? modoDe(r.tipo, cuentas.find((c) => c.id === r.cuenta), cuentas.find((c) => c.id === idDestino)) : inicial?.tipo === "transferencia" ? "mover" : inicial?.tipo === "pago_tarjeta" ? "pago_deuda" : (inicial?.tipo ?? "gasto")),
+  );
+  const tipo = TIPO_DE_MODO[modo];
   const [frecuencia, setFrecuencia] = useState<Frecuencia>(r?.frecuencia ?? "mensual");
   const [moneda, setMoneda] = useState<Moneda>(r?.moneda ?? "DOP");
   const [pagoTotal, setPagoTotal] = useState<boolean>(r?.pagoTotal ?? false);
-  const [destino, setDestino] = useState<string>(r?.destino ?? "");
+  const [destino, setDestino] = useState<string>(idDestino);
   const conDestino = tipo === "transferencia" || tipo === "pago_tarjeta";
   const categoria = r?.categoria ?? inicial?.categoria ?? null;
   return (
@@ -43,12 +40,13 @@ export function CamposRecurrente({
         Nombre
         <input name="nombre" required maxLength={120} defaultValue={r?.nombre ?? ""} autoComplete="off" placeholder={tipo === "ingreso" ? "Ej.: Quincena" : "Ej.: Alquiler"} />
       </label>
+      <input type="hidden" name="tipo" value={tipo} />
       <label>
         Tipo
-        <select name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoMovimiento)}>
-          {TIPOS_MOVIMIENTO.map((t) => (
+        <select value={MODOS_FIJO.includes(modo) ? modo : "mover"} onChange={(e) => setModo(e.target.value as Modo)}>
+          {MODOS_FIJO.map((t) => (
             <option key={t} value={t}>
-              {NOMBRE_TIPO[t]}
+              {NOMBRE_MODO[t]}
             </option>
           ))}
         </select>
@@ -60,9 +58,13 @@ export function CamposRecurrente({
           <option value="false">En pausa</option>
         </select>
       </label>
-      {tipo === "transferencia" ? (
+      {modo === "mover" ? (
         <p className="ancho caja-campo-ayuda" style={{ margin: 0 }}>
           {AYUDA_MOVER}
+        </p>
+      ) : modo === "ahorro" ? (
+        <p className="ancho caja-campo-ayuda" style={{ margin: 0 }}>
+          Una línea de tu plan de ahorro: el instrumento exacto y cuánto le pones. Cuando registres la transferencia, queda hecha.
         </p>
       ) : null}
       {tipo === "pago_tarjeta" ? (
@@ -93,27 +95,27 @@ export function CamposRecurrente({
         </>
       )}
       <SelectCuenta
+        key={`o-${modo}`}
         nombre="cuenta"
         valor={r?.cuenta}
-        cuentas={cuentas}
+        cuentas={cuentasDe(cuentas, modo, "origen")}
         className={conDestino ? undefined : "ancho"}
         etiqueta={conDestino ? "Sale de" : tipo === "ingreso" ? "¿En qué cuenta te cae?" : "¿Con qué lo pagas?"}
       />
       {conDestino ? (
         <SelectCuenta
-          key={tipo}
+          key={`d-${modo}`}
           nombre="destino"
-          valor={r?.destino}
-          cuentas={cuentas}
-          soloTarjetas={tipo === "pago_tarjeta"}
-          etiqueta={tipo === "pago_tarjeta" ? "Tarjeta que pagas" : "Entra a"}
+          valor={idDestino || null}
+          cuentas={cuentasDe(cuentas, modo, "destino")}
+          etiqueta={tipo === "pago_tarjeta" ? "Tarjeta o préstamo que pagas" : modo === "ahorro" ? "¿A dónde va el ahorro?" : "Entra a"}
           alCambiar={setDestino}
         />
       ) : null}
       {tipo === "pago_tarjeta" && cuentas.find((c) => c.id === destino)?.dobleMoneda ? <SelectParte valor={r?.parte} /> : null}
       {tipo === "pago_tarjeta" ? null : (
         <div className="ancho">
-          <SelectCategoria key={tipo} valor={categoria} categorias={categorias} tipo={tipo} />
+          <SelectCategoria key={modo} valor={categoria ?? (modo === "ahorro" ? (categorias.find((c) => c.tipo === "ahorro_inversion")?.id ?? null) : null)} categorias={categorias} tipo={tipo} />
         </div>
       )}
       <label>

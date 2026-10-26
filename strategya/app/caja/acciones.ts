@@ -3,7 +3,6 @@
 // Toda edición del Calendario de Caja pasa por aquí. Cada acción valida con lib/caja/validar.ts
 // (puro, con pruebas) y escribe con la sesión de Mena: RLS en la base es la barrera real.
 
-import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { armarDesdeAsistente, type CuentaDelRegistro, leerAsistente } from "@/lib/caja/asistente";
 import { leerRegistro } from "@/lib/capital/datos-registro";
@@ -255,46 +254,6 @@ export async function guardarCuenta(_p: EstadoAccion, form: FormData): Promise<E
   }
   refrescar();
   return bien(tarjeta.dia_corte ? "Guardado. El calendario ya marca el corte, el día en que quieres pagar y la fecha límite." : "Guardado.");
-}
-
-/**
- * «Usar en el Presupuesto» una cuenta que ya está en el Portafolio (registro único): se enlaza, no se copia.
- * El trigger de la base toma su nombre, tipo y límite; el saldo inicial es su saldo de hoy.
- */
-export async function vincularCuenta(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
-  const id = String(form.get("registroId") ?? "");
-  if (!ID.test(id)) return mal("Elige una cuenta de tu Portafolio.");
-  let lectura: Awaited<ReturnType<typeof leerCaja>>;
-  let lista: CuentaDelRegistro[];
-  try {
-    lectura = await leerCaja();
-    lista = cuentasParaPresupuesto(await leerRegistro(lectura.datos, lectura.enlaces, hoyRD()));
-  } catch (e) {
-    return mal(`No se pudo leer tu Portafolio: ${(e as Error).message}. Inténtalo de nuevo.`);
-  }
-  const r = lista.find((x) => x.id === id);
-  if (!r) return mal("Esa cuenta ya está en el Presupuesto o no se puede usar (solo saldos en RD$ o US$; no acciones, bienes ni €). Recarga la página.");
-  const orden = lectura.datos.cuentas.reduce((m, c) => Math.max(m, c.orden), 0) + 1;
-  const { error } = await (await personal()).from("caja_cuentas").insert({ nombre: r.nombre, tipo: r.tipo, saldo_inicial: r.saldo, limite: r.limite, orden, registro_id: r.id });
-  const e = errorBase(error, "usar la cuenta");
-  if (e) return e;
-  refrescar();
-  revalidatePath("/capital", "layout");
-  return bien(`Listo: «${r.nombre}» ya está en tu Presupuesto.`);
-}
-
-export async function eliminarCuenta(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
-  return eliminarDe(
-    "caja_cuentas",
-    String(form.get("id") ?? ""),
-    [
-      { tabla: "caja_movimientos", col: "cuenta" },
-      { tabla: "caja_movimientos", col: "destino" },
-      { tabla: "caja_recurrentes", col: "cuenta" },
-      { tabla: "caja_recurrentes", col: "destino" },
-    ],
-    "la cuenta del Presupuesto",
-  );
 }
 
 export async function guardarCategoria(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {

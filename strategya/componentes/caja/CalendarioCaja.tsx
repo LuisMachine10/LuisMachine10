@@ -8,10 +8,9 @@ import { useCallback, useEffect, useState } from "react";
 import { type Fecha, fechaLarga } from "@/lib/caja/fechas";
 import { rd } from "@/lib/caja/formato";
 import { NOMBRE_ESTADO } from "@/lib/caja/motor";
-import type { TipoMovimiento } from "@/lib/caja/tipos";
 import type { VistaMes } from "@/lib/caja/vista";
 import { EVENTO_NUEVO } from "./BotonesNuevo";
-import type { OpcionCategoria, OpcionCuenta } from "./CamposMovimiento";
+import type { Modo, OpcionCategoria, OpcionCuenta } from "./CamposMovimiento";
 import { Icono } from "./Iconos";
 import { NuevoMovimiento } from "./NuevoMovimiento";
 import { PanelDia } from "./PanelDia";
@@ -46,13 +45,13 @@ export function CalendarioCaja({
 }) {
   const [sel, setSel] = useState<Fecha>(diaInicial);
   const [hoja, setHoja] = useState(false);
-  const [nuevo, setNuevo] = useState<TipoMovimiento | null>(null);
+  const [nuevo, setNuevo] = useState<Modo | null>(null);
   const panel = vista.paneles[sel];
   const cerrarHoja = useCallback(() => setHoja(false), []);
 
   useEffect(() => {
     const oir = (e: Event) => {
-      const t = (e as CustomEvent<TipoMovimiento>).detail;
+      const t = (e as CustomEvent<Modo>).detail;
       if (t) setNuevo(t);
     };
     window.addEventListener(EVENTO_NUEVO, oir);

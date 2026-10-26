@@ -209,7 +209,7 @@ describe("1 · migración sin pérdida (forma de producción)", () => {
       const f = await leer(c, COLUMNAS_COMPLETAS);
       const datos = filasADatos(f);
       const enl = (await c.query("select id, registro_id from personal.caja_cuentas")).rows as { id: string; registro_id: string }[];
-      const json = aJsonSQL({ ...datos, cuentas: datos.cuentas.slice(0, 5).map((x) => ({ ...x, registroId: enl.find((e) => e.id === x.id)?.registro_id })) });
+      const json = aJsonSQL({ ...datos, config: datos.config!, cuentas: datos.cuentas.slice(0, 5).map((x) => ({ ...x, registroId: enl.find((e) => e.id === x.id)?.registro_id })) });
       const r = (await c.query("select personal.caja_importar($1::jsonb) as r", [JSON.stringify(json)])).rows[0].r;
       expect(r.cuentas).toBe(12);
       expect(r.movimientos).toBe(2);
@@ -306,7 +306,7 @@ describe("2 · la base aplica las mismas reglas del módulo", () => {
       const f = await sembrarTipos(c);
       const caja = filasADatos(await leer(c, COLUMNAS_COMPLETAS));
       caja.movimientos = [{ id: "viejo", fecha: "2026-10-03", tipo: "gasto", monto: "50", moneda: "DOP", tasa: null, cuenta: f.certificado.caja, destino: null, categoria: null, nota: null, recurrenteId: null }];
-      await c.query("select personal.caja_importar($1::jsonb)", [JSON.stringify(aJsonSQL(caja))]);
+      await c.query("select personal.caja_importar($1::jsonb)", [JSON.stringify(aJsonSQL({ ...caja, config: caja.config! }))]);
       expect((await c.query("select count(*)::int as n from personal.caja_movimientos where id = 'viejo'")).rows[0].n).toBe(1);
       await c.query("insert into personal.caja_categorias (id, nombre, tipo) values ('k', 'Otros', 'gasto')");
       await c.query("update personal.caja_movimientos set categoria = 'k' where id = 'viejo'");

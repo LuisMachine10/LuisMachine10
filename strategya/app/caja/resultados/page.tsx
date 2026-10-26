@@ -11,6 +11,7 @@ import { SinDatosCaja } from "@/componentes/caja/SinDatosCaja";
 import { PanelError } from "@/componentes/PanelError";
 import { SelloFuente } from "@/componentes/SelloFuente";
 import { leerCaja } from "@/lib/caja/datos";
+import { leerRegistro } from "@/lib/capital/datos-registro";
 import { esMes, fechaLarga, hoyRD, mesDe, nombreMes, ultimoDia } from "@/lib/caja/fechas";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { describirTasa, FUENTE_BCRD } from "@/lib/caja/tasas";
@@ -48,7 +49,7 @@ export default async function PaginaResultados({ searchParams }: { searchParams:
   }
   const sim = simular(datos, { hoy, hasta: horizonte(mes, hoy) });
   const e = estadoDeResultados(datos, mes, { sim });
-  const cat = catalogos(datos);
+  const cat = catalogos(datos, await leerRegistro(datos, lectura.enlaces, hoy).catch(() => []));
   const un = e.utilidadNeta;
   const ultimoMov = datos.movimientos.filter((m) => mesDe(m.fecha) === mes).map((m) => m.fecha).sort().at(-1) ?? null;
   const porResponder = sim.dias.filter((d) => mesDe(d.fecha) === mes).reduce((n, d) => n + d.porConfirmar.length, 0);

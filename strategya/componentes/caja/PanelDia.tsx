@@ -17,10 +17,10 @@ import {
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { NOMBRE_ESTADO, type Ocurrencia } from "@/lib/caja/motor";
 import { describirTasa, type TasaUsada } from "@/lib/caja/tasas";
-import { esDeuda, NOMBRE_TIPO, NOMBRE_TIPO_CUENTA, type TipoMovimiento } from "@/lib/caja/tipos";
+import { esDeuda, NOMBRE_TIPO, NOMBRE_TIPO_CUENTA } from "@/lib/caja/tipos";
 import type { PanelDiaVista } from "@/lib/caja/vista";
 import { BotonesAnotar } from "./BotonesNuevo";
-import { CamposMovimiento, type OpcionCategoria, type OpcionCuenta, SelectCategoria } from "./CamposMovimiento";
+import { CamposMovimiento, type Modo, type OpcionCategoria, type OpcionCuenta, SelectCategoria } from "./CamposMovimiento";
 import { BotonEliminar, FormAccion } from "./FormAccion";
 import { Ayuda, Icono, type NombreIcono } from "./Iconos";
 
@@ -117,7 +117,7 @@ function Planificado({ o, fecha, pendiente, cat }: { o: Ocurrencia; fecha: strin
             <input type="hidden" name="monto" value={o.monto} />
             <input type="hidden" name="moneda" value={o.moneda} />
             <input type="hidden" name="cuenta" value={o.cuenta ?? ""} />
-            <input type="hidden" name="destino" value={o.destino ?? ""} />
+            <input type="hidden" name="destino" value={o.destino ?? (o.registroDestino ? `r:${o.registroDestino}` : "")} />
             {o.parte ? <input type="hidden" name="parte" value={o.parte} /> : null}
             {faltaCategoria ? (
               <span className="caja-asignar-linea">
@@ -158,7 +158,7 @@ export function PanelDia({
   /** Celular: la hoja está a la vista. */
   abierta?: boolean;
   cerrar?: () => void;
-  nuevo?: (tipo: TipoMovimiento) => void;
+  nuevo?: (tipo: Modo) => void;
 }) {
   const hayCuentas = cat.cuentas.length > 0;
   const titulo = useRef<HTMLHeadingElement>(null);

@@ -1338,41 +1338,83 @@ textarea::placeholder {
 @media (min-width: 1100px) {
   .reg-campos { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-/* Solo los campos que aplican a lo elegido (sin JavaScript): cambian al elegir el tipo, nunca al escribir. */
-.reg-form .s-unidades, .reg-form .s-tasa, .reg-form .s-venc, .reg-form .s-tarjeta, .reg-form .s-deuda, .reg-form .s-prestamo,
-.reg-form .reg-et-debe, .reg-form .reg-et-vale { display: none; }
-.reg-form:has(option[value="rentavariable"]:checked) .s-unidades { display: grid; }
-.reg-form:has(option[value="rentavariable"]:checked) .s-saldo { display: none; }
-.reg-form:has(option[value="corriente"]:checked) .s-tasa,
-.reg-form:has(option[value="ahorro"]:checked) .s-tasa,
-.reg-form:has(option[value="rentafija"]:checked) .s-tasa,
-.reg-form:has(option[value="rentavariable"]:checked) .s-tasa,
-.reg-form:has(option[value="tarjeta"]:checked) .s-tasa,
-.reg-form:has(option[value="prestamo"]:checked) .s-tasa,
-.reg-form:has(option[value="deuda"]:checked) .s-tasa { display: grid; }
-.reg-form:has(option[value="rentafija"]:checked) .s-venc,
-.reg-form:has(option[value="prestamo"]:checked) .s-venc { display: grid; }
-.reg-form:has(option[value="tarjeta"]:checked) .s-tarjeta { display: grid; }
-.reg-form .s-tarjeta-nota { display: none; }
-.reg-form:has(option[value="tarjeta"]:checked) .s-tarjeta-nota { display: block; }
-.reg-form:has(option[value="tarjeta"]:checked) .s-no-tarjeta { display: none; }
-.reg-form:has(option[value="prestamo"]:checked) .s-deuda,
-.reg-form:has(option[value="deuda"]:checked) .s-deuda { display: grid; }
-.reg-form:has(option[value="prestamo"]:checked) .s-prestamo { display: grid; }
-.reg-form:has(option[value="tarjeta"]:checked) .reg-et-debe,
-.reg-form:has(option[value="prestamo"]:checked) .reg-et-debe,
-.reg-form:has(option[value="deuda"]:checked) .reg-et-debe { display: inline; }
-.reg-form:has(option[value="vehiculo"]:checked) .reg-et-vale,
-.reg-form:has(option[value="inmueble"]:checked) .reg-et-vale,
-.reg-form:has(option[value="otro"]:checked) .reg-et-vale { display: inline; }
-.reg-form:has(option[value="tarjeta"]:checked) .reg-et-tiene,
-.reg-form:has(option[value="prestamo"]:checked) .reg-et-tiene,
-.reg-form:has(option[value="deuda"]:checked) .reg-et-tiene,
-.reg-form:has(option[value="vehiculo"]:checked) .reg-et-tiene,
-.reg-form:has(option[value="inmueble"]:checked) .reg-et-tiene,
-.reg-form:has(option[value="otro"]:checked) .reg-et-tiene { display: none; }
+/* Solo los campos que aplican a lo elegido (sin JavaScript): cambian al elegir el tipo del catálogo, nunca al escribir.
+   Generado de la tabla de campos por tipo (lib/finanzas/catalogo.ts: los tipos; ver componentes/capital/Cuentas.tsx). */
+.reg-form .s-unidades, .reg-form .s-tasa, .reg-form .s-venc, .reg-form .s-tarjeta, .reg-form .s-deuda, .reg-form .s-prestamo, .reg-form .s-cargos, .reg-form .s-debito, .reg-form .s-capitaliza, .reg-form .s-pagaa, .reg-form .s-retencion, .reg-form .s-comision, .reg-form .s-plazo, .reg-form .s-claserv,
+.reg-form .reg-et-debe, .reg-form .reg-et-vale, .reg-form .s-tarjeta-nota { display: none; }
+.reg-form:has(select[name="tipo"] option[value="accion_etf"]:checked) .s-unidades,
+.reg-form:has(select[name="tipo"] option[value="fondo_abierto"]:checked) .s-unidades,
+.reg-form:has(select[name="tipo"] option[value="fondo_cerrado"]:checked) .s-unidades,
+.reg-form:has(select[name="tipo"] option[value="fideicomiso"]:checked) .s-unidades { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="ahorro"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="alto_rendimiento"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="certificado"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="mutuo"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="bono"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="fondo_abierto"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="fondo_cerrado"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="accion_etf"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="fideicomiso"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="tarjeta"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="prestamo"]:checked) .s-tasa,
+.reg-form:has(select[name="tipo"] option[value="otra_deuda"]:checked) .s-tasa { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="certificado"]:checked) .s-venc,
+.reg-form:has(select[name="tipo"] option[value="bono"]:checked) .s-venc,
+.reg-form:has(select[name="tipo"] option[value="fondo_cerrado"]:checked) .s-venc,
+.reg-form:has(select[name="tipo"] option[value="fideicomiso"]:checked) .s-venc,
+.reg-form:has(select[name="tipo"] option[value="prestamo"]:checked) .s-venc { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="tarjeta"]:checked) .s-tarjeta { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="prestamo"]:checked) .s-deuda,
+.reg-form:has(select[name="tipo"] option[value="otra_deuda"]:checked) .s-deuda { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="prestamo"]:checked) .s-prestamo { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="prestamo"]:checked) .s-cargos,
+.reg-form:has(select[name="tipo"] option[value="otra_deuda"]:checked) .s-cargos { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="alto_rendimiento"]:checked) .s-debito { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="certificado"]:checked) .s-capitaliza,
+.reg-form:has(select[name="tipo"] option[value="fondo_cerrado"]:checked) .s-capitaliza,
+.reg-form:has(select[name="tipo"] option[value="fideicomiso"]:checked) .s-capitaliza { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="certificado"]:checked) .s-pagaa,
+.reg-form:has(select[name="tipo"] option[value="mutuo"]:checked) .s-pagaa,
+.reg-form:has(select[name="tipo"] option[value="bono"]:checked) .s-pagaa,
+.reg-form:has(select[name="tipo"] option[value="fondo_cerrado"]:checked) .s-pagaa,
+.reg-form:has(select[name="tipo"] option[value="accion_etf"]:checked) .s-pagaa,
+.reg-form:has(select[name="tipo"] option[value="fideicomiso"]:checked) .s-pagaa { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="alto_rendimiento"]:checked) .s-retencion,
+.reg-form:has(select[name="tipo"] option[value="certificado"]:checked) .s-retencion,
+.reg-form:has(select[name="tipo"] option[value="mutuo"]:checked) .s-retencion,
+.reg-form:has(select[name="tipo"] option[value="bono"]:checked) .s-retencion,
+.reg-form:has(select[name="tipo"] option[value="fondo_abierto"]:checked) .s-retencion,
+.reg-form:has(select[name="tipo"] option[value="fondo_cerrado"]:checked) .s-retencion,
+.reg-form:has(select[name="tipo"] option[value="accion_etf"]:checked) .s-retencion,
+.reg-form:has(select[name="tipo"] option[value="fideicomiso"]:checked) .s-retencion { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="mutuo"]:checked) .s-comision,
+.reg-form:has(select[name="tipo"] option[value="bono"]:checked) .s-comision,
+.reg-form:has(select[name="tipo"] option[value="fondo_abierto"]:checked) .s-comision,
+.reg-form:has(select[name="tipo"] option[value="fondo_cerrado"]:checked) .s-comision,
+.reg-form:has(select[name="tipo"] option[value="accion_etf"]:checked) .s-comision,
+.reg-form:has(select[name="tipo"] option[value="fideicomiso"]:checked) .s-comision { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="certificado"]:checked) .s-plazo,
+.reg-form:has(select[name="tipo"] option[value="mutuo"]:checked) .s-plazo { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="fondo_abierto"]:checked) .s-claserv,
+.reg-form:has(select[name="tipo"] option[value="fondo_cerrado"]:checked) .s-claserv,
+.reg-form:has(select[name="tipo"] option[value="fideicomiso"]:checked) .s-claserv { display: grid; }
+.reg-form:has(select[name="tipo"] option[value="accion_etf"]:checked) .s-saldo { display: none; }
+.reg-form:has(select[name="tipo"] option[value="tarjeta"]:checked) .s-tarjeta-nota { display: block; }
+.reg-form:has(select[name="tipo"] option[value="tarjeta"]:checked) .s-no-tarjeta { display: none; }
+.reg-form:has(select[name="tipo"] option[value="tarjeta"]:checked) .reg-et-debe,
+.reg-form:has(select[name="tipo"] option[value="prestamo"]:checked) .reg-et-debe,
+.reg-form:has(select[name="tipo"] option[value="otra_deuda"]:checked) .reg-et-debe { display: inline; }
+.reg-form:has(select[name="tipo"] option[value="vehiculo"]:checked) .reg-et-vale,
+.reg-form:has(select[name="tipo"] option[value="inmueble"]:checked) .reg-et-vale,
+.reg-form:has(select[name="tipo"] option[value="otro"]:checked) .reg-et-vale { display: inline; }
+.reg-form:has(select[name="tipo"] option[value="tarjeta"]:checked) .reg-et-tiene,
+.reg-form:has(select[name="tipo"] option[value="prestamo"]:checked) .reg-et-tiene,
+.reg-form:has(select[name="tipo"] option[value="otra_deuda"]:checked) .reg-et-tiene,
+.reg-form:has(select[name="tipo"] option[value="vehiculo"]:checked) .reg-et-tiene,
+.reg-form:has(select[name="tipo"] option[value="inmueble"]:checked) .reg-et-tiene,
+.reg-form:has(select[name="tipo"] option[value="otro"]:checked) .reg-et-tiene { display: none; }
 @supports not selector(:has(*)) {
-  .reg-form .s-unidades, .reg-form .s-tasa, .reg-form .s-venc, .reg-form .s-tarjeta, .reg-form .s-deuda, .reg-form .s-prestamo { display: grid; }
+  .reg-form .s-unidades, .reg-form .s-tasa, .reg-form .s-venc, .reg-form .s-tarjeta, .reg-form .s-deuda, .reg-form .s-prestamo, .reg-form .s-cargos, .reg-form .s-debito, .reg-form .s-capitaliza, .reg-form .s-pagaa, .reg-form .s-retencion, .reg-form .s-comision, .reg-form .s-plazo, .reg-form .s-claserv { display: grid; }
 }
 .cap-con-moneda { display: flex; align-items: stretch; }
 .cap-con-moneda > span:first-child {

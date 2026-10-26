@@ -51,7 +51,9 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
   const resumen = resumir(sim, datos.config);
   const vista = armarVistaMes(datos, sim, mes);
   const diaInicial = dia && mesDe(dia) === mes ? dia : mesDe(hoy) === mes ? hoy : primerDia(mes);
-  const { cuentas, categorias } = catalogos(datos);
+  // Las inversiones que no viven en el Presupuesto (acciones, fondos por cuotas) también son destino de ahorro.
+  const registro = await leerRegistro(datos, lectura.enlaces, hoy).catch(() => []);
+  const { cuentas, categorias } = catalogos(datos, registro);
   const avisos = [...avisosTarjetas(datos, hoy), ...sim.advertencias];
 
   return (

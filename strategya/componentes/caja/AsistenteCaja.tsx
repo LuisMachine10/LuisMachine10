@@ -160,7 +160,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
     const vigentes = new Set(registro.map((r) => r.id));
     // Las cuentas del Portafolio vienen ya elegidas; un borrador viejo pierde las que ya no existen.
     if (previo) setB({ ...previo, cuentas: previo.cuentas.filter((c) => !c.reg || vigentes.has(c.reg)) });
-    else if (registro.length) setB((x) => ({ ...x, cuentas: registro.filter((r) => !r.inversion).map(deRegistro) }));
+    else if (registro.length) setB((x) => ({ ...x, cuentas: registro.map(deRegistro) }));
     setListo(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -406,7 +406,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
           </h2>
           <p className="caja-asistente-sub">
             {registro.length
-              ? "Tus cuentas salen de tu Portafolio Financiero: elige las que mueven tu dinero del mes. Si falta alguna, agrégala abajo y queda guardada en el Portafolio."
+              ? "Tus cuentas salen solas de tu Portafolio Financiero según su tipo: todas estas entran a tu Presupuesto (cada formulario muestra solo las que sirven). Si falta alguna, agrégala abajo y queda guardada en el Portafolio."
               : "Anota cada cuenta con lo que tiene hoy (en una tarjeta, lo que debes). Quedan guardadas en tu Portafolio Financiero, en «Mis cuentas, activos y deudas»: no tendrás que escribirlas otra vez."}
           </p>
           {registro.length ? (
@@ -422,13 +422,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
                   return (
                     <li key={r.id} className={`caja-registro-item${elegida ? " elegida" : ""}`}>
                       <label className="caja-registro-elegir">
-                        <input
-                          type="checkbox"
-                          checked={elegida}
-                          onChange={(e) =>
-                            setB((x) => ({ ...x, cuentas: e.target.checked ? [...x.cuentas, deRegistro(r)] : x.cuentas.filter((y) => y.reg !== r.id) }))
-                          }
-                        />
+                        <input type="checkbox" checked={elegida} disabled aria-label={`${r.nombre}: entra sola a tu Presupuesto`} readOnly />
                         <span className={`caja-fila-icono ${r.tipo}`} aria-hidden="true">
                           <Icono n={ICONO_TIPO[r.tipo]} />
                         </span>

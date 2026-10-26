@@ -13,6 +13,7 @@ import { NuevoMovimientoSuelto } from "@/componentes/caja/NuevoMovimientoSuelto"
 import { SinDatosCaja } from "@/componentes/caja/SinDatosCaja";
 import { PanelError } from "@/componentes/PanelError";
 import { leerCaja } from "@/lib/caja/datos";
+import { leerRegistro } from "@/lib/capital/datos-registro";
 import { esMes, fechaLarga, hoyRD, mesDe, nombreMes } from "@/lib/caja/fechas";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { type MovimientoAplicado, movimientosDelMes } from "@/lib/caja/motor";
@@ -51,7 +52,7 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
   const cuentas = new Map(datos.cuentas.map((c) => [c.id, c.nombre]));
   const categorias = new Map(datos.categorias.map((c) => [c.id, c.nombre]));
   const cuenta = (id: string | null) => (id ? (cuentas.get(id) ?? `«${id}»`) : "—");
-  const cat = catalogos(datos);
+  const cat = catalogos(datos, await leerRegistro(datos, lectura.enlaces, hoyRD()).catch(() => []));
   const sinCat = t.movimientos.filter((m) => (m.tipo === "ingreso" || m.tipo === "gasto") && !(m.categoria && categorias.has(m.categoria)));
 
   // Agrupado por día, del más reciente al más viejo.

@@ -70,6 +70,8 @@ export interface Ocurrencia {
   pagoTotal: boolean;
   /** Tarjeta en dos monedas: parte a la que va el pago. */
   parte?: Moneda | null;
+  /** Línea de ahorro hacia una inversión que no vive en el Presupuesto (fila del registro). */
+  registroDestino?: string | null;
 }
 
 export interface MovimientoAplicado extends Movimiento {
@@ -294,6 +296,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
         categoria: r.categoria,
         pagoTotal: r.tipo === "pago_tarjeta" && r.pagoTotal,
         ...(r.parte ? { parte: r.parte } : {}),
+        ...(r.registroDestino ? { registroDestino: r.registroDestino } : {}),
       };
       if (omitidosHoy.has(r.id)) {
         omitidos.push(oc);

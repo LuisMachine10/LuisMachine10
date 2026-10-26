@@ -5,16 +5,15 @@
 
 import { useEffect, useState } from "react";
 import type { Fecha } from "@/lib/caja/fechas";
-import type { TipoMovimiento } from "@/lib/caja/tipos";
 import { BotonesAnotar, EVENTO_NUEVO } from "./BotonesNuevo";
-import type { OpcionCategoria, OpcionCuenta } from "./CamposMovimiento";
+import type { Modo, OpcionCategoria, OpcionCuenta } from "./CamposMovimiento";
 import { NuevoMovimiento } from "./NuevoMovimiento";
 
 export function NuevoMovimientoSuelto({ cuentas, categorias, hoy, conBoton = false }: { cuentas: OpcionCuenta[]; categorias: OpcionCategoria[]; hoy: Fecha; conBoton?: boolean }) {
-  const [tipo, setTipo] = useState<TipoMovimiento | null>(null);
+  const [tipo, setTipo] = useState<Modo | null>(null);
   useEffect(() => {
     const oir = (e: Event) => {
-      const t = (e as CustomEvent<TipoMovimiento>).detail;
+      const t = (e as CustomEvent<Modo>).detail;
       if (t) setTipo(t);
     };
     window.addEventListener(EVENTO_NUEVO, oir);

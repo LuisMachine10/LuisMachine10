@@ -6,16 +6,18 @@
 import { useEffect, useRef } from "react";
 import { registrarMovimiento } from "@/app/caja/acciones";
 import type { Fecha } from "@/lib/caja/fechas";
-import type { TipoMovimiento } from "@/lib/caja/tipos";
-import { CamposMovimiento, type OpcionCategoria, type OpcionCuenta } from "./CamposMovimiento";
+import { CamposMovimiento, cuentasDe, type Modo, type OpcionCategoria, type OpcionCuenta } from "./CamposMovimiento";
 import { FormAccion } from "./FormAccion";
 import { Icono } from "./Iconos";
 
-const TEXTO: Record<TipoMovimiento, { titulo: string; sub: string; boton: string }> = {
+const TEXTO: Record<Modo, { titulo: string; sub: string; boton: string }> = {
   ingreso: { titulo: "Anotar un ingreso", sub: "Dinero que te entró ese día. Cae en su categoría del estado de resultados.", boton: "Guardar ingreso" },
   gasto: { titulo: "Anotar un gasto", sub: "Lo que pagaste ese día. Baja tu disponible y cae en su categoría del estado de resultados.", boton: "Guardar gasto" },
-  transferencia: { titulo: "Mover entre mis cuentas", sub: "Pasar dinero de una cuenta tuya a otra (del banco a la cartera o al ahorro). No es ingreso ni gasto: solo cambia de lugar.", boton: "Guardar" },
-  pago_tarjeta: { titulo: "Pagar una tarjeta o un préstamo", sub: "Sale de tu banco y baja lo que debes por la parte de capital; el interés va a gastos financieros.", boton: "Guardar pago" },
+  ahorro: { titulo: "Ahorrar o invertir", sub: "Lo que apartas hacia tu ahorro o una inversión. Si es una línea de tu plan del mes, cuenta para ella.", boton: "Guardar ahorro" },
+  mover: { titulo: "Mover entre mis cuentas", sub: "Pasar dinero de una cuenta tuya a otra. No es ingreso ni gasto: solo cambia de lugar.", boton: "Guardar" },
+  pago_deuda: { titulo: "Pagar una tarjeta o un préstamo", sub: "Sale de tu banco y baja lo que debes por la parte de capital; el interés va a gastos financieros.", boton: "Guardar pago" },
+  cambio: { titulo: "Cambio de moneda", sub: "Pasar dinero entre monedas, de una cuenta tuya a otra, con la tasa que te dieron.", boton: "Guardar cambio" },
+  rescate: { titulo: "Rescate o venta de inversión", sub: "Sacar dinero de una inversión hacia efectivo o una cuenta.", boton: "Guardar rescate" },
 };
 
 export function NuevoMovimiento({
@@ -25,7 +27,7 @@ export function NuevoMovimiento({
   categorias,
   cerrar,
 }: {
-  tipo: TipoMovimiento | null;
+  tipo: Modo | null;
   fecha: Fecha;
   cuentas: OpcionCuenta[];
   categorias: OpcionCategoria[];
@@ -62,7 +64,12 @@ export function NuevoMovimiento({
                   <input type="date" name="fecha" defaultValue={fecha} required />
                 </label>
               </div>
-              <CamposMovimiento key={tipo} v={{ tipo, cuenta: cuentas.find((c) => c.tipo === "banco")?.id ?? cuentas.find((c) => c.tipo !== "tarjeta")?.id ?? null }} cuentas={cuentas} categorias={categorias} />
+              <CamposMovimiento
+                key={tipo}
+                v={{ modo: tipo, cuenta: (cuentasDe(cuentas, tipo, "origen").find((c) => c.tipo === "banco") ?? cuentasDe(cuentas, tipo, "origen")[0])?.id ?? null }}
+                cuentas={cuentas}
+                categorias={categorias}
+              />
             </FormAccion>
           ) : (
             <p className="vacio">Primero agrega una cuenta en Configuración.</p>

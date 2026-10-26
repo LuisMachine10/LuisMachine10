@@ -4,8 +4,6 @@ import Link from "next/link";
 import {
   asignarCategoria,
   eliminarCategoria,
-  eliminarCuenta,
-  vincularCuenta,
   eliminarRecurrente,
   guardarCategoria,
   guardarConfig,
@@ -21,7 +19,6 @@ import { MarcoCaja } from "@/componentes/caja/MarcoCaja";
 import { PanelError } from "@/componentes/PanelError";
 import { leerCaja } from "@/lib/caja/datos";
 import { leerRegistro } from "@/lib/capital/datos-registro";
-import { cuentasParaPresupuesto } from "@/lib/capital/registro";
 import { fechaBreve, hoyRD, mesDe, nombreMes } from "@/lib/caja/fechas";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { estadoDeResultados, fijosDelMes } from "@/lib/caja/resultados";
@@ -199,8 +196,7 @@ export default async function PaginaConfiguracion() {
   // Las cuentas salen del registro único del Portafolio: saldo de hoy y las que aún no usa el Presupuesto.
   const registro = await leerRegistro(datos, lectura.enlaces, hoyRD()).catch(() => null);
   const saldoHoy = new Map((registro ?? []).filter((i) => i.cajaId).map((i) => [i.cajaId!, i.cantidad]));
-  const disponibles = registro ? cuentasParaPresupuesto(registro) : [];
-  const { cuentas, categorias } = catalogos(datos);
+  const { cuentas, categorias } = catalogos(datos, registro ?? []);
   const hayDatos = !!datos.config || datos.cuentas.length > 0 || datos.movimientos.length > 0;
   const nombreCuenta = (id: string | null) => (id ? (datos.cuentas.find((c) => c.id === id)?.nombre ?? `«${id}»`) : "—");
   const mes = mesDe(hoyRD());
@@ -383,7 +379,7 @@ export default async function PaginaConfiguracion() {
                                 {cuentas.length ? (
                                   <FormAccion accion={guardarRecurrente} boton="Guardar fijo" reiniciar etiqueta={`Nuevo fijo en ${c.nombre}`}>
                                     <CamposRecurrente
-                                      inicial={{ tipo: t === "ingreso" || t === "otro_ingreso" ? "ingreso" : t === "ahorro_inversion" ? "transferencia" : "gasto", categoria: c.id }}
+                                      inicial={{ tipo: t === "ingreso" || t === "otro_ingreso" ? "ingreso" : t === "ahorro_inversion" ? "transferencia" : "gasto", categoria: c.id, ...(t === "ahorro_inversion" ? { modo: "ahorro" as const } : {}) }}
                                       cuentas={cuentas}
                                       categorias={categorias}
                                     />
@@ -424,7 +420,9 @@ export default async function PaginaConfiguracion() {
         </div>
         <div className="panel-cuerpo">
           <p className="chico tenue" style={{ marginTop: 0 }}>
-            Salen de tu Portafolio Financiero («Mis cuentas, activos y deudas»): se anotan una sola vez. Lo que cambies aquí también cambia allá.
+            Salen SOLAS de tu Portafolio Financiero («Mis cuentas, activos y deudas») según su tipo: efectivo, cuentas, tarjetas, préstamos y las inversiones de saldo
+            aparecen aquí sin que hagas nada. Cada formulario muestra solo las que sirven (por ejemplo, una inversión nunca sale en «¿Con qué pagaste?»). Lo que cambies aquí
+            también cambia allá.
           </p>
           <ul className="caja-lista">
             {[...datos.cuentas]
@@ -450,33 +448,12 @@ export default async function PaginaConfiguracion() {
                     <FormAccion accion={guardarCuenta} boton="Guardar cuenta" etiqueta={`Editar ${c.nombre}`}>
                       <CamposCuenta c={c} />
                     </FormAccion>
-                    <div className="caja-form">
-                      <BotonEliminar accion={eliminarCuenta} id={c.id} que={`la cuenta ${c.nombre} del Presupuesto (sigue en tu Portafolio)`} />
-                    </div>
+                    <p className="chico tenue caja-form">Para borrarla, hazlo en Portafolio → Mis cuentas (si no tiene movimientos aquí).</p>
                   </details>
                 </li>
               ))}
           </ul>
-          {disponibles.length ? (
-            <FormAccion accion={vincularCuenta} boton="Usar en el Presupuesto" etiqueta="Usar una cuenta del Portafolio">
-              <div className="caja-campos">
-                <label className="ancho">
-                  Usar una cuenta que ya está en tu Portafolio
-                  <select name="registroId" required defaultValue="">
-                    <option value="" disabled>
-                      Elige una ({disponibles.length} disponibles)
-                    </option>
-                    {disponibles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.nombre} · {NOMBRE_TIPO_CUENTA[r.tipo]} · {enMoneda(r.saldo, r.moneda ?? "DOP")}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </FormAccion>
-          ) : null}
-          <details className="caja-desplegable caja-conf-nueva" open={datos.cuentas.length === 0 && !disponibles.length}>
+          <details className="caja-desplegable caja-conf-nueva" open={datos.cuentas.length === 0}>
             <summary>+ Agregar una cuenta nueva (queda también en el Portafolio)</summary>
             <FormAccion accion={guardarCuenta} boton="Crear cuenta" reiniciar etiqueta="Nueva cuenta">
               <CamposCuenta />
