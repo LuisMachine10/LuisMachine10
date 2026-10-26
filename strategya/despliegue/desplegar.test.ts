@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error: módulo .mjs sin tipos
-import { clavesDe, elegirProyecto, migracionesLocales, secretoTareas, secretosFuncion, sqlMigracion, sqlUsuarioDueno } from "./desplegar.mjs";
+import { clavesDe, elegirProyecto, esTareaDeHumo, migracionesLocales, secretoTareas, secretosFuncion, sqlMigracion, sqlUsuarioDueno } from "./desplegar.mjs";
 
 describe("despliegue", () => {
   it("elige el proyecto pedido, el llamado strategya o el único", () => {
@@ -48,6 +48,13 @@ describe("despliegue", () => {
       "STRATEGYA_SECRETO_TAREAS", "FMP_API_KEY", "ALERTAS_EMAIL_DESTINO", "STRATEGYA_CONTACTO", "IA_TOPE_MENSUAL_USD", "FMP_LLAMADAS_DIA",
     ]);
     expect(nombres).not.toContain("FINNHUB_API_KEY");
+  });
+
+  it("el Boletín: destino y enlace a la app solo si están; la prueba de humo nunca envía boletines ni alertas", () => {
+    const s = secretosFuncion({ STRATEGYA_EMAIL: "m@x.do", BOLETIN_PARA: "b@x.do", STRATEGYA_URL_APP: "https://s.example" }, "sec");
+    expect(s).toContainEqual({ name: "BOLETIN_PARA", value: "b@x.do" });
+    expect(s).toContainEqual({ name: "STRATEGYA_URL_APP", value: "https://s.example" });
+    expect(["tesoro", "boletin-am", "boletin-prueba", "alertas", "ia-resumen", ""].filter(esTareaDeHumo)).toEqual(["tesoro"]);
   });
 });
 

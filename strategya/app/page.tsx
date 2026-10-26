@@ -10,6 +10,7 @@ import { leerPreferencia } from "@/lib/dashboard/datos";
 import { normalizar, visibles } from "@/lib/dashboard/disposicion";
 import { WIDGETS } from "@/lib/dashboard/widgets";
 import { estadoTareas } from "@/lib/datos";
+import { refrescarFotoTuDinero } from "@/lib/datos-boletin";
 import { fechaHoraRD } from "@/lib/formato";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,8 @@ export const dynamic = "force-dynamic";
 // solo se piden los widgets visibles. La disposición vive en personal.preferencias («dashboard»).
 export default async function Dashboard() {
   const ahora = new Date();
-  const [estado, pref] = await Promise.all([estadoTareas().catch(() => null), leerPreferencia("dashboard")]);
+  // De paso, la foto de «Tu dinero» del Boletín (como mucho una vez cada 20 minutos; nunca falla la página).
+  const [estado, pref] = await Promise.all([estadoTareas().catch(() => null), leerPreferencia("dashboard"), refrescarFotoTuDinero()]);
   const ultima =
     estado?.tareas
       .map((t) => t.ultima_ok)

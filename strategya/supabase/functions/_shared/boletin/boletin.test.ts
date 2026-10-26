@@ -140,7 +140,7 @@ describe("Bitácora · AM", () => {
     expect(texto).toContain("Utilidad neta de octubre: RD$38,251 real contra RD$45,000 presupuestado.");
     expect(texto).toContain("Patrimonio neto: RD$2,350,401 (+RD$35,200, +1.5 % frente a septiembre).");
     expect(texto).toContain("Aportes del mes: 2 de 3 pendientes por RD$20,000");
-    expect(texto).toContain("Riesgos en nivel alto: Liquidez y colchón");
+    expect(texto).toContain("Riesgos en nivel alto: Liquidez y colchón (impacto alto, probabilidad media).");
     const sin = armarEdicion(datosEjemplo("am", AHORA_AM, { tu_dinero: null }));
     expect(sin.conTuDinero).toBe(false);
     expect(textoPlano(sin)).not.toContain("TU DINERO");

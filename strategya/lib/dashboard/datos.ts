@@ -4,7 +4,7 @@ import { personal } from "@/lib/supabase/servidor";
 // Lectura de personal.preferencias (RLS: cada usuario ve solo sus filas). Un error se devuelve como
 // texto para que la pantalla siga con la disposición por defecto y diga por qué.
 
-export type ClavePreferencia = "dashboard" | "noticias";
+export type ClavePreferencia = "dashboard" | "noticias" | "boletin";
 
 export interface LecturaPreferencia {
   valor: unknown;

@@ -92,6 +92,15 @@ export function sqlMigracion(version, nombre, sql) {
   ].join("\n");
 }
 
+/**
+ * ¿Se corre en la prueba de humo del despliegue? No las que gastan (IA), las que envían correo (alertas) ni
+ * las del Boletín: armarían y enviarían la edición del día a deshora y bloquearían la de su horario.
+ */
+export function esTareaDeHumo(t) {
+  const n = String(t ?? "");
+  return !!n && !n.startsWith("ia-") && n !== "alertas" && !n.startsWith("boletin-");
+}
+
 /** Variables para la Edge Function a partir de los secretos de GitHub presentes. */
 export function secretosFuncion(env, secreto) {
   const s = [{ name: "STRATEGYA_SECRETO_TAREAS", value: secreto }];
@@ -106,6 +115,9 @@ export function secretosFuncion(env, secreto) {
   // Buques en pasos críticos: apagado salvo que se pida (consume la conexión de AISStream cada hora).
   if (env.AISSTREAM_API_KEY && env.GLOBO_AIS_ACTIVO === "1") s.push({ name: "GLOBO_AIS_ACTIVO", value: "1" });
   copiar("STRATEGYA_EMAIL", "ALERTAS_EMAIL_DESTINO");
+  // Boletín: destino opcional (si falta, sale al correo del usuario dueño en la base) y enlace a la app.
+  copiar("BOLETIN_PARA");
+  copiar("STRATEGYA_URL_APP");
   // La SEC exige un correo de contacto en el User-Agent; solo se usa con sec.gov.
   copiar("STRATEGYA_EMAIL", "STRATEGYA_CONTACTO");
   s.push({ name: "IA_TOPE_MENSUAL_USD", value: env.IA_TOPE_MENSUAL_USD || "10" });
@@ -281,7 +293,7 @@ async function pasoTareas() {
   if (!(await alcanzable(ref))) {
     // Sin acceso directo a la función: la primera lectura la dispara la propia base (pg_net), como pg_cron.
     const filas = await sql(ref, "select distinct substring(command from '\"tarea\":\"([a-z0-9-]+)\"') as tarea from cron.job where command like '%invocar_tarea%'");
-    const tareas = filas.map((f) => f.tarea).filter((t) => t && !t.startsWith("ia-") && t !== "alertas");
+    const tareas = filas.map((f) => f.tarea).filter(esTareaDeHumo);
     for (const t of tareas) await sql(ref, `select mercado.invocar_tarea('ingesta', '{"tarea":"${t}"}');`);
     console.log(`Primera lectura pedida para ${tareas.length} tareas; en unos minutos se ve en /estado.`);
     return;
@@ -294,7 +306,7 @@ async function pasoTareas() {
     cuerpo: { tarea: "__lista__" },
     aceptar: [400],
   });
-  const tareas = (lista?.disponibles ?? []).filter((t) => !String(t).startsWith("ia-") && t !== "alertas");
+  const tareas = (lista?.disponibles ?? []).filter(esTareaDeHumo);
   for (const tarea of tareas) {
     try {
       const { status, datos } = await pedir(url, {

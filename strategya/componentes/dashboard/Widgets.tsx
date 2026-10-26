@@ -25,10 +25,13 @@ import { datosTesoro } from "@/lib/datos";
 import { alertasDeHoy } from "@/lib/datos-alertas-ia";
 import { leerAgenda, leerNoticias } from "@/lib/datos-noticias";
 import { datosRD } from "@/lib/datos-rd";
-import { cifra, fechaCorta, horaRD, ZONA_RD } from "@/lib/formato";
+import { cifra, fechaCorta, fechaHoraRD, horaRD, ZONA_RD } from "@/lib/formato";
 import { frescura } from "@/lib/frescura";
 import { ETIQUETA_CATEGORIA, fechaEnZona, proximosEventos } from "@/lib/noticias";
 import { brechaCambiaria, type DatoRD, fondosPorSafi, historial, semanaVigencia, SERIES_COMBUSTIBLES, ultimosDatos } from "@/lib/rd";
+import { EtiquetaEstado } from "@/componentes/boletin/Edicion";
+import { NOMBRE_TIPO } from "@/lib/boletin/preferencias";
+import { esEdicion, ultimaEdicion } from "@/lib/datos-boletin";
 import { EditorNoticias } from "./EditorNoticias";
 import { Embebido, Marco, WidgetVacio } from "./Marco";
 
@@ -426,6 +429,41 @@ async function Fondos({ ficha, ahora }: PropsWidget) {
   );
 }
 
+// ───────────────────────── Boletín ─────────────────────────
+
+async function UltimoBoletin({ ficha }: PropsWidget) {
+  let e: Awaited<ReturnType<typeof ultimaEdicion>>;
+  try {
+    e = await ultimaEdicion();
+  } catch (err) {
+    return <WidgetVacio ficha={ficha} error motivo={(err as Error).message} />;
+  }
+  if (!e) {
+    return <WidgetVacio ficha={ficha} motivo="Todavía no ha salido ningún boletín. La Bitácora AM sale de lunes a viernes a las 7:35 AM." accion={{ href: "/boletin", texto: "Ver una vista previa" }} />;
+  }
+  const c = esEdicion(e.contenido) ? e.contenido : null;
+  return (
+    <Marco ficha={ficha} enlace={{ href: "/boletin", texto: "Todas" }} pie={<span className="sello">Armado por reglas con datos guardados · sin IA</span>}>
+      <div className="dash-bol">
+        <Link href={`/boletin/${e.id}`} className="dash-bol-asunto">
+          {e.asunto ?? NOMBRE_TIPO[e.tipo]}
+        </Link>
+        <span className="dash-bol-meta">
+          <EtiquetaEstado estado={e.estado} />
+          <span>{e.enviado_en ? fechaHoraRD(e.enviado_en) : fechaHoraRD(e.creado_en)}</span>
+        </span>
+        {c?.resumen.length ? (
+          <ul className="dash-bol-resumen">
+            {c.resumen.slice(0, 2).map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </Marco>
+  );
+}
+
 export const RENDER: Record<string, (p: PropsWidget) => React.ReactNode> = {
   "hoy-30s": Hoy30,
   "cifra-spx": Cifra,
@@ -443,4 +481,5 @@ export const RENDER: Record<string, (p: PropsWidget) => React.ReactNode> = {
   combustibles: Combustibles,
   fondos: Fondos,
   agenda: Agenda,
+  "ultimo-boletin": UltimoBoletin,
 };

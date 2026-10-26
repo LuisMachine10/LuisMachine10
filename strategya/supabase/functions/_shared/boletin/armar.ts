@@ -590,6 +590,7 @@ const DEC = /^-?\d+(\.\d+)?$/;
 const dec = (x: unknown): string | null => (typeof x === "string" && DEC.test(x) ? x : null);
 const MES = /^\d{4}-(0[1-9]|1[0-2])$/;
 const NIVELES_RIESGO = new Set(["bajo", "medio", "alto"]);
+const FEMENINO: Record<string, string> = { bajo: "baja", medio: "media", alto: "alta" };
 
 /** La foto la escribe la app: se valida campo por campo y lo que no tenga forma se descarta (nunca se rellena). */
 export function leerFoto(x: unknown): FotoDinero | null {
@@ -663,7 +664,7 @@ function seccionTuDinero(c: Ctx): Seccion | null {
     }
     items.push({
       texto: f.riesgos.length
-        ? `Riesgos en nivel alto: ${f.riesgos.map((r) => `${r.titulo} (impacto ${r.impacto}, probabilidad ${r.probabilidad})`).join("; ")}.`
+        ? `Riesgos en nivel alto: ${f.riesgos.map((r) => `${r.titulo} (impacto ${r.impacto}, probabilidad ${FEMENINO[r.probabilidad] ?? r.probabilidad})`).join("; ")}.`
         : "Ningún riesgo de la matriz está en nivel alto.",
       medio: "Matriz de riesgo",
     });

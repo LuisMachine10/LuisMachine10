@@ -78,6 +78,8 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
       GLOBO_AIS_ACTIVO: ${{ vars.GLOBO_AIS_ACTIVO }}
+      BOLETIN_PARA: ${{ secrets.BOLETIN_PARA }}
+      STRATEGYA_URL_APP: ${{ vars.STRATEGYA_URL_APP }}
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4

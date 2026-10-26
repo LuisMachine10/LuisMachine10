@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Actualizador } from "@/componentes/Actualizador";
 import { IntroPagina } from "@/componentes/alertas/Ayuda";
 import { BannerAlertas } from "@/componentes/alertas/BannerAlertas";
+import { PanelAjustesBoletin } from "@/componentes/boletin/PanelAjustes";
 import { HistorialAlertas } from "@/componentes/alertas/HistorialAlertas";
 import { ReglasAlerta } from "@/componentes/alertas/ReglasAlerta";
 import { Encabezado } from "@/componentes/Encabezado";
@@ -35,10 +36,11 @@ export default async function Ajustes() {
           }
         >
           Aquí decides cuándo te avisa Strategya: eliges un número para cada activo y, si se cruza, te sale una alerta arriba en la terminal.
-          También ves cuánto va gastando la IA este mes.
+          También eliges qué boletines te llegan al correo y ves cuánto va gastando la IA este mes.
         </IntroPagina>
         <BannerAlertas />
         <ReglasAlerta />
+        <PanelAjustesBoletin />
         <HistorialAlertas />
         <GastoIA />
         <LasCincoDelDia />

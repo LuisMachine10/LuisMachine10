@@ -51,6 +51,7 @@ export const WIDGETS: readonly FichaWidget[] = [
   { id: "combustibles", titulo: "Combustibles", que: "Precios oficiales de la semana en RD (MICM).", grupo: "rd", tamano: 1, visible: true },
   { id: "fondos", titulo: "Fondos de inversión", que: "Los 5 fondos que más rindieron (base 30 días).", grupo: "rd", tamano: 1, visible: true },
   { id: "agenda", titulo: "Agenda", que: "Reuniones de bancos centrales y fechas clave que vienen.", grupo: "noticias", tamano: 1, visible: true },
+  { id: "ultimo-boletin", titulo: "Último boletín", que: "La última edición que te llegó al correo, con su dato del día.", grupo: "dia", tamano: 1, visible: false },
 ];
 
 const POR_ID = new Map(WIDGETS.map((w) => [w.id, w]));
