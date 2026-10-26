@@ -4,8 +4,7 @@
 
 import type { Edicion, Fila, Item, Seccion } from "./tipos.ts";
 
-export const PIE_TEXTO =
-  "Strategya arma este boletín por reglas con datos ya guardados: ninguna cifra sale de una inteligencia artificial. Cada cifra lleva su fuente y su fecha. Es información, no asesoría de inversión.";
+export const PIE_TEXTO = "Armado por reglas con datos guardados: ninguna cifra sale de una IA. Es información, no asesoría de inversión.";
 
 const FLECHA = { sube: "↑", baja: "↓", igual: "→" } as const;
 

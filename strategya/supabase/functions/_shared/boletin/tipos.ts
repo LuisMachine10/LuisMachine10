@@ -215,6 +215,8 @@ export interface Fila {
   nota?: string | null;
   /** Solo en «Las 5 del día»: el titular que lo menciona, o null = «causa no confirmada». */
   porque?: Porque | null;
+  /** Fuentes completas (nombre y enlace) de esta fila, para la lista «Fuentes:» del final. */
+  fuentes?: FuenteRef[];
 }
 
 export interface Item {
@@ -222,6 +224,8 @@ export interface Item {
   url?: string | null;
   medio?: string | null;
   meta?: string | null;
+  /** Fuentes completas de esta línea, para la lista «Fuentes:» del final. */
+  fuentes?: FuenteRef[];
 }
 
 export interface Seccion {

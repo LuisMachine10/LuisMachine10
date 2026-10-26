@@ -102,6 +102,7 @@ La página se actualiza sola.
 | **Mapa** | Globo 3D: bolsas, conflictos, rutas de barcos, sismos y huracanes. Toca un punto para ver su tarjeta. |
 | **Portafolio Financiero** | Tus finanzas en un solo lugar. **Mis cuentas**: anotas una sola vez tus cuentas, efectivo, inversiones, bienes, tarjetas y préstamos (el Presupuesto usa esas mismas). **Resumen**: tablero de tarjetas que mueves a tu gusto (patrimonio, participación por categoría, retorno esperado, futuro de cada categoría, aportes del mes, puente e indicadores, riesgos). **Proyecciones**: cómo crece tu dinero con el ahorro de tu Presupuesto y el interés compuesto; confirmas cada aporte con «Sí, lo hice». **Riesgos**: matriz de impacto × probabilidad. También Cartera, Cierre, Política (IPS) y Ajustes. |
 | **Presupuesto** | Cuánto puedes gastar hoy sin pasarte, los pagos que vienen y el saldo de tus cuentas. La primera vez te guía en 4 pasos; en el paso de cuentas eliges las de tu Portafolio (o agregas una nueva, que queda guardada allí). |
+| **Más → Boletín** | Los boletines que te llegan al correo: Bitácora AM (7:35 AM), Cierre (5:05 PM), Fin de semana (sábado y domingo 7:35 AM) y Tasas RD (lunes 6:40 AM). Cada uno se ve igual que el correo. **Vista previa ahora** lo arma con los datos de este momento sin enviarlo; **Enviar prueba** te lo manda solo a ti. Se arman por reglas, sin IA. Detalle en [`boletin.md`](boletin.md). |
 | **Más → Agregar un dato** | Para escribir a mano una cifra oficial que no llega sola (por ejemplo, un fondo de BHD), siempre con su enlace. |
 | **Más → Ajustes y alertas** | Cuándo quieres que te avisemos (por ejemplo, si el oro sube más de 2 %). |
 | **Más → Estado de las fuentes** | Si una cifra se ve vieja, aquí ves qué fuente falló y por qué. |
@@ -126,6 +127,12 @@ Tus datos solo los ves tú.
 anotes después en el Presupuesto (gastos, ingresos, pagos, «cuadrar con tu banco») lo mueve solo, y las dos
 pantallas muestran el mismo saldo. Si antes tenías una cuenta anotada en los dos lugares, Mis cuentas te muestra
 una sola vez «Unir cuentas repetidas»: confirmas cada par y nada se borra.
+
+### Boletín por correo
+
+En **Más → Ajustes y alertas → Boletín por correo** marcas qué ediciones quieres recibir y si llevan
+«Tu dinero» (tu utilidad del mes, patrimonio, aportes pendientes y riesgos altos; solo te llega a ti).
+Necesita `RESEND_API_KEY`; sin ella, las ediciones se guardan y se ven en **Más → Boletín**.
 
 ### Alertas
 

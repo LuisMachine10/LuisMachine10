@@ -55,7 +55,8 @@ function revisarComun(e: Edicion, d: DatosBoletin, calculos: string[] = []) {
   expect(texto).toContain("\nFuentes:\n");
   expect(texto).toContain("\nNo confirmado:\n");
   expect(e.palabras).toBe(contarPalabras(texto));
-  expect(e.palabras).toBeLessThanOrEqual(e.limitePalabras);
+  // «~650» / «~500»: el armado recorta hasta caber; solo deja hasta un 5 % de más para no quitar el glosario.
+  expect(e.palabras).toBeLessThanOrEqual(Math.round(e.limitePalabras * 1.05));
   // No es asesoría: ninguna recomendación de compra o venta.
   expect(texto).not.toMatch(/\b(te recomendamos|recomendamos|deberías (comprar|vender)|compra ahora|vende ahora|es buen momento para)\b/i);
   expect(texto).toContain("no asesoría de inversión");
@@ -82,7 +83,7 @@ describe("Bitácora · AM", () => {
     const rut = filasDe(e).find((f) => f.etiqueta === "Russell 2000")!;
     expect(rut.estado).toBe("viejo");
     expect(texto).toContain("Russell 2000: 2,402.10 · ↑ +0.21 % · 16 oct · FMP · dato viejo");
-    expect(e.noConfirmado).toContain("Russell 2000: dato viejo del 16 oct 2026.");
+    expect(e.noConfirmado).toContain("Dato viejo (va la última cifra buena, con su fecha): Russell 2000, Euro Stoxx 50.");
     // El S&P del viernes, con la bolsa cerrada el lunes antes de abrir, no es viejo: es el último cierre.
     expect(filasDe(e).find((f) => f.etiqueta === "S&P 500")!.estado).toBe("ok");
   });
@@ -213,6 +214,17 @@ describe("Bitácora · Cierre", () => {
     const sin = armarEdicion({ ...d, am_hoy: null });
     expect(textoPlano(sin)).toContain("No hay edición AM de hoy para comparar");
     expect(sin.secciones.find((s) => s.id === "mercados")).toBeDefined();
+  });
+
+  it("«Fuentes:» lista solo las fuentes de lo que quedó a la vista", () => {
+    const am2 = armarEdicion(datosEjemplo("am"));
+    const nombres = am2.fuentes.map((f) => f.nombre);
+    expect(nombres).toContain("Financial Modeling Prep");
+    expect(nombres).toContain("Reuters");
+    expect(nombres).toContain("Tus registros en Strategya");
+    // Sin la sección de guerras, Al Jazeera no aparece.
+    const sinGuerras = armarEdicion(datosEjemplo("am", AHORA_AM, { titulares: datosEjemplo().titulares.filter((t) => t.categoria !== "guerra" && t.fuente_id === null) }));
+    expect(sinGuerras.fuentes.map((f) => f.nombre)).not.toContain("Al Jazeera");
   });
 
   it("cifras con fuente y fecha, sin números ajenos, asunto con el dato del día", () => {

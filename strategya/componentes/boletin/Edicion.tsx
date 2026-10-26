@@ -3,6 +3,7 @@
 
 import "@/estilos/boletin.css";
 import type { EstadoEdicion } from "@/lib/datos-boletin";
+import { PIE_TEXTO } from "@/supabase/functions/_shared/boletin/render";
 import type { Edicion, Fila, Item, Seccion } from "@/supabase/functions/_shared/boletin/tipos";
 
 const FLECHA = { sube: "↑", baja: "↓", igual: "" } as const;
@@ -165,10 +166,7 @@ export function EdicionVista({ e }: { e: Edicion }) {
           <h2>No confirmado:</h2>
           <ul>{e.noConfirmado.length ? e.noConfirmado.map((x) => <li key={x}>{x}</li>) : <li>Nada pendiente: todas las cifras tienen fuente y fecha.</li>}</ul>
         </div>
-        <p className="bol-legal">
-          Strategya arma este boletín por reglas con datos ya guardados: ninguna cifra sale de una inteligencia artificial. Cada cifra lleva su
-          fuente y su fecha. Es información, no asesoría de inversión.
-        </p>
+        <p className="bol-legal">{PIE_TEXTO}</p>
       </footer>
     </article>
   );

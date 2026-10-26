@@ -118,6 +118,18 @@ export const GUIA: GrupoGuia[] = [
     ],
   },
   {
+    id: "boletin",
+    pantalla: "Boletín",
+    href: "/boletin",
+    preguntas: [
+      { p: "¿Qué boletines me llegan?", r: "Cuatro: la Bitácora AM (lunes a viernes, 7:35 AM), la de Cierre (lunes a viernes, 5:05 PM), la de Fin de semana con materias primas (sábado y domingo, 7:35 AM) y el Boletín de Tasas RD (lunes, 6:40 AM). Hora de RD." },
+      { p: "¿Los escribe una inteligencia artificial?", r: "No. Se arman con reglas fijas y las cifras ya guardadas en Strategya. Cada cifra lleva su fuente y su fecha; lo que falta dice «no confirmado» y lo viejo dice «dato viejo»." },
+      { p: "¿Cómo veo uno antes de que salga?", r: "En «Más → Boletín», elige la edición y pulsa «Vista previa ahora»: se arma con los datos de este momento y no se envía. «Enviar prueba» te lo manda solo a tu correo." },
+      { p: "¿Cómo apago uno o quito «Tu dinero»?", r: "En «Más → Ajustes y alertas → Boletín por correo», desmarca lo que no quieras y pulsa «Guardar»." },
+      { p: "Dice «Sin envío» o «Error al enviar»", r: "La edición quedó guardada y la puedes leer igual. «Sin envío» es que falta la clave del correo (Resend); «Error al enviar» es que Resend falló: se reintenta sola 10 minutos después." },
+    ],
+  },
+  {
     id: "fuentes",
     pantalla: "Fuentes y datos",
     href: "/estado",

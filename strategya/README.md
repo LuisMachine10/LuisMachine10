@@ -21,6 +21,7 @@ fuente con nombre, enlace y fecha del dato. Si un dato no llegó, la pantalla di
 | Globo «ojo de Dios» | Globo 3D (adaptado de God's Eye View) con bolsas, noticias y guerras, RD, pasos marítimos, sismos (USGS), ciclones (NHC) y, opcional, buques en los pasos (AISStream). | `/globo` |
 | Mena Capital | Patrimonio, cartera, cierres, retorno (TWR/TIR), riesgo y futuro; importa el JSON del artefacto. Sin recomendaciones. | `/capital` |
 | Calendario de Caja | Calendario de flujo de caja con recurrentes, presupuesto y «puedes gastar hasta»; importa el JSON del artefacto. | `/caja` |
+| Boletín | Bitácora AM, Cierre, Fin de semana y Tasas RD por correo (Resend), armados por reglas sin IA; lista, vista previa y prueba. Ver [`docs/boletin.md`](docs/boletin.md). | `/boletin` |
 | Estado | Cada lectura automática con su última corrida, filas y error. | `/estado` |
 
 ---
@@ -57,6 +58,7 @@ secretos, avisa y no hace nada.
    | `RESEND_API_KEY` | Resend → API Keys | Para alertas por correo |
    | `ANTHROPIC_API_KEY` | Anthropic Console → API Keys | Para la IA |
    | `AISSTREAM_API_KEY` | AISStream → API Keys | Solo si activas los buques |
+   | `BOLETIN_PARA` | correo(s) del Boletín, separados por coma | No: sin él va al correo del usuario dueño |
    | `SUPABASE_PROJECT_REF` | lo que va antes de `.supabase.co` | Solo si tienes varios proyectos |
 
    Variables (pestaña **Variables**, no secretos): `GLOBO_AIS_ACTIVO` = `1` para encender los buques

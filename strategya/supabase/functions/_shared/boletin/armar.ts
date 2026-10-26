@@ -148,37 +148,52 @@ class Ctx {
   readonly ahora: Date;
   readonly hoy: string;
   readonly series = new Map<string, ObsSerie>();
-  private readonly fuentes = new Map<string, FuenteRef>();
+  private pendientes: FuenteRef[] = [];
   private readonly faltan: string[] = [];
   readonly temas = new Set<TemaGlosario>();
   readonly catalogo: Map<string, { nombre: string; url: string }>;
 
-  constructor(readonly d: DatosBoletin, readonly op: OpcionesArmado) {
+  readonly d: DatosBoletin;
+  readonly op: OpcionesArmado;
+
+  constructor(d: DatosBoletin, op: OpcionesArmado) {
+    this.d = d;
+    this.op = op;
     this.ahora = new Date(d.ahora);
     this.hoy = d.hoy;
     for (const s of d.series) this.series.set(s.serie_id, s);
     this.catalogo = new Map(d.fuentes.map((f) => [f.id, { nombre: f.nombre, url: f.url }]));
   }
 
+  /** Anota una fuente (nombre completo y enlace) para la próxima fila o línea que se arme (ver pegar). */
   usarFuente(f: FuenteRef | null): void {
-    if (!f) return;
-    const clave = f.nombre.toLowerCase();
-    if (!this.fuentes.has(clave)) this.fuentes.set(clave, f);
+    if (f && !this.pendientes.some((x) => x.nombre === f.nombre)) this.pendientes.push(f);
+  }
+
+  /** Pega a la fila o línea las fuentes anotadas: «Fuentes:» se arma al final solo con lo que quedó a la vista. */
+  pegar<T extends { fuentes?: FuenteRef[] }>(obj: T): T {
+    const todas = [...(obj.fuentes ?? [])];
+    for (const f of this.pendientes) if (!todas.some((x) => x.nombre === f.nombre)) todas.push(f);
+    this.pendientes = [];
+    return todas.length ? { ...obj, fuentes: todas } : obj;
   }
 
   falta(texto: string): void {
     if (!this.faltan.includes(texto)) this.faltan.push(texto);
   }
 
-  listaFuentes(): FuenteRef[] {
-    return [...this.fuentes.values()];
-  }
-
-  /** Lo no confirmado; las series sin dato se juntan en una sola línea. */
+  /** Lo no confirmado: las series sin dato y los datos viejos se juntan cada uno en una línea. */
   listaFaltan(): string[] {
-    const sinDato = this.faltan.filter((x) => x.endsWith(": sin dato guardado.")).map((x) => x.slice(0, -": sin dato guardado.".length));
-    const resto = this.faltan.filter((x) => !x.endsWith(": sin dato guardado."));
-    return sinDato.length ? [`Sin dato guardado: ${sinDato.join(", ")}.`, ...resto] : resto;
+    const SIN = ": sin dato guardado.";
+    const VIEJO = /^(.+): dato viejo del (.+)\.$/;
+    const sinDato = this.faltan.filter((x) => x.endsWith(SIN)).map((x) => x.slice(0, -SIN.length));
+    const viejos = this.faltan.map((x) => VIEJO.exec(x)).filter((m): m is RegExpExecArray => m !== null);
+    const resto = this.faltan.filter((x) => !x.endsWith(SIN) && !VIEJO.test(x));
+    return [
+      ...(sinDato.length ? [`Sin dato guardado: ${sinDato.join(", ")}.`] : []),
+      ...(viejos.length ? [`Dato viejo (va la última cifra buena, con su fecha): ${viejos.map((m) => m[1]).join(", ")}.`] : []),
+      ...resto,
+    ];
   }
 
   /** Primera serie con dato de «A|B». */
@@ -290,7 +305,7 @@ function filaSerie(c: Ctx, id: string, grupo?: string): Fila {
   if (estado === "viejo") c.falta(`${etiquetaDe(o)}: dato viejo del ${fechaCorta(o.fecha_dato, true)}.`);
   if (estado === "no_confirmado") c.falta(`${etiquetaDe(o)}: la fuente lo marcó como no confirmado.`);
   const cambio = cambioDe(o);
-  return {
+  return c.pegar<Fila>({
     etiqueta: etiquetaDe(o),
     grupo,
     nivel: nivelDe(o),
@@ -299,7 +314,7 @@ function filaSerie(c: Ctx, id: string, grupo?: string): Fila {
     fecha: fechaDeObs(o),
     fuente,
     estado,
-  };
+  });
 }
 
 function hayDato(c: Ctx, id: string): boolean {
@@ -406,12 +421,12 @@ function seccionAlertas(c: Ctx, desde: Date | null): Seccion {
       const fuente = a.fuente_nombre ? { nombre: a.fuente_nombre, url: enlaceSeguro(a.fuente_url) } : null;
       c.usarFuente(fuente);
       const id = [...c.catalogo.entries()].find(([, f]) => f.nombre === a.fuente_nombre)?.[0];
-      return {
+      return c.pegar<Item>({
         texto: `${a.nombre_corto}: ${a.mensaje}`,
         url: fuente?.url ?? null,
         medio: fuente ? (id && FUENTE_CORTA[id]) || fuente.nombre : null,
         meta: `dato del ${fechaCorta(a.fecha_dato)}, sonó ${horaRD(a.disparada_en)}`,
-      };
+      });
     }),
     recorte: { prioridad: 6, minimo: 3 },
   };
@@ -442,7 +457,7 @@ function seccionCinco(c: Ctx): Seccion {
       const f = filaSerie(c, o.serie_id);
       const t = titularQueMenciona(o.serie_id, c.d.titulares, c.ahora, 24);
       if (t) c.usarFuente(fuenteMedio(c, t));
-      return { ...f, porque: t ? { titular: t.titular, url: t.url, medio: t.medio } : null };
+      return c.pegar({ ...f, porque: t ? { titular: t.titular, url: t.url, medio: t.medio } : null });
     }),
   };
 }
@@ -479,11 +494,11 @@ function ultimaSubasta(c: Ctx): Item | null {
     e.monto ? `monto ${e.moneda === "USD" ? "US$" : "RD$"}${cifra(e.monto, 0)}` : null,
     e.tasa ? `tasa de corte ${cifra(e.tasa, 2)} %` : null,
   ].filter(Boolean);
-  return {
-    texto: `Subasta del ${fechaCorta(e.fecha)}: ${e.instrumento ?? e.descripcion ?? e.numero}${cifras.length ? ` · ${cifras.join(" · ")}` : " · monto y tasa no confirmados (ver el documento oficial)"}`,
+  return c.pegar<Item>({
+    texto: `Subasta del ${fechaCorta(e.fecha)}: ${e.instrumento ?? e.descripcion ?? e.numero}${cifras.length ? ` · ${cifras.join(" · ")}` : " · monto y tasa no confirmados"}`,
     url: fuente.url,
     medio: fuente.nombre,
-  };
+  });
 }
 
 /** Fuente de una subasta: el documento oficial (nombre corto); la institución va a «Fuentes:». */
@@ -497,15 +512,15 @@ function fuenteEmision(c: Ctx, fuente: string, url: string): FuenteRef {
 /** Resoluciones y avisos de la SIMV nuevos desde `desde`. */
 function itemsSimv(c: Ctx, desde: Date): Item[] {
   const items: Item[] = [];
+  const simv: FuenteRef = { nombre: c.catalogo.get("simv")?.nombre ?? "SIMV", url: c.catalogo.get("simv")?.url ?? "https://simv.gob.do/" };
   for (const e of c.d.emisiones) {
     if (e.fuente !== "SIMV" || new Date(e.recogido_en) <= desde) continue;
-    items.push({ texto: `Resolución ${e.numero}${e.emisor ? ` · ${e.emisor}` : ""}${e.descripcion ? `: ${e.descripcion}` : ""}`, url: enlaceSeguro(e.url), medio: "SIMV", meta: fechaCorta(e.fecha) });
+    items.push({ texto: `Resolución ${e.numero}${e.emisor ? ` · ${e.emisor}` : ""}${e.descripcion ? `: ${e.descripcion}` : ""}`, url: enlaceSeguro(e.url), medio: "SIMV", meta: fechaCorta(e.fecha), fuentes: [simv] });
   }
   for (const a of c.d.avisos) {
     if (a.institucion !== "SIMV" || new Date(a.fecha) <= desde) continue;
-    items.push({ texto: a.titulo, url: enlaceSeguro(a.url), medio: "SIMV", meta: fechaCorta(diaRD(a.fecha)) });
+    items.push({ texto: a.titulo, url: enlaceSeguro(a.url), medio: "SIMV", meta: fechaCorta(diaRD(a.fecha)), fuentes: [simv] });
   }
-  if (items.length) c.usarFuente({ nombre: c.catalogo.get("simv")?.nombre ?? "SIMV", url: c.catalogo.get("simv")?.url ?? "https://simv.gob.do/" });
   return items;
 }
 
@@ -513,7 +528,8 @@ function seccionRD(c: Ctx): Seccion {
   const filas: Fila[] = [];
   for (const id of ["USDDOP_COMPRA", "USDDOP_VENTA"]) filas.push(filaSerie(c, id, "Dólar del Banco Central"));
   for (const id of ["TPM_BCRD", "INFLACION_RD"]) filas.push(filaSerie(c, id, "Política monetaria y precios"));
-  const comb = COMBUSTIBLES.filter((id) => hayDato(c, id));
+  // En la AM van los 3 combustibles que más se miran; la lista completa va en la de fin de semana.
+  const comb = COMBUSTIBLES.filter((id) => hayDato(c, id)).slice(0, 3);
   if (comb.length) for (const id of comb) filas.push(filaSerie(c, id, "Combustibles (MICM, RD$ por galón)"));
   else c.falta("Combustibles del MICM: sin dato guardado.");
   if (hayDato(c, "USDDOP_VENTA")) c.temas.add("dolar_rd");
@@ -555,7 +571,7 @@ function seccionGuerras(c: Ctx, desde: Date, maximo = 5): Seccion {
     intro: "Solo el titular y el enlace al medio (sin resumen).",
     items: elegidos.map((t) => {
       c.usarFuente(fuenteMedio(c, t));
-      return { texto: t.titular, url: enlaceSeguro(t.url), medio: t.medio, meta: `${fechaCorta(diaRD(t.fecha))}, ${horaRD(t.fecha)}` };
+      return c.pegar<Item>({ texto: t.titular, url: enlaceSeguro(t.url), medio: t.medio, meta: `${fechaCorta(diaRD(t.fecha))}, ${horaRD(t.fecha)}` });
     }),
     recorte: { prioridad: 3, minimo: 2 },
   };
@@ -571,11 +587,11 @@ function seccionAgenda(c: Ctx, dias: number, titulo = "Agenda"): Seccion {
     items: eventos.map((e) => {
       const dia = fechaConDia(diaRD(e.fecha_hora));
       if (e.url) c.usarFuente({ nombre: `Calendario oficial · ${e.institucion}`, url: enlaceSeguro(e.url) });
-      return {
+      return c.pegar<Item>({
         texto: `${e.institucion}: ${e.evento}`,
         url: enlaceSeguro(e.url),
         meta: `${dia}${e.hora_conocida ? `, ${horaRD(e.fecha_hora)}` : ""}${e.confirmado ? "" : " · sin confirmar"}`,
-      };
+      });
     }),
     recorte: { prioridad: 4, minimo: 2 },
   };
@@ -627,7 +643,6 @@ function seccionTuDinero(c: Ctx): Seccion | null {
   if (!t) return null;
   c.temas.add("tu_dinero");
   const fuente: FuenteRef = { nombre: "Tus registros en Strategya", url: c.op.urlApp ? `${c.op.urlApp.replace(/\/$/, "")}/capital` : null };
-  c.usarFuente(fuente);
   const items: Item[] = [];
   const mes = nombreMes(c.hoy.slice(0, 7));
   const p = t.presupuesto;
@@ -672,7 +687,7 @@ function seccionTuDinero(c: Ctx): Seccion | null {
     items.push({ texto: "Patrimonio, aportes y riesgos: no confirmado (abre Strategya una vez para calcular la foto de tu Portafolio)." });
     c.falta("Tu dinero · Portafolio: sin foto calculada.");
   }
-  return { id: "tu-dinero", titulo: "Tu dinero", intro: "Solo para ti. Información de tus registros, no asesoría.", items, personal: true };
+  return { id: "tu-dinero", titulo: "Tu dinero", intro: "Solo para ti. Información de tus registros, no asesoría.", items: items.map((it) => ({ ...it, fuentes: [fuente] })), personal: true };
 }
 
 function seccionGlosario(c: Ctx, cuantos: number): Seccion | null {
@@ -904,14 +919,19 @@ function fondosVista(fondos: readonly FondoGuardado[]): FondoVista[] {
 
 const MAX_FONDO_MIN = 14_400;
 
+/** «Excel SAFI» y «AFI Reservas» ya dicen qué son; «Reservas» pasa a «SAFI Reservas». */
+function nombreSafi(safi: string): string {
+  return /\b(s?afi|safi)\b/i.test(safi) ? safi : `SAFI ${safi}`;
+}
+
 function filaFondo(c: Ctx, f: FondoVista, grupo: string): Fila {
   const base = f.r30 ?? f.r1a!;
   const corte = [f.r30?.fecha_corte, f.r1a?.fecha_corte].filter((x): x is string => !!x).sort().at(-1)!;
   const viejo = c.ahora.getTime() - momentoDelDato({ fecha_dato: corte, hora_dato: null }).getTime() > MAX_FONDO_MIN * 60_000;
   const fuente: FuenteRef = { nombre: f.safi, url: enlaceSeguro(base.url_fuente) };
-  c.usarFuente({ nombre: `SAFI ${f.safi}`, url: fuente.url });
-  if (viejo) c.falta(`${f.fondo} (${f.safi}): dato viejo, corte del ${fechaCorta(corte, true)}.`);
-  return {
+  c.usarFuente({ nombre: nombreSafi(f.safi), url: fuente.url });
+  if (viejo) c.falta(`${f.fondo} de ${f.safi}: dato viejo del ${fechaCorta(corte, true)}.`);
+  return c.pegar<Fila>({
     etiqueta: f.fondo,
     grupo,
     nivel: f.r30 ? `${cifra(f.r30.rendimiento, 2)} % a 30 días` : "30 días: no publicado",
@@ -921,7 +941,7 @@ function filaFondo(c: Ctx, f: FondoVista, grupo: string): Fila {
     fuente,
     estado: viejo ? "viejo" : "ok",
     nota: f.r1a ? `${cifra(f.r1a.rendimiento, 2)} % a ${f.r1a.plazo_dias} días` : "un año: no publicado",
-  };
+  });
 }
 
 function ordenarFondos(lista: FondoVista[]): FondoVista[] {
@@ -939,7 +959,6 @@ function armarTasas(c: Ctx): Partial<Edicion> {
   const tpm = filaSerie(c, "TPM_BCRD", "Banco Central");
   const infl = filaSerie(c, "INFLACION_RD", "Banco Central");
   pendiente.push({ texto: "Facilidades permanentes del BCRD (depósito y préstamo a un día): Strategya no tiene una fuente automática para ellas todavía." });
-  c.falta("Facilidades permanentes del BCRD: sin serie en la base.");
   secciones.push({ id: "tpm", titulo: "Política monetaria", filas: [tpm, infl] });
   if (hayDato(c, "TPM_BCRD")) c.temas.add("tpm");
 
@@ -955,15 +974,16 @@ function armarTasas(c: Ctx): Partial<Edicion> {
     const fuente = fuenteEmision(c, e.fuente, e.url);
     const partes = [
       e.instrumento ?? e.descripcion ?? e.numero,
-      e.monto ? `${e.moneda === "USD" ? "US$" : "RD$"}${cifra(e.monto, 0)}` : "monto no confirmado",
-      e.tasa ? `tasa de corte ${cifra(e.tasa, 2)} %` : "tasa de corte no confirmada",
+      ...(e.monto || e.tasa
+        ? [e.monto ? `${e.moneda === "USD" ? "US$" : "RD$"}${cifra(e.monto, 0)}` : "monto no confirmado", e.tasa ? `tasa de corte ${cifra(e.tasa, 2)} %` : "tasa de corte no confirmada"]
+        : ["monto y tasa no confirmados"]),
     ];
-    return { texto: partes.join(" · "), url: fuente.url, medio: fuente.nombre, meta: `subasta del ${fechaCorta(e.fecha)}` };
+    return c.pegar<Item>({ texto: partes.join(" · "), url: fuente.url, medio: fuente.nombre, meta: `subasta del ${fechaCorta(e.fecha)}` });
   });
   if (itemsSub.length) c.temas.add("subastas");
   else c.falta("Subastas: ninguna guardada.");
   if (subastas.some((e) => !e.monto || !e.tasa)) pendiente.push({ texto: "Algunas subastas no traen monto o tasa de corte: esas cifras viven en el PDF o el Consolidado oficial y no se leyeron." });
-  secciones.push({ id: "subastas", titulo: "Últimas subastas", items: itemsSub, vacio: itemsSub.length ? undefined : "No hay subastas guardadas." });
+  secciones.push({ id: "subastas", titulo: "Últimas subastas", items: itemsSub, vacio: itemsSub.length ? undefined : "No hay subastas guardadas.", recorte: { prioridad: 4, minimo: 1 } });
 
   // SIMV de la semana
   const simv = itemsSimv(c, new Date(c.ahora.getTime() - 7 * 86_400_000));
@@ -1000,24 +1020,30 @@ function armarTasas(c: Ctx): Partial<Edicion> {
   // Comparador (sin recomendar)
   const comp: Item[] = [];
   const bono = c.d.emisiones.find((e) => e.fuente === "CREDITO_PUBLICO" && e.tasa);
+  if (bono) fuenteEmision(c, bono.fuente, bono.url);
   comp.push(
-    bono
-      ? { texto: `Bono de Hacienda más reciente: tasa de corte ${cifra(bono.tasa!, 2)} % (subasta del ${fechaCorta(bono.fecha)}).`, url: enlaceSeguro(bono.url), medio: "Crédito Público" }
-      : { texto: "Bono de Hacienda más reciente: tasa de corte no confirmada." },
+    c.pegar<Item>(
+      bono
+        ? { texto: `Bono de Hacienda más reciente: tasa de corte ${cifra(bono.tasa!, 2)} % (subasta del ${fechaCorta(bono.fecha)}).`, url: enlaceSeguro(bono.url), medio: "Hacienda" }
+        : { texto: "Bono de Hacienda más reciente: tasa de corte no confirmada." },
+    ),
   );
   const pas = c.series.get("TASA_PAS_MN_PROMEDIO");
   comp.push(
-    pas
-      ? { texto: `Tasa pasiva promedio de los bancos (RD$): ${cifra(pas.valor, 2)} % (${mesCorto(pas.fecha_dato)}).`, url: fuenteDe(c, pas).url, medio: FUENTE_CORTA[pas.fuente_id] ?? pas.fuente_nombre }
-      : { texto: "Tasa pasiva promedio de los bancos: no confirmada." },
+    c.pegar<Item>(
+      pas
+        ? { texto: `Tasa pasiva promedio de los bancos (RD$): ${cifra(pas.valor, 2)} % (${mesCorto(pas.fecha_dato)}${estadoCifra(pas, c.ahora) === "viejo" ? ", dato viejo" : ""}).`, url: fuenteDe(c, pas).url, medio: FUENTE_CORTA[pas.fuente_id] ?? pas.fuente_nombre }
+        : { texto: "Tasa pasiva promedio de los bancos: no confirmada." },
+    ),
   );
   const top3 = dopAb.filter((f) => f.r30).slice(0, 3);
+  for (const f of top3) c.usarFuente({ nombre: nombreSafi(f.safi), url: enlaceSeguro(f.r30!.url_fuente) });
   comp.push(
     top3.length
-      ? { texto: `Fondos abiertos en pesos con mayor rendimiento a 30 días: ${top3.map((f) => `${f.fondo} (${cifra(f.r30!.rendimiento, 2)} %, corte ${fechaCorta(f.r30!.fecha_corte)})`).join("; ")}.` }
+      ? c.pegar<Item>({ texto: `Fondos abiertos en pesos con mayor rendimiento a 30 días: ${top3.map((f) => `${f.fondo} (${cifra(f.r30!.rendimiento, 2)} %, corte ${fechaCorta(f.r30!.fecha_corte)})`).join("; ")}.` })
       : { texto: "Fondos en pesos a 30 días: no confirmado." },
   );
-  comp.push({ texto: "Son cifras de períodos y riesgos distintos: sirven para ubicarte, no para decidir. No es una recomendación." });
+  comp.push({ texto: "Períodos y riesgos distintos: sirve para ubicarte. No es una recomendación." });
   secciones.push({ id: "comparador", titulo: "Comparador corto", items: comp });
 
   secciones.push({ id: "pendiente", titulo: "Pendiente", intro: "Lo que falta y por qué.", items: pendiente, recorte: { prioridad: 5, minimo: 2 } });
@@ -1029,7 +1055,7 @@ function armarTasas(c: Ctx): Partial<Edicion> {
   const oTpm = c.series.get("TPM_BCRD");
   if (oTpm) resumen.push(`La tasa de política monetaria del Banco Central está en ${cifra(oTpm.valor, 2)} % (rige desde ${mesCorto(oTpm.fecha_dato)}).`);
   if (pas) resumen.push(`Los bancos pagan en promedio ${cifra(pas.valor, 2)} % por los depósitos en pesos (${mesCorto(pas.fecha_dato)}${estadoCifra(pas, c.ahora) === "viejo" ? ", dato viejo" : ""}).`);
-  if (top3[0]) resumen.push(`El fondo abierto en pesos que más rindió a 30 días fue ${top3[0].fondo} de ${top3[0].safi}: ${cifra(top3[0].r30!.rendimiento, 2)} % (corte ${fechaCorta(top3[0].r30!.fecha_corte)}).`);
+  if (top3[0]) resumen.push(`El fondo abierto en pesos que más rindió a 30 días: ${top3[0].fondo}, ${cifra(top3[0].r30!.rendimiento, 2)} % (corte ${fechaCorta(top3[0].r30!.fecha_corte)}).`);
   if (!resumen.length) resumen.push("Todavía no hay tasas confirmadas para resumir.");
 
   let dato: string | null = null;
@@ -1046,9 +1072,24 @@ function armarTasas(c: Ctx): Partial<Edicion> {
 
 // ───────────────────────────── Largo máximo ─────────────────────────────
 
+/** «Fuentes:» = las fuentes de lo que quedó a la vista (después de recortar), sin repetir. */
+export function fuentesVisibles(e: Pick<Edicion, "secciones">): FuenteRef[] {
+  const salida: FuenteRef[] = [];
+  for (const s of e.secciones) {
+    for (const x of [...(s.filas ?? []), ...(s.items ?? [])]) {
+      for (const f of x.fuentes ?? []) if (!salida.some((y) => y.nombre === f.nombre)) salida.push(f);
+    }
+  }
+  return salida;
+}
+
 function largoDe(e: Edicion): number {
+  e.fuentes = fuentesVisibles(e);
   return contarPalabras(textoPlano(e));
 }
+
+/** Introducciones que nunca se quitan: dicen el período y la fecha de corte, o cómo se ordenó la lista. */
+const INTROS_FIJAS = new Set(["fondos", "desde-am"]);
 
 /** Quita elementos del final de las secciones recortables (de menor a mayor prioridad) hasta caber. */
 function recortar(e: Edicion): void {
@@ -1071,13 +1112,14 @@ function recortar(e: Edicion): void {
     if (!e.recortes.includes(s.titulo)) e.recortes.push(s.titulo);
     palabras = largoDe(e);
   }
-  // Después, las explicaciones bajo cada título; y como último recurso, el glosario.
+  // Después, las explicaciones bajo cada título (menos las que dicen cómo leer la cifra: período, base).
   if (palabras > e.limitePalabras) {
-    for (const s of e.secciones) delete s.intro;
+    for (const s of e.secciones) if (!INTROS_FIJAS.has(s.id)) delete s.intro;
     e.recortes.push("Introducciones de sección");
     palabras = largoDe(e);
   }
-  if (palabras > e.limitePalabras && e.secciones.some((s) => s.id === "glosario")) {
+  // El glosario (1 a 3 conceptos) se queda si el exceso es pequeño («~650», «~500»): hasta un 5 % por encima.
+  if (palabras > Math.round(e.limitePalabras * 1.05) && e.secciones.some((s) => s.id === "glosario")) {
     e.secciones = e.secciones.filter((s) => s.id !== "glosario");
     e.recortes.push("Glosario completo");
     palabras = largoDe(e);
@@ -1104,7 +1146,7 @@ export function armarEdicion(d: DatosBoletin, op: OpcionesArmado = {}): Edicion 
     datoDelDia: dato,
     resumen: parte.resumen ?? [],
     secciones: parte.secciones ?? [],
-    fuentes: c.listaFuentes(),
+    fuentes: [],
     noConfirmado: c.listaFaltan(),
     niveles: tipo === "am" || tipo === "cierre" ? nivelesClave(c) : {},
     conTuDinero: (parte.secciones ?? []).some((s) => s.personal),
