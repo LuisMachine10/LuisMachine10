@@ -101,7 +101,8 @@ beforeAll(async () => {
     sim: simular(filasADatos(await leer(pool, conFaseF)), { hoy: "2026-10-26", hasta: "2026-12-31" }).dias.map((d) => d.posiciones),
   };
   await pool.query(sql(NUEVA));
-  for (const a of migraciones().filter((x) => x > NUEVA)) await pool.query(sql(a));
+  // Hasta antes del Núcleo v2 (desde ahí todo lo que paga o recibe se enlaza solo: pruebas/db/nucleo-v2.test.ts).
+  for (const a of migraciones().filter((x) => x > NUEVA && x < "20261029000100_nucleo_v2.sql")) await pool.query(sql(a));
 });
 
 afterAll(async () => {

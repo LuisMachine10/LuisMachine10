@@ -18,6 +18,7 @@ const RAIZ = join(import.meta.dirname, "..", "..");
 const URL_ADMIN = process.env.DATABASE_URL_PRUEBAS ?? "postgres://postgres:postgres@localhost:5432/postgres";
 const PRIMERA_NUEVA = "20261017000100_capital_clases.sql";
 const REGISTRO = "20261023000100_registro_unico.sql";
+const NUCLEO_V2 = "20261029000100_nucleo_v2.sql";
 const MENA = "11111111-1111-1111-1111-111111111111";
 const INTRUSO = "22222222-2222-2222-2222-222222222222";
 const TABLAS_CAJA = ["caja_config", "caja_cuentas", "caja_categorias", "caja_recurrentes", "caja_movimientos", "caja_omitidos", "caja_saldos_reales", "caja_notas"] as const;
@@ -124,7 +125,9 @@ beforeAll(async () => {
     resultado: (await pool.query("select personal.resultado_mes('2026-10-15') as r")).rows[0].r,
     activos: (await pool.query("select id, clase, nombre, institucion, simbolo, moneda, cantidad::text, precio::text, tasa::text from personal.activos order by id")).rows,
   };
-  for (const a of migraciones().filter((x) => x >= REGISTRO)) await pool.query(sql(a));
+  // Hasta antes del Núcleo v2: esta prueba revisa el registro único en su momento. Desde el Núcleo v2 todo lo que
+  // paga o recibe se enlaza solo (eso lo prueba pruebas/db/nucleo-v2.test.ts con la forma de los datos de producción).
+  for (const a of migraciones().filter((x) => x >= REGISTRO && x < NUCLEO_V2)) await pool.query(sql(a));
 
   await pool.query("insert into auth.users (id, email) values ($1, 'mena@ejemplo.do'), ($2, 'otro@ejemplo.do')", [MENA, INTRUSO]);
   await pool.query("insert into mercado.usuarios_autorizados (user_id) values ($1)", [MENA]);
