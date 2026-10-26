@@ -26,6 +26,7 @@ import { tareaPreciosCartera } from "./fuentes/precios-cartera.ts";
 import { tareaSismosUsgs } from "./fuentes/sismos-usgs.ts";
 import { tareaCiclonesNhc } from "./fuentes/ciclones-nhc.ts";
 import { tareaBuquesAis } from "./fuentes/buques-ais.ts";
+import { TAREAS_BOLETIN } from "./fuentes/boletin.ts";
 
 const LISTA: Tarea[] = [
   tareaTesoro,
@@ -54,6 +55,8 @@ const LISTA: Tarea[] = [
   tareaSismosUsgs,
   tareaCiclonesNhc,
   tareaBuquesAis,
+  // Boletín y Bitácora por reglas (sin IA): boletin-am, boletin-cierre, boletin-finde, boletin-tasas, boletin-prueba.
+  ...TAREAS_BOLETIN,
 ];
 
 export const TAREAS: Readonly<Record<string, Tarea>> = Object.fromEntries(LISTA.map((t) => [t.nombre, t]));
