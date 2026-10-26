@@ -489,6 +489,11 @@ export function PanelBalance({ datos }: { datos: DatosCapital }) {
         <span className="sello">Tus registros · saldos de hoy, con lo anotado en el Presupuesto</span>
         <SelloFx fx={datos.ctx.mercado.fx.USD} moneda="USD" ahora={datos.ahora} hoy={datos.ctx.hoy} />
         {b.sinValorar.length ? <p className="cap-nota baja">{b.sinValorar.length} sin tipo de cambio quedan fuera: {b.sinValorar.map((x) => x.nombre).join(", ")}.</p> : null}
+        {b.usdNoConfirmado.length ? (
+          <p className="cap-nota baja">
+            Lo que debes en US$ en {b.usdNoConfirmado.map((x) => x.nombre).join(", ")} no se suma (no confirmado): falta el dólar de venta del BCRD de hoy.
+          </p>
+        ) : null}
       </div>
     </section>
   );
