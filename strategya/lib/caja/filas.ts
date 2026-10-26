@@ -164,6 +164,7 @@ export function conRegistro(datos: DatosCaja, filas: FilaEnlace[]): Record<strin
     const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
     const ciclo = cicloDe({ diaCorte: num(a.dia_corte), diasParaPagar: num(a.dias_para_pagar), diaPago: num(a.dia_pago) });
     if (ciclo) c.ciclo = ciclo;
+    if (a.dia_pago != null) c.diaPago = Number(a.dia_pago);
     const limiteUsd = s(a.limite_usd);
     const saldoUsd = s(a.saldo_usd);
     if (a.moneda !== "DOP" || (limiteUsd === null && saldoUsd === null)) continue;

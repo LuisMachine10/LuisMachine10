@@ -442,7 +442,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
                       {c && r.tipo === "tarjeta" ? (
                         <div className="caja-campo caja-registro-dia">
                           <label htmlFor={`as-r-${r.id}-d`}>
-                            Día en que la pagas <span className="tenue">(opcional)</span>
+                            Día en que quieres pagarla <span className="tenue">(opcional)</span>
                           </label>
                           <input id={`as-r-${r.id}-d`} inputMode="numeric" maxLength={2} value={c.diaPago} placeholder="Ej.: 28" autoComplete="off" onChange={(e) => cambiar("cuentas", i, { diaPago: e.target.value })} />
                         </div>
@@ -496,7 +496,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
                       <Monto id={`as-c-${c.k}-l`} valor={c.limite} cambiar={(v) => cambiar("cuentas", i, { limite: v })} etiqueta="Límite" ejemplo="Ej.: 80,000" />
                       <div className="caja-campo">
                         <label htmlFor={`as-c-${c.k}-d`}>
-                          Día en que la pagas <span className="tenue">(opcional)</span>
+                          Día en que quieres pagarla <span className="tenue">(opcional)</span>
                         </label>
                         <input id={`as-c-${c.k}-d`} inputMode="numeric" maxLength={2} value={c.diaPago} placeholder="Ej.: 28" autoComplete="off" onChange={(e) => cambiar("cuentas", i, { diaPago: e.target.value })} aria-describedby={`as-c-${c.k}-d-ayuda`} />
                         <p id={`as-c-${c.k}-d-ayuda`} className="caja-campo-ayuda">

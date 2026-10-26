@@ -625,6 +625,19 @@ export function leerFoto(x: unknown): FotoDinero | null {
         .filter((r) => typeof r.titulo === "string" && NIVELES_RIESGO.has(String(r.impacto)) && NIVELES_RIESGO.has(String(r.probabilidad)))
         .map((r) => ({ titulo: String(r.titulo).slice(0, 80), impacto: String(r.impacto), probabilidad: String(r.probabilidad) }))
     : [];
+  const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+  const tarjetas = Array.isArray(o.tarjetas)
+    ? o.tarjetas
+        .filter((t): t is Record<string, unknown> => !!t && typeof t === "object")
+        .filter((t) => typeof t.nombre === "string" && typeof t.corte === "string" && FECHA.test(t.corte) && typeof t.limite === "string" && FECHA.test(t.limite))
+        .map((t) => ({
+          nombre: String(t.nombre).replace(/\d{3,}/g, "…").slice(0, 60),
+          corte: String(t.corte),
+          pago: typeof t.pago === "string" && FECHA.test(t.pago) ? t.pago : null,
+          limite: String(t.limite),
+          pagado: t.pagado === true,
+        }))
+    : undefined;
   return {
     mes: o.mes,
     patrimonio: dec(o.patrimonio),
@@ -635,7 +648,28 @@ export function leerFoto(x: unknown): FotoDinero | null {
     aportes,
     riesgos,
     riesgos_evaluados: entero(o.riesgos_evaluados) ?? 0,
+    ...(tarjetas ? { tarjetas } : {}),
   };
+}
+
+/** Días entre dos fechas AAAA-MM-DD. */
+function diasHasta(desde: string, hasta: string): number {
+  return Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 86_400_000);
+}
+
+/** Pagos de tarjeta de los próximos 7 días (fecha elegida o fecha límite entre hoy y hoy + 7), sin números de tarjeta. */
+export function pagosTarjetaProximos(f: FotoDinero, hoy: string): { nombre: string; pago: string | null; limite: string; pagado: boolean }[] {
+  const dentro = (x: string | null) => x !== null && diasHasta(hoy, x) >= 0 && diasHasta(hoy, x) <= 7;
+  const vistos = new Set<string>();
+  const out: { nombre: string; pago: string | null; limite: string; pagado: boolean }[] = [];
+  for (const t of f.tarjetas ?? []) {
+    if (!(dentro(t.pago) || dentro(t.limite))) continue;
+    const k = `${t.nombre}|${t.limite}`;
+    if (vistos.has(k)) continue;
+    vistos.add(k);
+    out.push({ nombre: t.nombre, pago: t.pago && diasHasta(hoy, t.pago) >= 0 ? t.pago : null, limite: t.limite, pagado: t.pagado });
+  }
+  return out.sort((a, b) => ((a.pago ?? a.limite) < (b.pago ?? b.limite) ? -1 : 1));
 }
 
 function seccionTuDinero(c: Ctx): Seccion | null {
@@ -676,6 +710,17 @@ function seccionTuDinero(c: Ctx): Seccion | null {
       });
     } else {
       items.push({ texto: "Aportes del mes: no hay plan de aportes para este mes." });
+    }
+    const pagos = pagosTarjetaProximos(f, c.hoy);
+    if (f.tarjetas) {
+      items.push({
+        texto: pagos.length
+          ? `Pagos de tarjeta en los próximos 7 días: ${pagos
+              .map((p) => `${p.nombre}, ${p.pago ? `pagas el ${fechaCorta(p.pago)} · ` : ""}fecha límite ${fechaCorta(p.limite)}${p.pagado ? " (ya anotaste un pago de este ciclo)" : ""}`)
+              .join("; ")}.`
+          : "Pagos de tarjeta: ninguno en los próximos 7 días.",
+        medio: "Mis cuentas",
+      });
     }
     items.push({
       texto: f.riesgos.length

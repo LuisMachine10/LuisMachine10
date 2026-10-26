@@ -60,12 +60,13 @@ function Signo({ tipo }: { tipo: string }) {
   return <>{tipo === "ingreso" ? "+" : tipo === "gasto" ? "−" : "⇄ "}</>;
 }
 
-function Ruta({ tipo, cuenta, destino, categoria, cat }: { tipo: string; cuenta: string | null; destino: string | null; categoria: string | null; cat: Catalogos }) {
+function Ruta({ tipo, cuenta, destino, categoria, cat, parte }: { tipo: string; cuenta: string | null; destino: string | null; categoria: string | null; cat: Catalogos; parte?: string | null }) {
   const c = nombreCategoria(categoria, cat.categorias);
   return (
     <span className="caja-item-detalle">
       {NOMBRE_TIPO[tipo as keyof typeof NOMBRE_TIPO]} · {nombreCuenta(cuenta, cat.cuentas)}
       {tipo === "transferencia" || tipo === "pago_tarjeta" ? ` → ${nombreCuenta(destino, cat.cuentas)}` : ""}
+      {parte ? ` (parte en ${parte === "USD" ? "US$" : "RD$"})` : ""}
       {c ? ` · ${c}` : ""}
     </span>
   );
@@ -102,7 +103,7 @@ function Planificado({ o, fecha, pendiente, cat }: { o: Ocurrencia; fecha: strin
             {faltaCategoria ? <span className="etiqueta alerta">sin categoría</span> : null}
             {o.pagoTotal ? <span className="tenue chico"> · paga todo lo que debas</span> : null}
           </span>
-          <Ruta tipo={o.tipo} cuenta={o.cuenta} destino={o.destino} categoria={o.categoria} cat={cat} />
+          <Ruta tipo={o.tipo} cuenta={o.cuenta} destino={o.destino} categoria={o.categoria} cat={cat} parte={o.parte} />
         </span>
         <MontoOcurrencia o={o} />
       </div>
@@ -117,6 +118,7 @@ function Planificado({ o, fecha, pendiente, cat }: { o: Ocurrencia; fecha: strin
             <input type="hidden" name="moneda" value={o.moneda} />
             <input type="hidden" name="cuenta" value={o.cuenta ?? ""} />
             <input type="hidden" name="destino" value={o.destino ?? ""} />
+            {o.parte ? <input type="hidden" name="parte" value={o.parte} /> : null}
             {faltaCategoria ? (
               <span className="caja-asignar-linea">
                 <label className="sr-solo" htmlFor={`cat-${fecha}-${o.recurrenteId}`}>
@@ -218,6 +220,29 @@ export function PanelDia({
 
         {nuevo && hayCuentas ? <BotonesAnotar alElegir={nuevo} etiqueta="Anotar en este día" /> : null}
 
+        {p.tarjetas.length ? (
+          <div className="caja-bloque caja-tarjetas-dia">
+            <h3>Tus tarjetas este día</h3>
+            <ul className="caja-lista">
+              {p.tarjetas.map((t) => (
+                <li key={`${t.cuentaId}-${t.marca}`} className="caja-item">
+                  <div className="caja-item-fila">
+                    <span className={`marca tc-marca tc-${t.marca}`} aria-hidden="true">
+                      {t.marca === "corte" ? "C" : t.marca === "pago" ? "P" : "L"}
+                    </span>
+                    <span className="caja-item-texto">
+                      <span className="caja-item-nombre">
+                        {t.nombre} · {t.marca === "corte" ? "corte" : t.marca === "pago" ? "pago planificado" : "fecha límite"}
+                      </span>
+                      <span className="caja-item-detalle">{t.texto}</span>
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         {p.porConfirmar.length || p.planificados.length ? (
           <p className="caja-explica-fijos">Tus fijos se planifican solos; aquí dices si de verdad ocurrieron.</p>
         ) : null}
@@ -294,7 +319,7 @@ export function PanelDia({
                         {m.nota || nombreCategoria(m.categoria, cat.categorias) || NOMBRE_TIPO[m.tipo]}
                         {m.recurrenteId ? <span className="etiqueta ok">fijo confirmado</span> : null}
                       </span>
-                      <Ruta tipo={m.tipo} cuenta={m.cuenta} destino={m.destino} categoria={m.categoria} cat={cat} />
+                      <Ruta tipo={m.tipo} cuenta={m.cuenta} destino={m.destino} categoria={m.categoria} cat={cat} parte={m.parte} />
                       {m.moneda === "USD" ? (
                         <span className="caja-item-detalle">
                           <TasaUSD dop={m.montoDOP} tasa={m.tasaUsada} />

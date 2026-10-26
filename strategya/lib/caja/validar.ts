@@ -71,6 +71,7 @@ export function validarCuenta(c: Campos): Resultado<Omit<Cuenta, "id">> {
   const nombre = texto(c.nombre);
   if (!nombre) return mal("La cuenta necesita un nombre.");
   if (!esUno(TIPOS_CUENTA, c.tipo)) return mal("Tipo de cuenta inválido.");
+  if (c.tipo === "tarjeta" && /\d{4}/.test(nombre.replace(/[\s-]/g, ""))) return mal("No pongas números de la tarjeta (ni los 4 últimos): basta un nombre como «Visa ACAP».");
   const saldo = leerMonto(c.saldoInicial, esDeuda(c.tipo) ? "Deuda inicial" : "Saldo inicial", { permitirNegativo: !esDeuda(c.tipo) });
   if (!saldo.ok) return saldo;
   const limite = leerMonto(c.limite, "Límite");

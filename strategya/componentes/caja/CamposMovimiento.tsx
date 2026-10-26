@@ -28,6 +28,8 @@ export interface OpcionCuenta {
   moneda?: Moneda;
   /** Préstamo u otra deuda con tasa en el Portafolio (fracción anual). */
   tasaAnual?: string | null;
+  /** Tarjeta en RD$ con parte en dólares. */
+  dobleMoneda?: boolean;
 }
 export interface OpcionCategoria {
   id: string;
@@ -56,6 +58,25 @@ export interface ValoresMovimiento {
   categoria?: string | null;
   nota?: string | null;
   interes?: string | null;
+  parte?: Moneda | null;
+}
+
+/**
+ * Tarjeta en dos monedas: «¿A qué parte de la tarjeta va?». Vacío = según la moneda del monto. Si se paga la
+ * parte en US$ desde una cuenta en RD$, se convierte con la tasa que escribas o el dólar del BCRD de ese día.
+ */
+export function SelectParte({ valor, alCambiar }: { valor?: Moneda | null; alCambiar?: (p: Moneda | "") => void }) {
+  return (
+    <label className="ancho">
+      ¿A qué parte de la tarjeta va el pago?
+      <select name="parte" defaultValue={valor ?? ""} onChange={alCambiar ? (e) => alCambiar(e.target.value as Moneda | "") : undefined}>
+        <option value="">Según la moneda del pago</option>
+        <option value="DOP">La parte en RD$ (pesos)</option>
+        <option value="USD">La parte en US$ (dólares)</option>
+      </select>
+      <span className="caja-campo-ayuda">Esta tarjeta tiene límite en pesos y en dólares. Si pagas la parte en US$ desde una cuenta en RD$, se convierte con la tasa que escribas o el dólar del BCRD de ese día.</span>
+    </label>
+  );
 }
 
 export function SelectCuenta({
@@ -150,9 +171,12 @@ export function CamposMovimiento({
   const [moneda, setMoneda] = useState<Moneda>(v.moneda ?? "DOP");
   const [destino, setDestino] = useState<string>(v.destino ?? "");
   const [origen, setOrigen] = useState<string>(v.cuenta ?? "");
+  const [parte, setParte] = useState<Moneda | "">(v.parte ?? "");
   const enDolares = (cid: string) => cuentas.find((c) => c.id === cid)?.moneda === "USD";
-  // La tasa se pide si el monto es en US$ o si el dinero entra o sale de una cuenta en US$.
-  const pideTasa = moneda === "USD" || enDolares(origen) || (tipo !== "ingreso" && tipo !== "gasto" && enDolares(destino));
+  const destinoDoble = tipo === "pago_tarjeta" && !!cuentas.find((c) => c.id === destino)?.dobleMoneda;
+  // La tasa se pide si el monto es en US$, si el dinero entra o sale de una cuenta en US$, o si se paga la parte
+  // en US$ de una tarjeta con pesos.
+  const pideTasa = moneda === "USD" || enDolares(origen) || (tipo !== "ingreso" && tipo !== "gasto" && enDolares(destino)) || (destinoDoble && parte === "USD");
   const id = useId();
   const conDestino = tipo === "transferencia" || tipo === "pago_tarjeta";
   const deuda = tipo === "pago_tarjeta" ? cuentas.find((c) => c.id === destino && esDeuda(c.tipo)) : undefined;
@@ -222,6 +246,12 @@ export function CamposMovimiento({
       {tipo === "transferencia" ? (
         <p className="ancho caja-campo-ayuda" style={{ margin: 0 }}>
           {AYUDA_MOVER}
+        </p>
+      ) : null}
+      {destinoDoble ? <SelectParte valor={v.parte} alCambiar={setParte} /> : null}
+      {tipo === "gasto" && cuentas.find((c) => c.id === origen)?.dobleMoneda && moneda === "USD" ? (
+        <p className="ancho caja-campo-ayuda" style={{ margin: 0 }}>
+          Un gasto en US$ con esta tarjeta va a su parte en dólares.
         </p>
       ) : null}
       {tipo === "pago_tarjeta" ? (

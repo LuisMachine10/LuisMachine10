@@ -7,7 +7,7 @@ import { Big, CERO, n } from "./decimal";
 import { gastoPromedio } from "./cierres";
 import { pct, rd } from "./formato";
 import { type Contexto, posicion, valorDOP } from "./posicion";
-import { deudaTarjetas } from "./registro";
+import { deudaTarjetas, dolarBcrdHoy, esDobleMoneda, tarjetasUsdNoConfirmado } from "./registro";
 import { nombreClase } from "./tipos";
 
 export type NivelRiesgo = "bajo" | "medio" | "alto";
@@ -153,13 +153,17 @@ export function matrizRiesgo(ctx: Contexto): RiesgoMatriz[] {
     const limSobre = n(u.sobreGasto);
     const probabilidad: NivelRiesgo = sobre === null ? "medio" : sobre.gt(limSobre) ? "alto" : sobre.gt(0) ? "medio" : "bajo";
     const tc = ctx.registro ? deudaTarjetas(ctx, ctx.registro) : CERO;
+    const sinUsd = ctx.registro ? tarjetasUsdNoConfirmado(ctx, ctx.registro) : [];
+    const dolar = dolarBcrdHoy(ctx);
+    const usdTc = dolar?.fecha && (ctx.registro ?? []).some((i) => !i.unidoA && esDobleMoneda(i) && n(i.saldoUsd ?? "0").gt(0)) ? dolar.fecha : null;
     const rel = ingreso && ingreso.gt(0) ? tc.div(ingreso) : null;
     const limDeuda = n(u.deudaTarjetas);
     const impacto: NivelRiesgo = rel === null ? "medio" : rel.gt(limDeuda) ? "alto" : rel.gt(limDeuda.div(2)) ? "medio" : "bajo";
     const partes = [
       sobre === null ? "Sin Presupuesto del mes para comparar gastos." : sobre.gt(0) ? `Gastas ${pct(sobre, 0)} más de lo presupuestado (${rd(gReal!)} de ${rd(gastoPres!)}).` : `Vas ${pct(sobre.abs(), 0)} por debajo de lo presupuestado.`,
       rel === null ? "Falta tu ingreso mensual en el Presupuesto." : `Debes ${rd(tc)} en tarjetas: ${pct(rel, 0)} de tu ingreso del mes.`,
-    ];
+      sinUsd.length ? `Lo que debes en US$ en ${sinUsd.map((x) => x.nombre).join(", ")} no está sumado (no confirmado: falta el dólar del BCRD de hoy).` : null,
+    ].filter((x): x is string => !!x);
     lista.push({
       id: "presupuesto",
       titulo: "Presupuesto y deuda",
@@ -167,7 +171,7 @@ export function matrizRiesgo(ctx: Contexto): RiesgoMatriz[] {
       impacto,
       probabilidad,
       dato: partes.join(" "),
-      fuente: fuentePre,
+      fuente: usdTc ? `${fuentePre}; la parte en US$ de tus tarjetas, con el dólar de venta del BCRD del ${usdTc}` : fuentePre,
       hacer:
         impacto === "bajo" && probabilidad === "bajo"
           ? "Dentro de lo planeado."

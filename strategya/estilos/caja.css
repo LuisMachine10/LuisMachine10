@@ -2258,3 +2258,22 @@ button.caja-dia.bajo:hover {
   font-size: 15px;
   font-weight: 650;
 }
+
+/* Ciclo de las tarjetas en el calendario: C corte · P pago elegido · L fecha límite */
+.tc-marca {
+  display: inline-grid;
+  place-items: center;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  flex: none;
+}
+.tc-corte { color: var(--texto-2); border: 1px solid var(--borde); background: var(--panel-alto); }
+.tc-pago { color: var(--rd); border: 1px solid currentColor; }
+.tc-limite { color: var(--sobre-acento, #0a0e13); background: var(--ambar); }
+.caja-tarjetas-dia .tc-marca { min-width: 20px; height: 20px; font-size: 11px; margin-right: 4px; }

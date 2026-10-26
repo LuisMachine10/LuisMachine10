@@ -7,6 +7,7 @@ import {
   diaSemanaLunes,
   diasEntre,
   type Fecha,
+  fechaBreve,
   fechaLarga,
   type Mes,
   mesDe,
@@ -16,7 +17,8 @@ import {
   ultimoDia,
 } from "./fechas";
 import { type AjusteSaldo, type DiaSimulado, type EstadoDia, type MovimientoAplicado, NOMBRE_ESTADO, type Ocurrencia, type Simulacion } from "./motor";
-import { type Categoria, type Cuenta, type DatosCaja, esDeuda, type Movimiento } from "./tipos";
+import { avisoLimite, cuandoFalta, type MarcaCiclo, marcasEntre } from "./ciclo";
+import { type Categoria, claveUSD, type Cuenta, type DatosCaja, esDeuda, type Movimiento } from "./tipos";
 
 export interface Celda {
   fecha: Fecha;
@@ -35,7 +37,18 @@ export interface Celda {
   registrados: number;
   nota: boolean;
   cuadre: boolean;
+  /** Marcas del ciclo de las tarjetas ese día (corte, pago elegido, fecha límite). */
+  tarjeta: MarcaCiclo[];
   etiqueta: string;
+}
+
+/** Una marca del ciclo de una tarjeta en un día del calendario. */
+export interface MarcaTarjetaDia {
+  cuentaId: string;
+  nombre: string;
+  marca: MarcaCiclo;
+  /** Frase para el panel del día. */
+  texto: string;
 }
 
 export interface CuentaDia {
@@ -66,6 +79,8 @@ export interface PanelDiaVista {
   omitidos: Ocurrencia[];
   ajustes: AjusteSaldo[];
   cuentas: CuentaDia[];
+  /** Corte, pago planificado y fecha límite de cada tarjeta que caen este día. */
+  tarjetas: MarcaTarjetaDia[];
   nota: string;
 }
 
@@ -75,7 +90,47 @@ export interface VistaMes {
   paneles: Record<Fecha, PanelDiaVista>;
 }
 
-function etiquetaCelda(f: Fecha, d: DiaSimulado | undefined, esHoy: boolean, antes: boolean): string {
+const NOMBRE_MARCA: Record<MarcaCiclo, string> = { corte: "corte de tarjeta", pago: "pago de tarjeta planificado", limite: "fecha límite de tarjeta" };
+
+/** Marcas del ciclo de cada tarjeta (con ciclo) entre dos fechas, con la frase para el panel del día. */
+export function marcasTarjetas(datos: DatosCaja, desde: Fecha, hasta: Fecha): Map<Fecha, MarcaTarjetaDia[]> {
+  const out = new Map<Fecha, MarcaTarjetaDia[]>();
+  for (const c of datos.cuentas) {
+    if (c.tipo !== "tarjeta" || !c.ciclo) continue;
+    const pagos = datos.movimientos.filter((m) => m.tipo === "pago_tarjeta" && m.destino === c.id).map((m) => m.fecha);
+    for (const x of marcasEntre(desde, hasta, c.ciclo)) {
+      const ci = x.ciclo;
+      const pagado = pagos.some((p) => p > ci.corte && p <= ci.limite);
+      const texto =
+        x.marca === "corte"
+          ? `Corta hoy. Fecha límite: ${fechaBreve(ci.limite)}${ci.pago ? ` · quieres pagar el ${fechaBreve(ci.pago)}` : ""}.`
+          : x.marca === "pago"
+            ? `Pagas hoy (el día que elegiste). Fecha límite: ${fechaBreve(ci.limite)}.${pagado ? " Ya anotaste un pago de este ciclo." : ""}`
+            : `Fecha límite de pago (cortó el ${fechaBreve(ci.corte)}).${pagado ? " Ya anotaste un pago de este ciclo." : " Sin pago anotado de este ciclo."}`;
+      const l = out.get(x.fecha) ?? [];
+      l.push({ cuentaId: c.id, nombre: c.nombre, marca: x.marca, texto });
+      out.set(x.fecha, l);
+    }
+  }
+  return out;
+}
+
+/**
+ * Avisos de fecha límite: faltan 3 días o menos y no hay pago anotado del ciclo (solo tarjetas con ciclo en Mis
+ * cuentas). Si el día elegido cae después de la límite, también lo dice.
+ */
+export function avisosTarjetas(datos: DatosCaja, hoy: Fecha): string[] {
+  const out: string[] = [];
+  for (const c of datos.cuentas) {
+    if (c.tipo !== "tarjeta" || !c.ciclo) continue;
+    const pagos = datos.movimientos.filter((m) => m.tipo === "pago_tarjeta" && m.destino === c.id).map((m) => m.fecha);
+    const a = avisoLimite(hoy, c.ciclo, pagos);
+    if (a) out.push(`«${c.nombre}»: la fecha límite de pago es ${cuandoFalta(a.faltan)} (${fechaBreve(a.ciclo.limite)}) y no hay pago anotado desde el corte del ${fechaBreve(a.ciclo.corte)}.`);
+  }
+  return out;
+}
+
+function etiquetaCelda(f: Fecha, d: DiaSimulado | undefined, esHoy: boolean, antes: boolean, marcas: MarcaTarjetaDia[] = []): string {
   const partes = [fechaLarga(f).replace(/ de \d{4}$/, "")];
   if (esHoy) partes.push("hoy");
   if (antes) partes.push("antes del inicio de la simulación");
@@ -87,6 +142,7 @@ function etiquetaCelda(f: Fecha, d: DiaSimulado | undefined, esHoy: boolean, ant
     if (d.registrados.length) partes.push(`${d.registrados.length} registrado(s)`);
     if (d.nota) partes.push("con nota");
   }
+  for (const m of marcas) partes.push(`${NOMBRE_MARCA[m.marca]} ${m.nombre}`);
   return partes.join(", ");
 }
 
@@ -94,6 +150,7 @@ export function armarVistaMes(datos: DatosCaja, sim: Simulacion, mes: Mes): Vist
   const desde = sumarDias(primerDia(mes), -diaSemanaLunes(primerDia(mes)));
   const finMes = ultimoDia(mes);
   const hasta = sumarDias(finMes, 6 - diaSemanaLunes(finMes));
+  const marcas = marcasTarjetas(datos, desde, hasta);
   const celdas: Celda[] = rangoFechas(desde, hasta).map((f) => {
     const d = sim.porFecha.get(f);
     const esHoy = f === sim.hoy;
@@ -114,26 +171,34 @@ export function armarVistaMes(datos: DatosCaja, sim: Simulacion, mes: Mes): Vist
       registrados: d?.registrados.length ?? 0,
       nota: !!d?.nota,
       cuadre: !!d?.ajustes.length,
-      etiqueta: etiquetaCelda(f, d, esHoy, antes),
+      tarjeta: [...new Set((marcas.get(f) ?? []).map((m) => m.marca))],
+      etiqueta: etiquetaCelda(f, d, esHoy, antes, marcas.get(f)),
     };
   });
   const semanas: Celda[][] = [];
   for (let i = 0; i < celdas.length; i += 7) semanas.push(celdas.slice(i, i + 7));
 
   const paneles: Record<Fecha, PanelDiaVista> = {};
-  for (const f of rangoFechas(primerDia(mes), finMes)) paneles[f] = armarPanel(datos, sim, f);
+  for (const f of rangoFechas(primerDia(mes), finMes)) paneles[f] = armarPanel(datos, sim, f, marcas.get(f) ?? []);
   return { mes, semanas, paneles };
 }
 
-export function armarPanel(datos: DatosCaja, sim: Simulacion, f: Fecha): PanelDiaVista {
+export function armarPanel(datos: DatosCaja, sim: Simulacion, f: Fecha, tarjetas: MarcaTarjetaDia[] = []): PanelDiaVista {
   const d = sim.porFecha.get(f);
-  const reales = new Map(datos.saldos.filter((s) => s.fecha === f).map((s) => [s.cuentaId, s.saldo]));
+  // Los cuadres sintéticos (saldo en US$ escrito en Mis cuentas) no se muestran como «lo que dijo el banco».
+  const reales = new Map(datos.saldos.filter((s) => s.fecha === f && !s.sintetico).map((s) => [s.cuentaId, s.saldo]));
   const cuentas: CuentaDia[] = [...datos.cuentas]
     .sort((a, b) => a.orden - b.orden)
-    .map((c) => {
+    .flatMap((c) => {
       const p = d?.posiciones[c.id];
       const saldo = p == null ? "0" : esDeuda(c.tipo) ? new Big(p).times(-1).toString() : p;
-      return { id: c.id, nombre: c.nombre, tipo: c.tipo, moneda: c.moneda ?? "DOP", saldo, real: reales.get(c.id) ?? null };
+      const fila: CuentaDia = { id: c.id, nombre: c.nombre, tipo: c.tipo, moneda: c.moneda ?? "DOP", saldo, real: reales.get(c.id) ?? null };
+      if (!c.usd) return [fila];
+      // Tarjeta en dos monedas: su parte en US$ se cuadra aparte.
+      const k = claveUSD(c.id);
+      const pu = d?.posiciones[k];
+      const usd: CuentaDia = { id: k, nombre: `${c.nombre} (parte en US$)`, tipo: c.tipo, moneda: "USD", saldo: pu == null ? "0" : new Big(pu).times(-1).toString(), real: reales.get(k) ?? null };
+      return [fila, usd];
     });
   return {
     fecha: f,
@@ -151,16 +216,27 @@ export function armarPanel(datos: DatosCaja, sim: Simulacion, f: Fecha): PanelDi
     omitidos: d?.omitidos ?? [],
     ajustes: d?.ajustes ?? [],
     cuentas,
+    tarjetas,
     nota: datos.notas.find((n) => n.fecha === f)?.nota ?? "",
   };
 }
 
 /** Catálogos mínimos para los formularios del cliente. */
-export function catalogos(datos: DatosCaja): { cuentas: Pick<Cuenta, "id" | "nombre" | "tipo" | "moneda" | "tasaAnual">[]; categorias: Pick<Categoria, "id" | "nombre" | "tipo">[] } {
+export function catalogos(datos: DatosCaja): {
+  cuentas: (Pick<Cuenta, "id" | "nombre" | "tipo" | "moneda" | "tasaAnual"> & { dobleMoneda?: boolean })[];
+  categorias: Pick<Categoria, "id" | "nombre" | "tipo">[];
+} {
   return {
     cuentas: [...datos.cuentas]
       .sort((a, b) => a.orden - b.orden)
-      .map(({ id, nombre, tipo, moneda, tasaAnual }) => ({ id, nombre, tipo, ...(moneda && moneda !== "DOP" ? { moneda } : {}), ...(tasaAnual ? { tasaAnual } : {}) })),
+      .map(({ id, nombre, tipo, moneda, tasaAnual, usd }) => ({
+        id,
+        nombre,
+        tipo,
+        ...(moneda && moneda !== "DOP" ? { moneda } : {}),
+        ...(tasaAnual ? { tasaAnual } : {}),
+        ...(usd ? { dobleMoneda: true } : {}),
+      })),
     categorias: datos.categorias.map(({ id, nombre, tipo }) => ({ id, nombre, tipo })),
   };
 }

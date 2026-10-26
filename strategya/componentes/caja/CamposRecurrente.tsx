@@ -16,7 +16,7 @@ import {
   TIPOS_MOVIMIENTO,
   type TipoMovimiento,
 } from "@/lib/caja/tipos";
-import { AYUDA_MOVER, type OpcionCategoria, type OpcionCuenta, SelectCategoria, SelectCuenta } from "./CamposMovimiento";
+import { AYUDA_MOVER, type OpcionCategoria, type OpcionCuenta, SelectCategoria, SelectCuenta, SelectParte } from "./CamposMovimiento";
 
 export function CamposRecurrente({
   r,
@@ -34,6 +34,7 @@ export function CamposRecurrente({
   const [frecuencia, setFrecuencia] = useState<Frecuencia>(r?.frecuencia ?? "mensual");
   const [moneda, setMoneda] = useState<Moneda>(r?.moneda ?? "DOP");
   const [pagoTotal, setPagoTotal] = useState<boolean>(r?.pagoTotal ?? false);
+  const [destino, setDestino] = useState<string>(r?.destino ?? "");
   const conDestino = tipo === "transferencia" || tipo === "pago_tarjeta";
   const categoria = r?.categoria ?? inicial?.categoria ?? null;
   return (
@@ -99,8 +100,17 @@ export function CamposRecurrente({
         etiqueta={conDestino ? "Sale de" : tipo === "ingreso" ? "¿En qué cuenta te cae?" : "¿Con qué lo pagas?"}
       />
       {conDestino ? (
-        <SelectCuenta key={tipo} nombre="destino" valor={r?.destino} cuentas={cuentas} soloTarjetas={tipo === "pago_tarjeta"} etiqueta={tipo === "pago_tarjeta" ? "Tarjeta que pagas" : "Entra a"} />
+        <SelectCuenta
+          key={tipo}
+          nombre="destino"
+          valor={r?.destino}
+          cuentas={cuentas}
+          soloTarjetas={tipo === "pago_tarjeta"}
+          etiqueta={tipo === "pago_tarjeta" ? "Tarjeta que pagas" : "Entra a"}
+          alCambiar={setDestino}
+        />
       ) : null}
+      {tipo === "pago_tarjeta" && cuentas.find((c) => c.id === destino)?.dobleMoneda ? <SelectParte valor={r?.parte} /> : null}
       {tipo === "pago_tarjeta" ? null : (
         <div className="ancho">
           <SelectCategoria key={tipo} valor={categoria} categorias={categorias} tipo={tipo} />

@@ -9,6 +9,9 @@ import { num, pb, pct, pp, rd } from "./formato";
 import { type Contexto, posicion, valorDOP } from "./posicion";
 import { puente, rebalanceo, riesgo, ventanasReinversion } from "./riesgo";
 import { CLASES, nombreClase } from "./tipos";
+import { avisoLimite, cicloDe, cicloVigente, cuandoFalta, notaCiclo } from "../caja/ciclo";
+import { fechaBreve } from "../caja/fechas";
+import { tarjetasUsdNoConfirmado } from "./registro";
 
 export type Nivel = "error" | "alerta" | "ok";
 
@@ -69,6 +72,31 @@ export function hallazgos(ctx: Contexto, m: string): Hallazgo[] {
   }
   if (ind.tc.impago) {
     A.push({ n: "error", t: "Mes sin pagar la tarjeta en full", d: "El cierre marca al menos una tarjeta con saldo sin pagar completo." });
+  }
+  // Tarjetas: fecha límite cerca sin pago anotado, día de pago fuera del ciclo y parte en US$ sin dólar del BCRD.
+  for (const t of (ctx.registro ?? []).filter((i) => i.clase === "tarjeta" && !i.unidoA)) {
+    const c = cicloDe(t);
+    if (!c) continue;
+    const a = avisoLimite(ctx.hoy, c, t.pagos);
+    if (a) {
+      A.push({
+        n: "error",
+        t: `${t.nombre}: la fecha límite de pago es ${cuandoFalta(a.faltan)} (${fechaBreve(a.ciclo.limite)})`,
+        d: t.cajaId
+          ? `No hay pago anotado en el Presupuesto desde el corte del ${fechaBreve(a.ciclo.corte)}. Si ya pagaste, anótalo como «Pago de tarjeta o préstamo».`
+          : `Cortó el ${fechaBreve(a.ciclo.corte)}. Esta tarjeta no está en tu Presupuesto, así que no vemos sus pagos: si ya pagaste, ignora este aviso.`,
+      });
+    }
+    const f = cicloVigente(ctx.hoy, c);
+    if (f.fueraDeRango) A.push({ n: "alerta", t: `${t.nombre}: tu día de pago cae después de la fecha límite`, d: notaCiclo(f, c) ?? "" });
+  }
+  const sinDolar = ctx.registro ? tarjetasUsdNoConfirmado(ctx, ctx.registro) : [];
+  if (sinDolar.length) {
+    A.push({
+      n: "alerta",
+      t: `Lo que debes en US$ en ${sinDolar.map((x) => x.nombre).join(", ")} no se sumó`,
+      d: "Falta el dólar de venta del BCRD de hoy (o tiene más de 7 días): esa parte queda «no confirmado» en tu patrimonio y en la matriz de riesgo hasta que llegue el dato.",
+    });
   }
   const metaAhorro = n(ctx.p.metaAhorro);
   if (metaAhorro.gt(0) && ind.tasaAhorro !== null && ind.tasaAhorro.lt(metaAhorro)) {

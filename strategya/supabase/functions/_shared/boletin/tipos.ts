@@ -140,6 +140,12 @@ export interface FotoDinero {
   aportes: { plan: number; pendientes: number; total: string; pendiente: string } | null;
   riesgos: { titulo: string; impacto: string; probabilidad: string }[];
   riesgos_evaluados: number;
+  /**
+   * Ciclos de tarjeta cercanos (el vigente y el siguiente) de las tarjetas con ciclo en Mis cuentas: nombre que
+   * puso Mena (sin números), fecha elegida para pagar (o null), fecha límite y si ya hay un pago anotado del ciclo.
+   * El correo muestra los de los próximos 7 días. Nunca números de tarjeta.
+   */
+  tarjetas?: { nombre: string; corte: string; pago: string | null; limite: string; pagado: boolean }[];
 }
 
 export interface ResultadoMes {

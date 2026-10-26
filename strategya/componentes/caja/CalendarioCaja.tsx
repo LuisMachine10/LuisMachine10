@@ -118,6 +118,9 @@ export function CalendarioCaja({
                   {d.gasto ? <span className="punto gasto" /> : null}
                   {d.planificados ? <span className="punto plan" /> : null}
                   {d.porConfirmar ? <span className="punto pendiente" /> : null}
+                  {d.tarjeta.includes("corte") ? <span className="marca tc-marca tc-corte">C</span> : null}
+                  {d.tarjeta.includes("pago") ? <span className="marca tc-marca tc-pago">P</span> : null}
+                  {d.tarjeta.includes("limite") ? <span className="marca tc-marca tc-limite">L</span> : null}
                   {d.cuadre ? <span className="marca">✓</span> : null}
                   {d.nota ? <span className="marca">✎</span> : null}
                 </span>
@@ -149,6 +152,15 @@ export function CalendarioCaja({
             </li>
             <li>
               <span className="caja-leyenda-celda sin-dato" aria-hidden="true" /> sin dato (antes de empezar)
+            </li>
+            <li>
+              <span className="marca tc-marca tc-corte" aria-hidden="true">C</span> corte de tu tarjeta
+            </li>
+            <li>
+              <span className="marca tc-marca tc-pago" aria-hidden="true">P</span> día en que quieres pagarla
+            </li>
+            <li>
+              <span className="marca tc-marca tc-limite" aria-hidden="true">L</span> fecha límite de pago
             </li>
             <li>✓ cuadrado con tu banco</li>
             <li>✎ tiene nota</li>

@@ -12,7 +12,7 @@ import { leerRegistro } from "@/lib/capital/datos-registro";
 import { cuentasParaPresupuesto } from "@/lib/capital/registro";
 import { esFecha, esMes, hoyRD, mesDe, nombreMes, primerDia } from "@/lib/caja/fechas";
 import { horizonte, resumir, simular } from "@/lib/caja/motor";
-import { armarVistaMes, catalogos, ultimoCuadre } from "@/lib/caja/vista";
+import { armarVistaMes, avisosTarjetas, catalogos, ultimoCuadre } from "@/lib/caja/vista";
 
 export const metadata: Metadata = { title: "Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
@@ -52,6 +52,7 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
   const vista = armarVistaMes(datos, sim, mes);
   const diaInicial = dia && mesDe(dia) === mes ? dia : mesDe(hoy) === mes ? hoy : primerDia(mes);
   const { cuentas, categorias } = catalogos(datos);
+  const avisos = [...avisosTarjetas(datos, hoy), ...sim.advertencias];
 
   return (
     <MarcoCaja actual="calendario" mes={mes} editadoEn={editadoEn} sub={SUB} acciones={<BotonesNuevo />}>
@@ -61,9 +62,9 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
         </h2>
         <TilesResumen r={resumen} colchon={datos.config.colchon} />
         <SelloCaja ultimoCuadre={ultimoCuadre(datos, hoy)} inicio={datos.config.inicio} editadoEn={editadoEn} ahora={ahora} />
-        {sim.advertencias.length ? (
+        {avisos.length ? (
           <ul className="caja-avisos">
-            {sim.advertencias.map((a) => (
+            {avisos.map((a) => (
               <li key={a}>{a}</li>
             ))}
           </ul>

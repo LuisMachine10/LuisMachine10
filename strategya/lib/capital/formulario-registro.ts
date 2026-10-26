@@ -92,6 +92,9 @@ export function registroDeFormulario(c: Campos, hoy: string): ResultadoForm<Fila
   if (!nombre) return { ok: false, error: "Ponle un nombre que reconozcas, por ejemplo «Popular nómina» o «Visa BHD». No pongas números de cuenta." };
   if (nombre.length > 200) return { ok: false, error: "El nombre es muy largo: usa menos de 200 letras." };
   if (/\d{8,}/.test(nombre.replace(/[\s-]/g, ""))) return { ok: false, error: "Parece un número de cuenta o de tarjeta: basta un nombre que reconozcas (por ejemplo «Popular ahorro»)." };
+  if (tipo.clase === "tarjeta" && /\d{4}/.test(nombre.replace(/[\s-]/g, ""))) {
+    return { ok: false, error: "No pongas números de la tarjeta (ni los 4 últimos): basta un nombre como «Visa ACAP» o «Mastercard Popular»." };
+  }
   const moneda = (c.moneda ?? "DOP").toUpperCase();
   if (!(MONEDAS as readonly string[]).includes(moneda)) return { ok: false, error: "Elige la moneda: RD$, US$ o €." };
   const deuda = esClaseDeuda(tipo.clase);

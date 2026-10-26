@@ -7,6 +7,9 @@ import { cambioDelMes, indicadores } from "../capital/cierres";
 import { matrizRiesgo, tonoGravedad } from "../capital/matriz";
 import { aportesDeMes, type PrefAportes } from "../capital/aportes";
 import { ahorroPresupuestado } from "../capital/proyeccion";
+import { cicloDe, cicloVigente, fechasDelCiclo, proximoCorte } from "../caja/ciclo";
+import { sumarDias } from "../caja/fechas";
+import type { ItemRegistro } from "../capital/registro";
 import type { DatosCapital } from "../datos-capital";
 import type { FotoDinero } from "../../supabase/functions/_shared/boletin/tipos.ts";
 
@@ -36,5 +39,27 @@ export function fotoTuDinero(datos: Pick<DatosCapital, "ctx" | "configurado" | "
       .filter((r) => tonoGravedad(r) === "alto")
       .map((r) => ({ titulo: r.titulo, impacto: r.impacto, probabilidad: r.probabilidad })),
     riesgos_evaluados: evaluados.length,
+    tarjetas: ciclosTarjetas(ctx.registro ?? [], ctx.hoy),
   };
+}
+
+/** Nombre de la tarjeta para el correo: el que puso Mena, sin secuencias de 3 o más dígitos (nunca números de tarjeta). */
+export function nombreSeguro(nombre: string): string {
+  return nombre.replace(/\d{3,}/g, "…").slice(0, 60).trim() || "Tarjeta";
+}
+
+/** El ciclo vigente y el siguiente de cada tarjeta con ciclo: el correo elige los de los próximos 7 días. */
+export function ciclosTarjetas(registro: ItemRegistro[], hoy: string): NonNullable<FotoDinero["tarjetas"]> {
+  const out: NonNullable<FotoDinero["tarjetas"]> = [];
+  for (const t of registro) {
+    if (t.clase !== "tarjeta" || t.unidoA) continue;
+    const c = cicloDe(t);
+    if (!c) continue;
+    const vigente = cicloVigente(hoy, c);
+    const siguiente = fechasDelCiclo(proximoCorte(sumarDias(vigente.corte, 1), c.diaCorte), c);
+    for (const f of [vigente, siguiente]) {
+      out.push({ nombre: nombreSeguro(t.nombre), corte: f.corte, pago: f.pago, limite: f.limite, pagado: t.pagos.some((p) => p > f.corte && p <= hoy) });
+    }
+  }
+  return out;
 }

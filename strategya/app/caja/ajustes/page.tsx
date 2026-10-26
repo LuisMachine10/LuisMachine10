@@ -42,6 +42,7 @@ import {
   type TipoCategoria,
 } from "@/lib/caja/tipos";
 import { catalogos } from "@/lib/caja/vista";
+import { cicloVigente, lineaCiclo } from "@/lib/caja/ciclo";
 
 export const metadata: Metadata = { title: "Configuración · Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
@@ -99,6 +100,36 @@ function CamposCuenta({ c }: { c?: Cuenta }) {
         Posición en la lista
         <input name="orden" inputMode="numeric" defaultValue={c ? String(c.orden) : ""} placeholder="Ej.: 1" autoComplete="off" />
       </label>
+      {c?.tipo === "tarjeta" ? (
+        <>
+          <input type="hidden" name="conCiclo" value="si" />
+          <div className="caja-campo">
+            <label htmlFor={`limiteUsd-${c.id}`}>
+              Límite en US$ <span className="tenue">(si tu tarjeta también tiene parte en dólares)</span>
+            </label>
+            <div className="caja-monto">
+              <span aria-hidden="true">US$</span>
+              <input id={`limiteUsd-${c.id}`} name="limiteUsd" inputMode="decimal" defaultValue={c.usd?.limite ?? ""} placeholder="Ej.: 2,000" autoComplete="off" />
+            </div>
+          </div>
+          <label>
+            Día de corte <span className="tenue">(1 al 31)</span>
+            <input name="diaCorte" inputMode="numeric" maxLength={2} defaultValue={c.ciclo ? String(c.ciclo.diaCorte) : ""} placeholder="Ej.: 15" autoComplete="off" />
+          </label>
+          <label>
+            Días para pagar después del corte
+            <input name="diasParaPagar" inputMode="numeric" maxLength={2} defaultValue={c.ciclo ? String(c.ciclo.diasParaPagar) : ""} placeholder="Ej.: 28" autoComplete="off" />
+          </label>
+          <label>
+            Día en que quieres pagar <span className="tenue">(opcional)</span>
+            <input name="diaPago" inputMode="numeric" maxLength={2} defaultValue={c.ciclo?.diaPago ? String(c.ciclo.diaPago) : (c.diaPago ? String(c.diaPago) : "")} placeholder="Ej.: 30" autoComplete="off" />
+          </label>
+          <p className="ancho caja-campo-ayuda" style={{ margin: 0 }}>
+            Con el corte y los días para pagar calculamos tu fecha límite; el calendario marca el corte (C), el día en que quieres pagar (P) y la fecha límite (L). Si tienes
+            un pago fijo de esta tarjeta, su día sigue al día en que quieres pagar. Lo que debes en US$ se escribe en Portafolio → Mis cuentas.
+          </p>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -405,7 +436,9 @@ export default async function PaginaConfiguracion() {
                       <span className="caja-item-nombre">{c.nombre}</span>
                       <span className="caja-item-detalle" title={`Identificador interno: ${c.id}`}>
                         {NOMBRE_TIPO_CUENTA[c.tipo]}
-                        {c.limite ? ` · límite ${rd(c.limite)}` : ""} · {esDeuda(c.tipo) ? "debes" : "tiene"} hoy
+                        {c.limite ? ` · límite ${rd(c.limite)}` : ""}
+                        {c.usd?.limite ? ` · límite ${enMoneda(c.usd.limite, "USD")}` : ""}
+                        {c.ciclo ? ` · ${lineaCiclo(cicloVigente(hoyRD(), c.ciclo), hoyRD())}` : ""} · {esDeuda(c.tipo) ? "debes" : "tiene"} hoy
                         {` · al empezar: ${enMoneda(c.saldoInicial, monedaDe(c))}`}
                         {c.moneda === "USD" ? " · en dólares" : ""}
                       </span>

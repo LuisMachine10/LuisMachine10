@@ -12,6 +12,7 @@ import { leerCaja } from "@/lib/caja/datos";
 import { COLUMNAS, filasADatos } from "@/lib/caja/filas";
 import Big from "big.js";
 import { separarPago } from "@/lib/caja/deudas";
+import { cicloDeFormulario } from "@/lib/caja/ciclo";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { type DatosCaja, esDeuda, type Movimiento } from "@/lib/caja/tipos";
 import { adicionalDesdeV1 } from "@/lib/caja/resultados";
@@ -292,7 +293,32 @@ export async function guardarCuenta(_p: EstadoAccion, form: FormData): Promise<E
   const r = validarCuenta(c);
   if (!r.ok) return mal(r.error);
   const v = r.valor;
-  return guardarEn("caja_cuentas", c.id || undefined, { nombre: v.nombre, tipo: v.tipo, saldo_inicial: v.saldoInicial, limite: v.limite, orden: v.orden }, "la cuenta");
+  // Tarjeta: el ciclo y el límite en US$ viven en el registro único (Portafolio → Mis cuentas).
+  let tarjeta: Record<string, unknown> | null = null;
+  if (c.conCiclo === "si" && v.tipo === "tarjeta" && c.id) {
+    const ci = cicloDeFormulario(c);
+    if (!ci.ok) return mal(ci.error);
+    const lu = validarSaldoReal(c.limiteUsd);
+    if (!lu.ok) return mal(lu.error.replace("Saldo", "Límite en US$"));
+    if (lu.valor && new Big(lu.valor).lt(0)) return mal("El límite en US$ no puede ser negativo.");
+    tarjeta = { ...ci.valor, limite_usd: lu.valor };
+  }
+  const res = await guardarEn("caja_cuentas", c.id || undefined, { nombre: v.nombre, tipo: v.tipo, saldo_inicial: v.saldoInicial, limite: v.limite, orden: v.orden }, "la cuenta");
+  if (!res.ok || !tarjeta) return res;
+  const db = await personal();
+  const enl = await db.from("caja_cuentas").select("registro_id").eq("id", c.id!).maybeSingle();
+  const reg = (enl.data as { registro_id: string | null } | null)?.registro_id;
+  if (enl.error || !reg) return mal("Se guardó la cuenta, pero no se encontró en tu Portafolio para guardar el ciclo. Ábrela en Portafolio → Mis cuentas.");
+  const { error } = await db.from("activos").update({ ...tarjeta, actualizado_en: new Date().toISOString() }).eq("id", reg);
+  if (error) {
+    return mal(
+      /doble_moneda/.test(error.message)
+        ? "Se guardó la cuenta, pero no el límite en US$: esta tarjeta está anotada en US$ en tu Portafolio. La parte en dólares es para tarjetas en RD$."
+        : `Se guardó la cuenta, pero no el ciclo de la tarjeta: ${error.message}`,
+    );
+  }
+  refrescar();
+  return bien(tarjeta.dia_corte ? "Guardado. El calendario ya marca el corte, el día en que quieres pagar y la fecha límite." : "Guardado.");
 }
 
 /**

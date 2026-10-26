@@ -136,6 +136,8 @@ export interface Cuenta {
   usd?: { saldoInicial: string; limite: string | null };
   /** Tarjeta: ciclo del registro único (día de corte, días para pagar, día en que quieres pagar). */
   ciclo?: CicloTarjeta | null;
+  /** Tarjeta: día en que quieres pagar (registro único), aunque no tenga ciclo completo. */
+  diaPago?: number | null;
 }
 
 /** Clave de la parte en US$ de una tarjeta en dos monedas (posiciones del motor y cuadres «<id>#usd»). */
