@@ -54,6 +54,9 @@ function SelloSaldo({ i }: { i: ItemRegistro }) {
   );
 }
 
+/** Lo que debes en US$ como se muestra en el formulario: a centavos (un pago desde pesos deja más decimales). */
+const usdMostrado = (i?: ItemRegistro) => (i?.saldoUsd ? n(i.saldoUsd).round(2).toFixed() : "");
+
 function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
   const tipo = i ? tipoAltaDe(i.clase, i.subtipo) : "corriente";
   const id = i?.id ?? "nuevo";
@@ -133,10 +136,10 @@ function CamposRegistro({ i, hoy }: { i?: ItemRegistro; hoy: string }) {
           ¿Y cuánto debes hoy en US$? <span className="ayuda">(si tu tarjeta tiene parte en dólares)</span>
           <span className="cap-con-moneda">
             <span aria-hidden="true">US$</span>
-            <input name="saldoUsd" inputMode="decimal" defaultValue={i?.saldoUsd ?? ""} placeholder="Ej.: 350" autoComplete="off" />
+            <input name="saldoUsd" inputMode="decimal" defaultValue={usdMostrado(i)} placeholder="Ej.: 350" autoComplete="off" />
           </span>
         </label>
-        {i && i.clase === "tarjeta" ? <input type="hidden" name="saldoUsdMostrado" value={i.saldoUsd ?? ""} /> : null}
+        {i && i.clase === "tarjeta" ? <input type="hidden" name="saldoUsdMostrado" value={usdMostrado(i)} /> : null}
         <label className="cap-campo s-tarjeta">
           Límite en RD$ <span className="ayuda">(opcional)</span>
           <span className="cap-con-moneda">
