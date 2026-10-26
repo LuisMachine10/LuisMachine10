@@ -237,3 +237,35 @@ Los avisos puntuales de antes (vencimientos, tipo de cambio viejo…) siguen baj
 - **Velocidad**: `datosCapital()` y `leerCaja()` se leen una sola vez por petición (React `cache`) y cada página empieza a
   leerlos de inmediato (`precargarCapital`). Lo de `mercado` (dólar, precios, referencias) pasa por la caché
   compartida (README §12).
+
+## Tarjetas: ciclo y doble moneda (migración `20261028000100_tarjetas_ciclo.sql`)
+
+Pedido de Mena: el día de corte, los días para pagar y el día en que quiere pagar; y el límite en pesos y en dólares.
+
+- **Columnas nuevas en `personal.activos`** (sin tablas nuevas: las pruebas de esquema fijan la lista): `dia_corte`
+  (1–31), `dias_para_pagar` (1–60), `limite_usd`, `saldo_usd` y `saldo_usd_fecha` (el saldo en US$ al EMPEZAR ese
+  día, como `cantidad`/`saldo_fecha`). Restricciones: el ciclo solo en tarjetas (`activos_ciclo_check`); la parte en
+  US$ solo en tarjetas en RD$ (`activos_doble_moneda_check`).
+- **`dia_pago` no se movió.** Ya decía «día del mes en que pagas»; en una tarjeta ahora se llama «día en que quieres
+  pagar», que es lo mismo, así que el valor que estaba se queda tal cual (decisión: no copiar a otra columna para no
+  tener dos verdades). En un préstamo sigue siendo el día de la cuota. Las tarjetas que ya existían (las dos de Mena)
+  quedan en RD$ con las columnas nuevas vacías: nada cambia hasta que él las complete.
+- **Fechas del ciclo** (`lib/caja/ciclo.ts`, puro, con pruebas): corte = ese día del mes (o el último día si el mes
+  es más corto); fecha límite = corte + N días naturales; pago elegido = la primera fecha del rango (corte, límite]
+  con el día elegido (el 31 cae el último día del mes, como los pagos fijos). Si no cae en el rango: «tu día de pago
+  cae después de la fecha límite» y se sugiere la fecha límite. El ciclo que se muestra es el **vigente**: el que ya
+  cortó y aún no vence o, si no hay, el del próximo corte. Ejemplo de las pruebas: corte 15 nov 2026, 28 días →
+  límite 13 dic; quiere pagar el 30 → 30 nov, le sobran 13 días.
+- **Mis cuentas**: la tarjeta pide límite en RD$ y en US$, lo que debes en cada moneda y el ciclo. La fila muestra
+  «Corte 15 nov · pagas el 30 nov · fecha límite 13 dic»; la ficha, además, el uso del límite por moneda
+  (saldo ÷ límite) y el total en RD$. No se aceptan nombres con 4 o más dígitos seguidos en tarjetas (ni los 4
+  últimos).
+- **Total en RD$** (`registro.ts · usoTarjeta`, `valorRegistro`): la parte en US$ × dólar de venta del BCRD
+  (`dolarBcrdHoy`: solo si es del BCRD y de los últimos 7 días; un tipo escrito a mano no sirve). La pantalla dice
+  tasa, fecha y fuente. Sin ese dato, la parte en US$ **no se suma** al patrimonio, a la deuda de tarjetas ni a la
+  matriz de riesgo, y se dice «no confirmado» (balance, hallazgos y la celda «Presupuesto y deuda»).
+- **Saldo vigente en US$**: si la tarjeta está en el Presupuesto, lo escrito + los pagos y cargos a su parte en US$
+  (ver docs/caja.md); si no, lo escrito.
+- **Hallazgos**: fecha límite en 3 días o menos sin pago anotado desde el corte (en tarjetas fuera del Presupuesto lo
+  dice: no vemos sus pagos), día de pago fuera del ciclo y parte en US$ sin dólar del BCRD.
+- `unir_registro` también conserva el ciclo y la parte en US$ de la que se archiva, y sus cuadres «<cuenta>#usd».

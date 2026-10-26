@@ -22,7 +22,10 @@ que solo reenvía si la primera falló.
 - «¿Por qué?» de Las 5 del día = el titular guardado más reciente (24 h) que menciona el activo, según un
   diccionario fijo de palabras clave por serie (`diccionario.ts`). Si no hay: «causa no confirmada».
 - No es asesoría: ninguna recomendación. El comparador de tasas dice que no lo es.
-- Sin números de cuenta ni nombres de cuentas: «Tu dinero» lleva solo totales.
+- Sin números de cuenta ni nombres de cuentas: «Tu dinero» lleva solo totales, con una excepción pedida para las
+  tarjetas: «Pagos de tarjeta en los próximos 7 días» nombra cada tarjeta por el nombre que le puso Mena, sin
+  ningún número (se quitan las secuencias de 3 o más dígitos; las tarjetas no aceptan 4 dígitos seguidos en el
+  nombre), con la fecha elegida para pagar y la fecha límite.
 
 ## Contenido
 
@@ -61,7 +64,7 @@ componentes/boletin/…                           página de la edición, contro
   es sobre todo información de mercado. Las que llevan «Tu dinero» tienen `dueno` y RLS: solo las lee su
   dueño (`dueno = auth.uid()`) y además debe estar autorizado.
 - `mercado.boletin_tu_dinero`: la foto de «Tu dinero» (patrimonio y cambio del mes, aportes pendientes,
-  riesgos altos) calculada por la app con el motor del Portafolio cada vez que abres el Dashboard, el
+  riesgos altos y, desde las tarjetas con ciclo, el ciclo vigente y el siguiente de cada una: `tarjetas`) calculada por la app con el motor del Portafolio cada vez que abres el Dashboard, el
   Portafolio o el Boletín (como mucho cada 20 min). Misma RLS de dueño. La utilidad neta del mes sale en
   vivo de `personal.resultado_mes`. Si la foto tiene más de 48 h, el correo dice «dato viejo».
 - `mercado.boletin_datos(tipo, ahora)`: todo lo que necesita una edición en un viaje (la usan la Edge

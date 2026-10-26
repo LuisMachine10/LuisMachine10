@@ -85,6 +85,9 @@ export const GUIA: GrupoGuia[] = [
       { p: "¿Qué es el fondo de emergencia en meses?", r: "Cuántos meses de gastos podrías cubrir solo con tu dinero líquido (efectivo y ahorros)." },
       { p: "¿Qué es la Política de inversión (IPS)?", r: "Un documento corto donde escribes tus metas, tu horizonte y cuánto riesgo aceptas. Strategya lo usa para avisarte si algo se sale de lo que tú decidiste." },
       { p: "¿Tengo que poner números de cuenta?", r: "Nunca. Basta un nombre que reconozcas, por ejemplo «Ahorro Popular». Solo tú ves estos datos." },
+      { p: "¿Cómo anoto el corte y la fecha de pago de mi tarjeta?", r: "En Mis cuentas abre la tarjeta y escribe el día de corte (Ej.: 15), los días que tienes para pagar después del corte (Ej.: 28) y el día en que quieres pagar (Ej.: 30). Verás una línea como «Corte 15 nov · pagas el 30 nov · fecha límite 13 dic». Si el día que elegiste cae después de la fecha límite, te lo decimos y te mostramos el último día posible." },
+      { p: "Mi tarjeta tiene límite en pesos y en dólares", r: "En la misma tarjeta escribe el límite en RD$ y el límite en US$, y lo que debes en cada moneda. Verás cuánto usas de cada límite y el total en RD$: la parte en dólares se pasa a pesos con el dólar de venta del Banco Central de hoy (se ve la tasa y su fecha). Si ese dato no llegó, esa parte dice «no confirmado» y no se suma." },
+      { p: "¿Pongo los últimos 4 números de la tarjeta?", r: "No, ni esos. Basta un nombre como «Visa BHD»." },
     ],
   },
   {
@@ -96,6 +99,8 @@ export const GUIA: GrupoGuia[] = [
       { p: "¿Qué es el colchón?", r: "Un monto mínimo que no quieres tocar nunca. «Puedes gastar hasta…» ya lo descuenta." },
       { p: "¿Cómo empiezo?", r: "La primera vez, un asistente te guía en 4 pasos. Puedes empezar con una sola cuenta y un pago fijo y completar lo demás luego." },
       { p: "¿Qué pasa si un pago fijo no se hizo?", r: "En el calendario, tócalo y márcalo como hecho, cámbialo o sáltalo. Así el saldo sigue siendo real." },
+      { p: "¿Qué son las letras C, P y L del calendario?", r: "El ciclo de tus tarjetas: C es el día de corte, P el día en que quieres pagar y L la fecha límite. Toca el día para ver de qué tarjeta es. Si faltan 3 días o menos para la fecha límite y no has anotado un pago desde el corte, te avisamos arriba." },
+      { p: "Pago la parte en dólares de mi tarjeta desde mi cuenta en pesos", r: "Anota un «Pago de tarjeta o préstamo» desde tu cuenta en RD$ a la tarjeta y elige «La parte en US$». Se pasa a dólares con la tasa que escribas (la que te cobró el banco) o, si la dejas vacía, con el dólar del Banco Central de ese día." },
     ],
   },
   {

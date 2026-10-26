@@ -203,3 +203,29 @@ llevan llave foránea (como en el artefacto); la pantalla impide borrar cuentas 
 
 **Requisito en Supabase**: el esquema `personal` debe estar en *Project Settings → Data API → Exposed
 schemas* (además de `mercado`).
+
+## Tarjetas: ciclo y doble moneda (migración `20261028000100_tarjetas_ciclo.sql`)
+
+- **Lo que viene del registro.** `leerCaja` pide, por cada cuenta enlazada, su fila del registro (`COLUMNAS_ENLACE`)
+  y `filas.ts · conRegistro` le pone a cada tarjeta su `ciclo`, su `diaPago` y, si es una tarjeta en RD$ con parte en
+  dólares, `usd = { saldoInicial, limite }`. El saldo en US$ escrito en Mis cuentas después del inicio entra como un
+  cuadre **sintético** de «<id>#usd» (no se guarda en `caja_saldos_reales` y no se exporta).
+- **Motor**: la parte en US$ es una segunda posición en US$ (clave `claveUSD(id)` = «<id>#usd»). Un pago va a la parte
+  que diga `parte` (`caja_movimientos.parte` y `caja_recurrentes.parte`: `DOP` | `USD`; vacío = según la moneda del
+  monto); un cargo en US$ a la tarjeta va a su parte en US$. Pagar la parte en US$ desde una cuenta en RD$ convierte
+  con la tasa del movimiento o el dólar del BCRD de la fecha; sin ninguna, no se aplica y se avisa. Pago total a la
+  parte en US$ = lo que se debe en dólares ese día. «Deuda en tarjetas» del día suma las dos partes (US$ × dólar del
+  BCRD del día; sin él, esa parte no se suma y se avisa). La parte en US$ se cuadra en el panel del día («<tarjeta>
+  (parte en US$)»).
+- **Formulario**: si el destino de un «Pago de tarjeta o préstamo» (o de un pago fijo) es una tarjeta en dos monedas,
+  aparece «¿A qué parte de la tarjeta va el pago?» (RD$ / US$); con la parte en US$ desde pesos se pide la tasa
+  (opcional: vacía = BCRD del día).
+- **Calendario**: cada tarjeta con ciclo marca **C** (corte), **P** (día en que quieres pagar) y **L** (fecha límite);
+  el panel del día lo explica y dice si ya hay un pago anotado del ciclo. Arriba, el aviso «la fecha límite de pago es
+  en N días… y no hay pago anotado desde el corte» cuando faltan 3 días o menos (`vista.ts · avisosTarjetas`).
+- **El pago fijo sigue al día elegido**: el trigger `activos_dia_pago` cambia el día de los pagos fijos mensuales de UN
+  solo día de esa tarjeta cuando cambia su «día en que quieres pagar» (los de varios días, como «15, 30», no se tocan).
+- **Configuración → Tus cuentas**: al editar una tarjeta se escriben el límite en US$ y el ciclo (se guardan en el
+  registro); lo que debes en US$ se escribe en Mis cuentas.
+- `personal.caja_importar` guarda también `parte` de pagos y fijos. `resultado_mes` no cambia: la parte no mueve el
+  estado de resultados (el monto del pago y su interés siguen igual).

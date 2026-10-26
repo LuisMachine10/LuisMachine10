@@ -140,6 +140,22 @@ una sola vez «Unir cuentas repetidas»: confirmas cada par y nada se borra.
   responder aparecen aparte. Si una inversión vence, te preguntamos a dónde pasar su parte (nada cambia sin tu «Sí»).
 - **¿Cuadra todo?**: Portafolio → Ajustes → «Revisar conexión con el Presupuesto».
 
+### Tarjetas de crédito: corte, fecha límite y dólares
+
+- En **Portafolio → Mis cuentas**, abre la tarjeta y escribe el **día de corte** (Ej.: 15), los **días para pagar
+  después del corte** (Ej.: 28) y el **día en que quieres pagar** (Ej.: 30). Verás «Corte 15 nov · pagas el 30 nov ·
+  fecha límite 13 dic». Si tu día cae después de la fecha límite, te lo decimos y te mostramos el último día posible.
+  También se puede en Presupuesto → Configuración → Tus cuentas.
+- **Pesos y dólares**: escribe el límite en RD$ y en US$, y lo que debes en cada moneda. Ves cuánto usas de cada
+  límite y el total en RD$ con el dólar de venta del Banco Central de hoy (tasa, fecha y fuente). Sin ese dato, la
+  parte en dólares dice «no confirmado» y no se suma.
+- En el **calendario** del Presupuesto: C = corte, P = día en que quieres pagar, L = fecha límite. Si faltan 3 días para
+  la fecha límite y no anotaste un pago, te avisamos. Si tienes un pago fijo de la tarjeta, su día sigue al que elegiste.
+- Al pagar, elige **a qué parte** va (RD$ o US$). Si pagas la parte en dólares desde tu cuenta en pesos, se convierte
+  con la tasa que escribas o con la del Banco Central de ese día.
+- El **Boletín** («Tu dinero») te recuerda los pagos de tarjeta de los próximos 7 días. Nunca se piden ni se guardan
+  números de tarjeta, ni los 4 últimos.
+
 ### Boletín por correo
 
 En **Más → Ajustes y alertas → Boletín por correo** marcas qué ediciones quieres recibir y si llevan
