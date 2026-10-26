@@ -1,6 +1,11 @@
 import "server-only";
+import Big from "big.js";
+import { cache } from "react";
+import { ETIQUETAS, leerMercadoCacheado } from "@/lib/supabase/cache-mercado";
 import { personal } from "@/lib/supabase/servidor";
-import { COLUMNAS, type FilasCaja, filasADatos, ORDEN, ultimaEdicion } from "./filas";
+import { hoyRD } from "./fechas";
+import { COLUMNAS_COMPLETAS, type FilasCaja, filasADatos, ORDEN, ultimaEdicion } from "./filas";
+import type { TasaDia, TasasUSD } from "./tasas";
 import type { DatosCaja } from "./tipos";
 
 export interface LecturaCaja {
@@ -11,17 +16,57 @@ export interface LecturaCaja {
   enlaces: Record<string, string>;
 }
 
-type Tabla = keyof typeof COLUMNAS;
+type Tabla = keyof typeof COLUMNAS_COMPLETAS;
 const PAGINA = 1000;
+/** Días de historia del dólar BCRD que se leen (los movimientos más viejos sin tasa quedan «no confirmado»). */
+const DIAS_TASAS = 800;
 
-/** Lee todo el Calendario de Caja (RLS aplica: solo Mena). Lanza con el motivo si la base no responde. */
-export async function leerCaja(): Promise<LecturaCaja> {
+/**
+ * Dólar de venta del BCRD (mercado.observaciones · USDDOP_VENTA), datos diarios con estado ok. Es dato de
+ * mercado (igual para todos): pasa por la caché compartida (5 min). Si no se puede leer, null: los montos en
+ * US$ quedan «no confirmado» y el Presupuesto sigue.
+ */
+export async function tasasUSD(): Promise<TasasUSD | null> {
+  const hoy = hoyRD();
+  try {
+    const serie = await leerMercadoCacheado(
+      `tasas-usd-bcrd:${hoy}`,
+      300,
+      async (db) => {
+        const desde = new Date(Date.now() - DIAS_TASAS * 86_400_000).toISOString().slice(0, 10);
+        const r = await db
+          .from("observaciones")
+          .select("fecha_dato, valor::text, url_dato")
+          .eq("serie_id", "USDDOP_VENTA")
+          .is("hora_dato", null)
+          .eq("estado", "ok")
+          .gte("fecha_dato", desde)
+          .order("fecha_dato", { ascending: true })
+          .limit(1000);
+        if (r.error) throw new Error(r.error.message);
+        return ((r.data ?? []) as unknown as { fecha_dato: string; valor: string; url_dato: string | null }[]).map(
+          (f): TasaDia => ({ fecha: String(f.fecha_dato).slice(0, 10), valor: f.valor, url: f.url_dato }),
+        );
+      },
+      [ETIQUETAS.rd],
+    );
+    return { hoy, serie };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lee todo el Presupuesto (RLS aplica: solo Mena). Lanza con el motivo si la base no responde.
+ * Una sola vez por petición (React cache): el Portafolio, sus widgets y la foto del Boletín la comparten.
+ */
+export const leerCaja = cache(async (): Promise<LecturaCaja> => {
   const db = await personal();
   // PostgREST corta en 1,000 filas por respuesta (max-rows de Supabase): se pide por páginas.
   const leer = async (tabla: Tabla) => {
     const filas: Record<string, unknown>[] = [];
     for (let desde = 0; ; desde += PAGINA) {
-      let q = db.from(tabla).select(COLUMNAS[tabla]);
+      let q = db.from(tabla).select(COLUMNAS_COMPLETAS[tabla]);
       for (const col of (ORDEN as Partial<Record<Tabla, readonly string[]>>)[tabla] ?? []) q = q.order(col, { ascending: true });
       if (tabla === "caja_omitidos" || tabla === "caja_saldos_reales") q = q.order("fecha").order(tabla === "caja_omitidos" ? "recurrente_id" : "cuenta_id");
       if (tabla === "caja_notas") q = q.order("fecha");
@@ -32,7 +77,7 @@ export async function leerCaja(): Promise<LecturaCaja> {
       if (pagina.length < PAGINA) return filas;
     }
   };
-  const [config, cuentas, categorias, recurrentes, movimientos, omitidos, saldos, notas] = await Promise.all([
+  const [config, cuentas, categorias, recurrentes, movimientos, omitidos, saldos, notas, enl, tasas] = await Promise.all([
     leer("caja_config"),
     leer("caja_cuentas"),
     leer("caja_categorias"),
@@ -41,10 +86,21 @@ export async function leerCaja(): Promise<LecturaCaja> {
     leer("caja_omitidos"),
     leer("caja_saldos_reales"),
     leer("caja_notas"),
+    // Enlace con el registro único y, de préstamos y deudas, su tasa (para separar interés y capital).
+    db.from("caja_cuentas").select("id, registro_id, activos(clase, tasa::text)"),
+    tasasUSD(),
   ]);
   const filas: FilasCaja = { config: config[0] ?? null, cuentas, categorias, recurrentes, movimientos, omitidos, saldos, notas };
-  const enl = await db.from("caja_cuentas").select("id, registro_id");
   const enlaces: Record<string, string> = {};
-  if (!enl.error) for (const e of (enl.data ?? []) as { id: string; registro_id: string | null }[]) if (e.registro_id) enlaces[e.id] = e.registro_id;
-  return { datos: filasADatos(filas), editadoEn: ultimaEdicion(filas), enlaces };
-}
+  const tasaDeuda = new Map<string, string>();
+  if (!enl.error) {
+    for (const e of (enl.data ?? []) as unknown as { id: string; registro_id: string | null; activos: { clase: string; tasa: string | null } | null }[]) {
+      if (e.registro_id) enlaces[e.id] = e.registro_id;
+      if (e.activos && (e.activos.clase === "prestamo" || e.activos.clase === "deuda") && e.activos.tasa && new Big(e.activos.tasa).gt(0)) tasaDeuda.set(e.id, e.activos.tasa);
+    }
+  }
+  const datos = filasADatos(filas);
+  for (const c of datos.cuentas) if (tasaDeuda.has(c.id)) c.tasaAnual = tasaDeuda.get(c.id)!;
+  datos.tasasUSD = tasas;
+  return { datos, editadoEn: ultimaEdicion(filas), enlaces };
+});

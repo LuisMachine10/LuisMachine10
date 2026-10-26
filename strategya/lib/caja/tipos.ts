@@ -2,6 +2,7 @@
 // con big.js: nunca pasan por float.
 
 import type { Fecha } from "./fechas";
+import type { TasasUSD } from "./tasas";
 
 export const TIPOS_CUENTA = ["banco", "efectivo", "ahorro", "tarjeta", "prestamo"] as const;
 export type TipoCuenta = (typeof TIPOS_CUENTA)[number];
@@ -90,7 +91,7 @@ export const NOMBRE_TIPO: Record<TipoMovimiento, string> = {
   ingreso: "Ingreso",
   gasto: "Gasto",
   transferencia: "Mover entre mis cuentas",
-  pago_tarjeta: "Pago de tarjeta",
+  pago_tarjeta: "Pago de tarjeta o préstamo",
 };
 
 export const NOMBRE_FRECUENCIA: Record<Frecuencia, string> = {
@@ -103,7 +104,10 @@ export interface ConfigCaja {
   inicio: Fecha;
   colchon: string;
   margen: string;
-  /** Tasa general RD$ por US$ que fijó Mena. null = no hay; los montos en US$ sin tasa propia no se aplican. */
+  /**
+   * Tasa general RD$ por US$ de la versión anterior. Ya no se usa para convertir (ver lib/caja/tasas.ts:
+   * tasa propia o dólar oficial del BCRD de la fecha); se conserva para importar y exportar.
+   */
   tasaUSD: string | null;
 }
 
@@ -115,6 +119,10 @@ export interface Cuenta {
   saldoInicial: string;
   limite: string | null;
   orden: number;
+  /** Moneda de la cuenta (sale del registro único). Saldos y cuadres van en esta moneda. Vacío = RD$. */
+  moneda?: Moneda;
+  /** Préstamo u otra deuda: tasa anual (fracción) del registro único, para separar interés y capital. */
+  tasaAnual?: string | null;
   /**
    * Fila del registro único del Portafolio que es esta cuenta (caja_cuentas.registro_id). Solo al crearla
    * desde el asistente; al leer, el enlace llega aparte (LecturaCaja.enlaces).
@@ -170,6 +178,11 @@ export interface Movimiento {
   nota: string | null;
   /** Id del recurrente que este movimiento confirma. */
   recurrenteId: string | null;
+  /**
+   * Pago de tarjeta o préstamo: parte del monto que fue interés o cargos (gasto financiero). La deuda baja
+   * por monto − interes. null o vacío = todo capital.
+   */
+  interes?: string | null;
 }
 
 export interface Omitido {
@@ -198,7 +211,11 @@ export interface DatosCaja {
   omitidos: Omitido[];
   saldos: SaldoReal[];
   notas: NotaDia[];
+  /** Dólar de venta del BCRD por fecha (mercado.observaciones). Sin él, los montos en US$ quedan «no confirmado». */
+  tasasUSD?: TasasUSD | null;
 }
+
+export const monedaDe = (c: Pick<Cuenta, "moneda"> | undefined): Moneda => c?.moneda ?? "DOP";
 
 export function esUno<T extends string>(lista: readonly T[], v: unknown): v is T {
   return typeof v === "string" && (lista as readonly string[]).includes(v);

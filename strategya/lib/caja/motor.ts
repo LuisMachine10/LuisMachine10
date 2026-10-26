@@ -14,21 +14,29 @@
 //   · Disponible = banco + efectivo. Estado: bajo el colchón · cerca del colchón (colchón + margen) · holgado.
 //
 // Diferencia deliberada con el artefacto: allí, sin tasa general, el US$ se convertía a 60. Aquí no se
-// inventa una tasa: un monto en US$ sin tasa propia ni general no se aplica y se avisa.
+// inventa una tasa: un monto en US$ usa su tasa propia o el dólar oficial del BCRD de su fecha
+// (lib/caja/tasas.ts); sin ninguna, no se aplica y se avisa.
+// Cuentas en US$ (Fase F): su posición va en US$; el disponible y los totales del día, en RD$ con la tasa
+// del BCRD de ese día. Pagos de tarjeta o préstamo: la deuda baja solo por el capital (monto − interés);
+// el interés es una salida (gasto financiero).
 // Todo con big.js; ningún monto pasa por float.
 
 import Big from "big.js";
 import { type Fecha, diasDelMes, diasEntre, esFecha, mesDe, rangoFechas, sumarDias, ultimoDia, type Mes } from "./fechas";
+import { aDOP, convertir, type TasaUsada, tasaBcrd, tasaPara } from "./tasas";
 import {
   type ConfigCaja,
   type Cuenta,
   type DatosCaja,
   type Moneda,
+  monedaDe,
   type Movimiento,
   type Recurrente,
   type TipoMovimiento,
   esDeuda,
 } from "./tipos";
+
+export { aDOP } from "./tasas";
 
 export type EstadoDia = "holgado" | "cerca" | "bajo";
 
@@ -58,6 +66,8 @@ export interface Ocurrencia {
 
 export interface MovimientoAplicado extends Movimiento {
   montoDOP: string | null;
+  /** Tasa con la que se pasó a RD$ (solo US$): la propia o la del BCRD de su fecha. */
+  tasaUsada?: TasaUsada | null;
 }
 
 export interface AjusteSaldo {
@@ -104,16 +114,6 @@ const CERO = new Big(0);
 
 export function esEfectivo(c: Cuenta | undefined): boolean {
   return !!c && (c.tipo === "banco" || c.tipo === "efectivo");
-}
-
-/** Convierte a RD$. US$: tasa propia, o la general. Sin ninguna → null (no se inventa). */
-export function aDOP(monto: string, moneda: Moneda, tasa: string | null, config: ConfigCaja | null): Big | null {
-  const m = new Big(monto);
-  if (moneda !== "USD") return m;
-  const propia = tasa && !new Big(tasa).eq(0) ? tasa : null;
-  const general = config?.tasaUSD && !new Big(config.tasaUSD).eq(0) ? config.tasaUSD : null;
-  const t = propia ?? general;
-  return t ? m.times(t) : null;
 }
 
 /** Días del mes de un recurrente mensual: "15, 30" → [15, 30]. Ignora lo que no esté entre 1 y 31. */
@@ -176,6 +176,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
   const saldosPorDia = agrupar(datos.saldos, (s) => s.fecha);
   const notas = new Map(datos.notas.map((n) => [n.fecha, n.nota]));
   const sinTasa = new Set<string>();
+  const cuentasUSDSinTasa = new Set<string>();
 
   const dias: DiaSimulado[] = [];
   const porFecha = new Map<Fecha, DiaSimulado>();
@@ -187,27 +188,46 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
     let ahorro = CERO;
     let tieneIngreso = false;
 
-    const aplicar = (tipo: TipoMovimiento, m: Big, cuenta: string | null, destino: string | null) => {
+    /** Suma `delta` (en la moneda del monto) a la posición de la cuenta, en la moneda de la cuenta. */
+    const mover = (id: string | null, delta: Big, moneda: Moneda, tasa: TasaUsada | null): boolean => {
+      if (!id || !pos.has(id)) return true;
+      const v = convertir(delta, moneda, monedaDe(cuentas.get(id)), tasa);
+      if (!v) return false;
+      pos.set(id, pos.get(id)!.plus(v));
+      return true;
+    };
+
+    /**
+     * Aplica un movimiento: `m` en su moneda, `dop` el mismo monto en RD$ (null sin tasa). En un pago de
+     * tarjeta o préstamo, `interes` (en la moneda del monto) no baja la deuda: es una salida del mes.
+     */
+    const aplicar = (tipo: TipoMovimiento, m: Big, moneda: Moneda, tasa: TasaUsada | null, dop: Big | null, cuenta: string | null, destino: string | null, interes: Big = CERO): boolean => {
+      let ok = true;
       if (tipo === "ingreso") {
-        if (cuenta && pos.has(cuenta)) pos.set(cuenta, pos.get(cuenta)!.plus(m));
-        entradas = entradas.plus(m);
+        ok = mover(cuenta, m, moneda, tasa);
+        if (dop) entradas = entradas.plus(dop);
       } else if (tipo === "gasto") {
-        if (cuenta && pos.has(cuenta)) pos.set(cuenta, pos.get(cuenta)!.minus(m));
-        salidas = salidas.plus(m);
+        ok = mover(cuenta, m.times(-1), moneda, tasa);
+        if (dop) salidas = salidas.plus(dop);
       } else {
-        if (cuenta && pos.has(cuenta)) pos.set(cuenta, pos.get(cuenta)!.minus(m));
-        if (destino && pos.has(destino)) pos.set(destino, pos.get(destino)!.plus(m));
-        if (destino && cuentas.get(destino)?.tipo === "ahorro") ahorro = ahorro.plus(m);
+        ok = mover(cuenta, m.times(-1), moneda, tasa);
+        const capital = tipo === "pago_tarjeta" && interes.gt(0) ? m.minus(interes) : m;
+        ok = mover(destino, capital, moneda, tasa) && ok;
+        if (tipo === "pago_tarjeta" && interes.gt(0) && dop) salidas = salidas.plus(convertir(interes, moneda, "DOP", tasa) ?? CERO);
+        if (destino && cuentas.get(destino)?.tipo === "ahorro" && dop) ahorro = ahorro.plus(dop);
       }
+      return ok && (moneda !== "USD" || dop !== null);
     };
 
     const registrados: MovimientoAplicado[] = [];
     for (const it of movPorDia.get(d) ?? []) {
-      const m = aDOP(it.monto, it.moneda, it.tasa, config);
-      if (m) aplicar(it.tipo, m, it.cuenta, it.destino);
-      else sinTasa.add(`${d} · movimiento registrado en US$`);
+      const m = new Big(it.monto);
+      const tasa = tasaPara(it.moneda, it.tasa, datos.tasasUSD, d);
+      const dop = aDOP(it.monto, it.moneda, it.tasa, datos.tasasUSD, d);
+      const interes = it.tipo === "pago_tarjeta" && it.interes ? new Big(it.interes) : CERO;
+      if (!aplicar(it.tipo, m, it.moneda, tasa, dop, it.cuenta, it.destino, interes)) sinTasa.add(`${d} · movimiento registrado en US$`);
       if (it.tipo === "ingreso") tieneIngreso = true;
-      registrados.push({ ...it, montoDOP: m ? m.toString() : null });
+      registrados.push({ ...it, montoDOP: dop ? dop.toString() : null, tasaUsada: it.moneda === "USD" ? tasa : undefined });
     }
 
     const confirmados = new Set(registrados.map((r) => r.recurrenteId).filter(Boolean));
@@ -224,9 +244,10 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       if (r.tipo === "pago_tarjeta" && r.pagoTotal) {
         const debe = r.destino && pos.has(r.destino) ? pos.get(r.destino)!.times(-1) : CERO;
         monto = (debe.gt(0) ? debe : CERO).toString();
-        moneda = "DOP";
+        moneda = monedaDe(r.destino ? cuentas.get(r.destino) : undefined);
       }
-      const dop = aDOP(monto, moneda, null, config);
+      const tasa = tasaPara(moneda, null, datos.tasasUSD, d);
+      const dop = aDOP(monto, moneda, null, datos.tasasUSD, d);
       const oc: Ocurrencia = {
         recurrenteId: r.id,
         nombre: r.nombre,
@@ -244,8 +265,7 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
         continue;
       }
       if (d >= hoy) {
-        if (dop) aplicar(r.tipo, dop, r.cuenta, r.destino);
-        else sinTasa.add(`${d} · ${r.nombre}`);
+        if (!aplicar(r.tipo, new Big(monto), moneda, tasa, dop, r.cuenta, r.destino)) sinTasa.add(`${d} · ${r.nombre}`);
         if (r.tipo === "ingreso") tieneIngreso = true;
         planificados.push(oc);
       } else {
@@ -265,6 +285,16 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
       ajustes.push({ cuentaId: c.id, real: real.toString(), esperado: esperado.toString(), diferencia: real.minus(esperado).toString() });
     }
 
+    // Totales del día en RD$: las cuentas en US$ con el dólar del BCRD de ese día.
+    const tasaDia = tasaBcrd(datos.tasasUSD, d);
+    const enDOP = (c: Cuenta, p: Big): Big | null => {
+      if (monedaDe(c) === "DOP") return p;
+      if (!tasaDia) {
+        cuentasUSDSinTasa.add(c.nombre);
+        return null;
+      }
+      return p.times(tasaDia.valor);
+    };
     let disponible = CERO;
     let ahorroTotal = CERO;
     let deuda = CERO;
@@ -272,9 +302,11 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
     for (const c of datos.cuentas) {
       const p = pos.get(c.id)!;
       posiciones[c.id] = p.toString();
-      if (esEfectivo(c)) disponible = disponible.plus(p);
-      else if (c.tipo === "ahorro") ahorroTotal = ahorroTotal.plus(p);
-      else if (c.tipo === "tarjeta" && p.lt(0)) deuda = deuda.minus(p);
+      const v = enDOP(c, p);
+      if (v === null) continue;
+      if (esEfectivo(c)) disponible = disponible.plus(v);
+      else if (c.tipo === "ahorro") ahorroTotal = ahorroTotal.plus(v);
+      else if (c.tipo === "tarjeta" && v.lt(0)) deuda = deuda.minus(v);
     }
 
     const dia: DiaSimulado = {
@@ -301,7 +333,12 @@ export function simular(datos: DatosCaja, opciones: { hoy: Fecha; hasta: Fecha }
 
   if (sinTasa.size) {
     advertencias.push(
-      `Hay ${sinTasa.size} monto(s) en US$ sin tasa propia ni tasa general: no se aplicaron. Pon la tasa US$ en Ajustes.`,
+      `Hay ${sinTasa.size} monto(s) en US$ sin tasa propia ni dólar del BCRD de su fecha: no se aplicaron (no confirmado). Anota la tasa en el movimiento o espera el dato del BCRD.`,
+    );
+  }
+  if (cuentasUSDSinTasa.size) {
+    advertencias.push(
+      `Sin dólar del BCRD en algunos días: el saldo en US$ de ${[...cuentasUSDSinTasa].join(", ")} no se sumó al disponible de esos días (no confirmado).`,
     );
   }
   return { inicio, hoy, hasta, dias, porFecha, advertencias };
@@ -400,8 +437,8 @@ export function movimientosDelMes(datos: DatosCaja, mes: Mes): TotalesMes {
   const movimientos: MovimientoAplicado[] = [];
   for (const m of datos.movimientos) {
     if (mesDe(m.fecha) !== mes) continue;
-    const dop = aDOP(m.monto, m.moneda, m.tasa, datos.config);
-    movimientos.push({ ...m, montoDOP: dop ? dop.toString() : null });
+    const dop = aDOP(m.monto, m.moneda, m.tasa, datos.tasasUSD, m.fecha);
+    movimientos.push({ ...m, montoDOP: dop ? dop.toString() : null, tasaUsada: m.moneda === "USD" ? tasaPara(m.moneda, m.tasa, datos.tasasUSD, m.fecha) : undefined });
     if (!dop) {
       sinTasa++;
       continue;

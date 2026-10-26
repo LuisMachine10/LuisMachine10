@@ -16,6 +16,17 @@ export const COLUMNAS = {
   caja_notas: "fecha, nota",
 } as const;
 
+/**
+ * Columnas de la Fase F (migración 20261027000100_deudas_y_dolares.sql): moneda de la cuenta e interés de un
+ * pago de tarjeta o préstamo. Aparte de COLUMNAS para que las pruebas que leen una base anterior a esa
+ * migración sigan leyendo igual. La app lee siempre COLUMNAS_COMPLETAS.
+ */
+export const COLUMNAS_COMPLETAS = {
+  ...COLUMNAS,
+  caja_cuentas: `${COLUMNAS.caja_cuentas}, moneda`,
+  caja_movimientos: `${COLUMNAS.caja_movimientos}, interes::text`,
+} as const;
+
 /** Orden en que se leen (la simulación depende del orden de recurrentes y movimientos). */
 export const ORDEN = {
   caja_cuentas: ["orden", "n"],
@@ -57,6 +68,7 @@ export function filasADatos(f: FilasCaja): DatosCaja {
         saldoInicial: String(c.saldo_inicial),
         limite: s(c.limite),
         orden: Number(c.orden ?? 0),
+        ...(c.moneda && c.moneda !== "DOP" ? { moneda: c.moneda as Cuenta["moneda"] } : {}),
       }),
     ),
     categorias: f.categorias.map(
@@ -95,6 +107,7 @@ export function filasADatos(f: FilasCaja): DatosCaja {
         categoria: s(m.categoria),
         nota: s(m.nota),
         recurrenteId: s(m.recurrente_id),
+        ...(m.interes != null ? { interes: String(m.interes) } : {}),
       }),
     ),
     omitidos: f.omitidos.map((o): Omitido => ({ fecha: fecha(o.fecha), recurrenteId: String(o.recurrente_id) })),

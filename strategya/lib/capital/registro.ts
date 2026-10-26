@@ -142,9 +142,9 @@ export function aActivo(i: ItemRegistro): Activo {
 export const esDeuda = (i: Pick<ItemRegistro, "clase">) => esClaseDeuda(i.clase);
 export const esInversion = (i: Pick<ItemRegistro, "clase">) => esClaseInversion(i.clase);
 
-/** ¿Puede ser cuenta del Presupuesto? Saldos en pesos (no unidades ni bienes). */
+/** ¿Puede ser cuenta del Presupuesto? Saldos en RD$ o US$ (no unidades, ni bienes, ni €). */
 export function sirveParaPresupuesto(i: ItemRegistro): boolean {
-  if (i.unidoA || i.moneda !== "DOP") return false;
+  if (i.unidoA || (i.moneda !== "DOP" && i.moneda !== "USD")) return false;
   if (esDeuda(i)) return true;
   return (i.clase === "efectivo" || i.clase === "ahorros" || i.clase === "rentafija") && n(i.precio).eq(1);
 }
@@ -339,5 +339,8 @@ export function sugerirUniones(items: ItemRegistro[], descartadas: ReadonlySet<s
 export function cuentasParaPresupuesto(items: ItemRegistro[]): CuentaDelRegistro[] {
   return items
     .filter((i) => !i.cajaId && sirveParaPresupuesto(i))
-    .map((i) => ({ id: i.id, nombre: i.nombre, tipo: tipoCajaDe(i), saldo: i.cantidad, limite: i.limite, diaPago: i.diaPago, ...(i.clase === "rentafija" ? { inversion: true } : {}) }));
+    .map((i) => ({
+      id: i.id, nombre: i.nombre, tipo: tipoCajaDe(i), saldo: i.cantidad, limite: i.limite, diaPago: i.diaPago,
+      ...(i.clase === "rentafija" ? { inversion: true } : {}), ...(i.moneda === "USD" ? { moneda: "USD" as const } : {}),
+    }));
 }

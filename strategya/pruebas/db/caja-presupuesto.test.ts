@@ -249,8 +249,10 @@ describe("contrato para el Portafolio: resultado_mes y presupuesto_ahorro_mensua
       expect(nov.secciones.ingreso.presupuestado).toBe("80000"); // el 31 cae el 30
       expect(nov.secciones.gasto_financiero.presupuestado).toBe("3200");
       expect(nov.secciones.ahorro_inversion).toMatchObject({ presupuestado: "4000", real: "3500" });
-      // 2,500.5 + 20 × 59.8 − 300 (reembolso) + 5 × 60.5 (US$ con la tasa general) + 450 sin categoría.
-      expect(nov.secciones.gasto.real).toBe("4149");
+      // 2,500.5 + 20 × 59.8 (tasa propia) − 300 (reembolso) + 450 sin categoría. Los US$ 5 sin tasa propia
+      // no se suman: esta base no tiene dólar del BCRD (Fase F: la tasa general ya no se usa).
+      expect(nov.secciones.gasto.real).toBe("3846.5");
+      expect(nov.sinTasa).toBeGreaterThan(0);
     });
   });
 

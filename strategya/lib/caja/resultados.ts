@@ -14,7 +14,8 @@
 // Puro y con big.js: ningún monto pasa por float.
 
 import Big from "big.js";
-import { aDOP, diasDeRecurrente, ocurreEn, type Simulacion } from "./motor";
+import { diasDeRecurrente, ocurreEn, type Simulacion } from "./motor";
+import { aDOP, finDeMes, type TasaUsada, tasaPara } from "./tasas";
 import { type Mes, mesDe, primerDia, rangoFechas, ultimoDia } from "./fechas";
 import {
   type Categoria,
@@ -34,6 +35,17 @@ const CERO = new Big(0);
 export const SIN_CATEGORIA_INGRESO = "__sin_categoria_ingreso";
 export const SIN_CATEGORIA_GASTO = "__sin_categoria_gasto";
 export const A_CUENTAS_DE_AHORRO = "__a_cuentas_de_ahorro";
+/** Interés de pagos de tarjeta o préstamo sin categoría de gasto financiero. */
+export const INTERESES_DEUDAS = "__intereses_deudas";
+
+/**
+ * Línea de la parte de interés de un pago de tarjeta o préstamo: su categoría si es de gasto financiero;
+ * si no, «Intereses de tus deudas». Siempre gasto financiero.
+ */
+export function destinoInteres(categoria: string | null, categorias: Map<string, Categoria>): Destino {
+  const cat = categoria ? categorias.get(categoria) : undefined;
+  return cat?.tipo === "gasto_financiero" ? { clave: cat.id, tipo: "gasto_financiero", signo: 1 } : { clave: INTERESES_DEUDAS, tipo: "gasto_financiero", signo: 1 };
+}
 
 export interface Destino {
   /** Id de la categoría o una de las claves especiales de arriba. */
@@ -89,7 +101,8 @@ export function fijosDelMes(datos: DatosCaja, mes: Mes): FijoDelMes[] {
     if (!veces) continue;
     let totalDOP: string | null = null;
     if (!(rec.tipo === "pago_tarjeta" && rec.pagoTotal)) {
-      const uno = aDOP(rec.monto, rec.moneda, null, datos.config);
+      // US$: el dólar del BCRD al cierre del mes (o el de hoy, si el mes no ha terminado).
+      const uno = aDOP(rec.monto, rec.moneda, null, datos.tasasUSD, finDeMes(mes));
       totalDOP = uno ? uno.times(veces).toString() : null;
     }
     r.push({ recurrente: rec, veces, totalDOP });
@@ -140,6 +153,8 @@ export interface EstadoResultados {
   disponible: Cifras;
   /** Montos que no se pudieron pasar a RD$ (US$ sin tasa) y fijos de «pagar todo lo que debas». */
   sinTasa: number;
+  /** Movimientos del mes en US$ con la tasa que se usó (null = no confirmado: no se sumaron). */
+  conversiones: { id: string; fecha: string; monto: string; tasa: TasaUsada | null; dop: string | null }[];
   /** Fijos y movimientos del mes sin categoría (caen en «Sin categoría»). */
   sinCategoria: { recurrentes: number; movimientos: number };
   /** No hay nada presupuestado ni real en el mes. */
@@ -165,6 +180,7 @@ const NOMBRE_ESPECIAL: Record<string, string> = {
   [SIN_CATEGORIA_INGRESO]: "Sin categoría",
   [SIN_CATEGORIA_GASTO]: "Sin categoría",
   [A_CUENTAS_DE_AHORRO]: "Pasado a tus cuentas de ahorro",
+  [INTERESES_DEUDAS]: "Intereses de tus deudas",
 };
 
 export function estadoDeResultados(datos: DatosCaja, mes: Mes, opciones: { sim?: Simulacion } = {}): EstadoResultados {
@@ -195,12 +211,20 @@ export function estadoDeResultados(datos: DatosCaja, mes: Mes, opciones: { sim?:
     sumar(fijos, d, new Big(f.totalDOP));
   }
 
+  const conversiones: EstadoResultados["conversiones"] = [];
   for (const m of datos.movimientos) {
     if (mesDe(m.fecha) !== mes) continue;
+    const dop = aDOP(m.monto, m.moneda, m.tasa, datos.tasasUSD, m.fecha);
+    if (m.moneda === "USD") conversiones.push({ id: m.id, fecha: m.fecha, monto: m.monto, tasa: tasaPara(m.moneda, m.tasa, datos.tasasUSD, m.fecha), dop: dop ? dop.toString() : null });
+    // La parte de interés de un pago de tarjeta o préstamo: gasto financiero del mes.
+    if (m.tipo === "pago_tarjeta" && m.interes && new Big(m.interes).gt(0)) {
+      const i = aDOP(m.interes, m.moneda, m.tasa, datos.tasasUSD, m.fecha);
+      if (i) sumar(reales, destinoInteres(m.categoria, categorias), i);
+      else sinTasa++;
+    }
     const d = destinoDe(m.tipo, m.categoria, m.destino, categorias, cuentas);
     if (!d) continue;
     if (pide(m.tipo, m.categoria)) movSinCat++;
-    const dop = aDOP(m.monto, m.moneda, m.tasa, datos.config);
     if (!dop) {
       sinTasa++;
       continue;
@@ -264,6 +288,7 @@ export function estadoDeResultados(datos: DatosCaja, mes: Mes, opciones: { sim?:
     gastosTotales: cifras(p.gt, r.gt, "gasto"),
     disponible: cifras(p.disp, r.disp, "utilidad"),
     sinTasa,
+    conversiones,
     sinCategoria: { recurrentes: recSinCat, movimientos: movSinCat },
     vacio,
   };

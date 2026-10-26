@@ -10,6 +10,7 @@ import {
   resumir,
   simular,
 } from "./motor";
+import type { TasasUSD } from "./tasas";
 import type { Cuenta, DatosCaja, Movimiento, Recurrente } from "./tipos";
 
 // Datos de ejemplo inventados para las pruebas (no son de Mena).
@@ -53,6 +54,13 @@ function mov(p: Partial<Movimiento> & { id: string; fecha: string }): Movimiento
   };
 }
 
+/** Dólar del BCRD inventado para las pruebas: el mismo valor todos los días de sep. 2026 a dic. 2027. */
+function tasasDiarias(valor: string): TasasUSD {
+  const serie: TasasUSD["serie"] = [];
+  for (let d = new Date(Date.UTC(2026, 8, 1)); d <= new Date(Date.UTC(2027, 11, 31)); d.setUTCDate(d.getUTCDate() + 1)) serie.push({ fecha: d.toISOString().slice(0, 10), valor, url: null });
+  return { hoy: "2027-12-31", serie };
+}
+
 function base(p: Partial<DatosCaja> = {}): DatosCaja {
   return {
     config: { inicio: "2026-10-01", colchon: "5000", margen: "3000", tasaUSD: "60.50" },
@@ -63,6 +71,7 @@ function base(p: Partial<DatosCaja> = {}): DatosCaja {
     omitidos: [],
     saldos: [],
     notas: [],
+    tasasUSD: tasasDiarias("60.50"),
     ...p,
   };
 }
@@ -142,12 +151,13 @@ describe("ocurrencias de recurrentes", () => {
 });
 
 describe("conversión a RD$", () => {
-  it("US$ con tasa propia, con tasa general y sin ninguna (no se inventa)", () => {
-    const cfg = base().config;
-    expect(aDOP("100", "USD", "59.25", cfg)!.toString()).toBe("5925");
-    expect(aDOP("100.10", "USD", null, cfg)!.toString()).toBe("6056.05");
-    expect(aDOP("100", "USD", null, { ...cfg!, tasaUSD: null })).toBeNull();
-    expect(aDOP("0.1", "DOP", null, cfg)!.plus("0.2").toString()).toBe("0.3");
+  const tasas = { hoy: "2026-10-20", serie: [{ fecha: "2026-10-09", valor: "60.50", url: null }, { fecha: "2026-10-14", valor: "61.6788", url: null }] };
+  it("US$ con tasa propia, con el dólar del BCRD de la fecha y sin ninguna (no se inventa)", () => {
+    expect(aDOP("100", "USD", "59.25", tasas, "2026-10-15")!.toString()).toBe("5925");
+    expect(aDOP("100.10", "USD", null, tasas, "2026-10-12")!.toString()).toBe("6056.05");
+    expect(aDOP("100", "USD", null, tasas, "2026-10-15")!.toString()).toBe("6167.88");
+    expect(aDOP("100", "USD", null, null, "2026-10-15")).toBeNull();
+    expect(aDOP("0.1", "DOP", null, null, "2026-10-15")!.plus("0.2").toString()).toBe("0.3");
   });
 });
 
@@ -272,10 +282,11 @@ describe("simulación", () => {
     expect(dia(sim, "2026-11-20").disponible).toBe("11765.44");
   });
 
-  it("USD: tasa propia del movimiento, tasa general para recurrentes, y sin tasa no se aplica", () => {
+  it("USD: tasa propia del movimiento, dólar del BCRD para recurrentes, y sin tasa no se aplica", () => {
     const datos = base({
       recurrentes: [rec({ id: "netflix", dias: "3", monto: "15.99", moneda: "USD" })],
       movimientos: [mov({ id: "a", fecha: "2026-10-02", tipo: "ingreso", monto: "1000", moneda: "USD", tasa: "59.10" })],
+      tasasUSD: { hoy: "2026-10-01", serie: [{ fecha: "2026-09-30", valor: "60.50", url: null }] },
     });
     const sim = simular(datos, { hoy: "2026-10-01", hasta: "2026-10-03" });
     expect(dia(sim, "2026-10-02").entradas).toBe("59100");
@@ -283,7 +294,7 @@ describe("simulación", () => {
     expect(dia(sim, "2026-10-03").disponible).toBe("79132.605");
     expect(sim.advertencias).toEqual([]);
 
-    const sinTasa = simular({ ...datos, config: { ...datos.config!, tasaUSD: null } }, { hoy: "2026-10-01", hasta: "2026-10-03" });
+    const sinTasa = simular({ ...datos, tasasUSD: null }, { hoy: "2026-10-01", hasta: "2026-10-03" });
     expect(dia(sinTasa, "2026-10-03").planificados[0].montoDOP).toBeNull();
     expect(dia(sinTasa, "2026-10-03").disponible).toBe("80100");
     expect(sinTasa.advertencias[0]).toMatch(/1 monto\(s\) en US\$ sin tasa/);

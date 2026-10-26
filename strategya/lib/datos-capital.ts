@@ -8,7 +8,9 @@ import { armarFx, type Contexto, type ObservacionFx, type PrecioMercado, type Re
 import { aActivo, COLUMNAS_REGISTRO, conSaldosVigentes, esInversion, filaARegistro, type ItemRegistro } from "@/lib/capital/registro";
 import { type Cierres, type Ips, type Parametros, parametrosVacios } from "@/lib/capital/tipos";
 import { leerCierre, leerIps, leerParametros } from "@/lib/capital/validar";
-import { mercado, personal } from "@/lib/supabase/servidor";
+import { cache } from "react";
+import { ETIQUETAS, leerMercadoCacheado } from "@/lib/supabase/cache-mercado";
+import { personal } from "@/lib/supabase/servidor";
 
 // Lecturas de Mena Capital. Cifras siempre como texto (::text) para no pasar por float en PostgREST.
 
@@ -46,10 +48,70 @@ const SERIES_REFERENCIA: Record<string, string> = {
   INFLACION_RD: "inflación interanual RD",
 };
 
-export async function datosCapital(): Promise<DatosCapital> {
+interface MercadoCapital {
+  fx: ObservacionFx[];
+  cotizaciones: {
+    simbolo: string;
+    fecha: string;
+    precio: string;
+    cierre_anterior: string | null;
+    hora_dato: string | null;
+    recogido_en: string;
+    url_dato: string | null;
+    fuente: string;
+  }[];
+  referencias: { serie_id: string; valor: string; fecha_dato: string; url_dato: string | null }[];
+  tarea: EstadoPrecios | null;
+}
+
+/** Lo que el Portafolio lee de `mercado` (igual para todos): por la caché compartida, 2 minutos. */
+function mercadoCapital(): Promise<MercadoCapital> {
+  return leerMercadoCacheado(
+    "capital",
+    120,
+    async (mdb) => {
+      const [fxRes, cotRes, refRes, tareaRes] = await Promise.all([
+        mdb
+          .from("observaciones")
+          .select("valor::text, fecha_dato, recogido_en, url_dato")
+          .eq("serie_id", "USDDOP_VENTA")
+          .is("hora_dato", null)
+          .order("fecha_dato", { ascending: false })
+          .limit(2),
+        mdb
+          .from("cotizaciones_cartera")
+          .select("simbolo, fecha, precio::text, cierre_anterior::text, hora_dato, recogido_en, url_dato, fuente")
+          .order("fecha", { ascending: false })
+          .limit(400),
+        mdb
+          .from("observaciones")
+          .select("serie_id, valor::text, fecha_dato, url_dato")
+          .in("serie_id", Object.keys(SERIES_REFERENCIA))
+          .order("fecha_dato", { ascending: false })
+          .limit(20),
+        mdb.from("estado_tareas").select("estado, inicio, ultima_ok, error").eq("tarea", "precios-cartera").maybeSingle(),
+      ]);
+      return {
+        fx: exigir(fxRes, "el tipo de cambio") as unknown as ObservacionFx[],
+        cotizaciones: exigir(cotRes, "los precios de la cartera") as unknown as MercadoCapital["cotizaciones"],
+        referencias: exigir(refRes, "las referencias") as unknown as MercadoCapital["referencias"],
+        tarea: exigir(tareaRes, "el estado de la tarea de precios") as EstadoPrecios | null,
+      };
+    },
+    [ETIQUETAS.cotizaciones, ETIQUETAS.rd],
+  );
+}
+
+/**
+ * Todo lo del Portafolio. Una sola carga por petición (React cache): las pestañas, sus widgets y la foto
+ * de «Tu dinero» del Boletín comparten la misma lectura (antes se leía el Presupuesto dos o tres veces).
+ */
+export const datosCapital = cache(async (): Promise<DatosCapital> => {
   const ahora = new Date();
-  const [db, mdb] = await Promise.all([personal(), mercado()]);
-  const [pRes, aRes, tRes, cRes, iRes, fxRes, cotRes, refRes, tareaRes] = await Promise.all([
+  const hoy = hoyRD(ahora);
+  const db = await personal();
+  // El Presupuesto es otro módulo: si no responde, el Portafolio sigue con lo escrito y lo dice.
+  const [pRes, aRes, tRes, cRes, iRes, merc, cajaLeida, resRes] = await Promise.all([
     db.from("parametros").select("datos, actualizado_en").eq("id", 1).maybeSingle(),
     db.from("activos").select(COLUMNAS_REGISTRO).order("orden").order("id"),
     db
@@ -59,41 +121,24 @@ export async function datosCapital(): Promise<DatosCapital> {
       .order("id"),
     db.from("cierres").select("mes, datos, actualizado_en").order("mes"),
     db.from("ips").select("datos").eq("id", 1).maybeSingle(),
-    mdb
-      .from("observaciones")
-      .select("valor::text, fecha_dato, recogido_en, url_dato")
-      .eq("serie_id", "USDDOP_VENTA")
-      .is("hora_dato", null)
-      .order("fecha_dato", { ascending: false })
-      .limit(2),
-    mdb
-      .from("cotizaciones_cartera")
-      .select("simbolo, fecha, precio::text, cierre_anterior::text, hora_dato, recogido_en, url_dato, fuente")
-      .order("fecha", { ascending: false })
-      .limit(400),
-    mdb
-      .from("observaciones")
-      .select("serie_id, valor::text, fecha_dato, url_dato")
-      .in("serie_id", Object.keys(SERIES_REFERENCIA))
-      .order("fecha_dato", { ascending: false })
-      .limit(20),
-    mdb.from("estado_tareas").select("estado, inicio, ultima_ok, error").eq("tarea", "precios-cartera").maybeSingle(),
-  ]);
-  const hoy = hoyRD(ahora);
-  // El Presupuesto es otro módulo: si no responde, el Portafolio sigue con lo escrito y lo dice.
-  const [enlRes, cajaLeida, resRes] = await Promise.all([
-    db.from("caja_cuentas").select("id, registro_id"),
+    mercadoCapital(),
     leerCaja().then(
-      (l) => ({ datos: l.datos, error: null as string | null }),
-      (e: Error) => ({ datos: null, error: e.message }),
+      (l) => ({ datos: l.datos, error: null as string | null, enlaces: l.enlaces as Record<string, string> | null }),
+      (e: Error) => ({ datos: null, error: e.message, enlaces: null }),
     ),
     db.rpc("resultado_mes", { p_mes: hoy }),
   ]);
+  // Sin el Presupuesto, el enlace de cada cuenta se lee aparte (para no dejar borrar lo que usa).
+  let enlacesCaja = cajaLeida.enlaces;
+  if (!enlacesCaja) {
+    const enlRes = await db.from("caja_cuentas").select("id, registro_id");
+    enlacesCaja = {};
+    if (!enlRes.error) for (const e of (enlRes.data ?? []) as { id: string; registro_id: string | null }[]) if (e.registro_id) enlacesCaja[e.id] = e.registro_id;
+  }
 
   const filaP = exigir(pRes, "los parámetros") as { datos: unknown; actualizado_en: string } | null;
   const p: Parametros = filaP ? leerParametros(filaP.datos) : parametrosVacios();
-  const enlaces = new Map<string, string>();
-  if (!enlRes.error) for (const e of (enlRes.data ?? []) as { id: string; registro_id: string | null }[]) if (e.registro_id) enlaces.set(e.registro_id, e.id);
+  const enlaces = new Map(Object.entries(enlacesCaja).map(([caja, reg]) => [reg, caja]));
   const filasRegistro = exigir(aRes, "tus cuentas, activos y deudas") as unknown as Record<string, unknown>[];
   const registroCompleto = conSaldosVigentes(
     filasRegistro.map((f) => filaARegistro(f, enlaces.get(String(f.id)) ?? null)),
@@ -120,20 +165,11 @@ export async function datosCapital(): Promise<DatosCapital> {
   for (const f of filasC) cierres[f.mes] = leerCierre(f.mes, f.datos);
   const filaI = exigir(iRes, "la política de inversión") as { datos: unknown } | null;
 
-  const { fx, anteriorUSD } = armarFx(exigir(fxRes, "el tipo de cambio") as unknown as ObservacionFx[], p);
+  const { fx, anteriorUSD } = armarFx(merc.fx, p);
 
   // Precio vigente por símbolo: la cotización más reciente; «anterior» = pc de la fuente o la del día previo.
   const precios: Record<string, PrecioMercado> = {};
-  const filasCot = exigir(cotRes, "los precios de la cartera") as unknown as {
-    simbolo: string;
-    fecha: string;
-    precio: string;
-    cierre_anterior: string | null;
-    hora_dato: string | null;
-    recogido_en: string;
-    url_dato: string | null;
-    fuente: string;
-  }[];
+  const filasCot = merc.cotizaciones;
   for (const f of filasCot) {
     const ya = precios[f.simbolo];
     if (!ya) {
@@ -153,7 +189,7 @@ export async function datosCapital(): Promise<DatosCapital> {
   }
 
   const referencias: Referencia[] = [];
-  for (const f of exigir(refRes, "las referencias") as unknown as { serie_id: string; valor: string; fecha_dato: string; url_dato: string | null }[]) {
+  for (const f of merc.referencias) {
     if (referencias.some((r) => r.serie === f.serie_id)) continue;
     referencias.push({ serie: f.serie_id, nombre: SERIES_REFERENCIA[f.serie_id] ?? f.serie_id, valor: new Big(f.valor).div(100), fecha: f.fecha_dato, url: f.url_dato });
   }
@@ -164,14 +200,14 @@ export async function datosCapital(): Promise<DatosCapital> {
     ctx: { p, activos, tx, cierres, mercado: { fx, fxAnteriorUSD: anteriorUSD, precios, referencias }, hoy, registro, presupuesto },
     configurado: filaP !== null,
     ips: filaI ? leerIps(filaI.datos) : null,
-    tareaPrecios: exigir(tareaRes, "el estado de la tarea de precios") as EstadoPrecios | null,
+    tareaPrecios: merc.tarea,
     ahora,
     actualizado: fechas.at(-1) ?? null,
     registroCompleto,
     aportesConfirmados,
-    caja: cajaLeida,
+    caja: { datos: cajaLeida.datos, error: cajaLeida.error },
   };
-}
+});
 
 /** Parámetros guardados (o los neutros si no hay fila), para las server actions. */
 export async function parametrosGuardados(): Promise<Parametros> {

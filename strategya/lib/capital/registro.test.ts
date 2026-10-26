@@ -30,6 +30,8 @@ const caja = (): DatosCaja => ({
   omitidos: [],
   saldos: [],
   notas: [],
+  // Dólar del BCRD inventado: 60 el 2 de octubre (vale para el gasto del 4).
+  tasasUSD: { hoy: "2026-10-20", serie: [{ fecha: "2026-10-02", valor: "60", url: null }] },
 });
 
 describe("saldo vigente: lo escrito + lo anotado en el Presupuesto", () => {
@@ -93,7 +95,8 @@ describe("asistente del Presupuesto: elige del Portafolio, no vuelve a pedir nad
   it("una cuenta elegida toma nombre, tipo y saldo del registro y viaja con su registro_id", () => {
     const items = [item("pop", "ahorros", "25000", { nombre: "Popular", subtipo: "corriente" }), item("usd", "ahorros", "100", { moneda: "USD" }), item("acc", "rentavariable", "2", { precio: "100" })];
     const registro = cuentasParaPresupuesto(items);
-    expect(registro.map((r) => [r.id, r.tipo, r.saldo])).toEqual([["pop", "banco", "25000"]]);
+    // Desde la Fase F, una cuenta en US$ también sirve (con su moneda); las acciones, no.
+    expect(registro.map((r) => [r.id, r.tipo, r.saldo, r.moneda ?? "DOP"])).toEqual([["pop", "banco", "25000", "DOP"], ["usd", "ahorro", "100", "USD"]]);
     let n = 0;
     const r = armarDesdeAsistente(
       { ingresos: [{ nombre: "Sueldo", tipo: "ingreso", monto: "50000", dias: "30" }], gastos: [], cuentas: [{ nombre: "", tipo: "banco", saldo: "", registroId: "pop" }], cuentaIngresos: -1, cuentaGastos: -1, ahorro: "", colchon: "0" },

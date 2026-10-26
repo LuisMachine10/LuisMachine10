@@ -234,12 +234,19 @@ describe("una sola verdad: los triggers mantienen el Presupuesto y el registro i
     });
   });
 
-  it("protege lo que el Presupuesto usa: no se borra, no cambia a US$ y solo se enlazan saldos en pesos", async () => {
+  it("protege lo que el Presupuesto usa: no se borra, no cambia de moneda y solo se enlazan saldos en RD$ o US$", async () => {
     await como(pool, "authenticated", MENA, async (c) => {
       await debeFallar(c, "delete from personal.activos where id = 'v'", /foreign key/);
-      await debeFallar(c, "update personal.activos set moneda = 'USD' where id = 'e'", /lleva sus cuentas en RD\$/);
-      await debeFallar(c, "insert into personal.caja_cuentas (nombre, tipo, registro_id) values ('x', 'banco', 'a5')", /lleva sus cuentas en RD\$/);
-      await debeFallar(c, "insert into personal.caja_cuentas (nombre, tipo, registro_id) values ('x', 'ahorro', 'a11')", /no es una cuenta con saldo en pesos/);
+      // Fase F: la moneda de una cuenta que usa el Presupuesto no cambia (habría que quitarla primero).
+      await debeFallar(c, "update personal.activos set moneda = 'USD' where id = 'e'", /la usa el Presupuesto en DOP/);
+      // Fase F: una cuenta en US$ sí se puede enlazar (con su moneda); una en € no.
+      await c.query("savepoint usd");
+      await c.query("insert into personal.caja_cuentas (id, nombre, tipo, registro_id) values ('x5', 'x', 'banco', 'a5')");
+      expect((await c.query("select moneda from personal.caja_cuentas where id = 'x5'")).rows[0].moneda).toBe("USD");
+      await c.query("rollback to savepoint usd");
+      await c.query("insert into personal.activos (id, clase, nombre, moneda, cantidad) values ('eur', 'ahorros', 'Cuenta en euros', 'EUR', 10)");
+      await debeFallar(c, "insert into personal.caja_cuentas (nombre, tipo, registro_id) values ('x', 'banco', 'eur')", /lleva sus cuentas en RD\$ o US\$/);
+      await debeFallar(c, "insert into personal.caja_cuentas (nombre, tipo, registro_id) values ('x', 'ahorro', 'a11')", /no es una cuenta con saldo/);
       await debeFallar(c, "insert into personal.caja_cuentas (nombre, tipo) values ('X', 'cripto')", /caja_cuentas_tipo_check/);
     });
   });

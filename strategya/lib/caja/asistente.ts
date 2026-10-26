@@ -47,6 +47,8 @@ export interface CuentaDelRegistro {
   diaPago: number | null;
   /** Es una inversión (renta fija): sirve como destino de ahorro, pero no viene marcada de entrada. */
   inversion?: boolean;
+  /** Cuenta en US$ (sus saldos y movimientos van en US$). Vacío = RD$. */
+  moneda?: "USD";
 }
 
 /** Un ingreso, costo o gasto: es una categoría; con días, también un fijo. */
@@ -213,7 +215,7 @@ export function armarDesdeAsistente(
       const r = registro.find((x) => x.id === c.registroId);
       if (!r) return mal(`Paso 3: una de las cuentas elegidas ya no está en tu Portafolio. Vuelve a elegirla.`);
       if (c.diaPago && !diaValido(c.diaPago)) return mal(`Paso 3, «${r.nombre}»: el día de pago debe ser un número del 1 al 31.`);
-      cuentas.push({ id: nuevoId(), nombre: r.nombre, tipo: r.tipo, saldoInicial: r.saldo, limite: r.limite, orden: ordenBase + i, registroId: r.id });
+      cuentas.push({ id: nuevoId(), nombre: r.nombre, tipo: r.tipo, saldoInicial: r.saldo, limite: r.limite, orden: ordenBase + i, registroId: r.id, ...(r.moneda ? { moneda: r.moneda } : {}) });
       continue;
     }
     const quien = nombreDe(c.nombre, i, "Cuenta");

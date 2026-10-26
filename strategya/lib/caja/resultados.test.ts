@@ -1,3 +1,4 @@
+import type { TasasUSD } from "./tasas";
 import Big from "big.js";
 import { describe, expect, it } from "vitest";
 import { simular } from "./motor";
@@ -25,6 +26,13 @@ const mov = (p: Partial<Movimiento> & { id: string }): Movimiento => ({
   fecha: "2026-10-05", tipo: "gasto", monto: "100", moneda: "DOP", tasa: null, cuenta: "banco", destino: null, categoria: null, nota: null, recurrenteId: null, ...p,
 });
 
+/** Dólar del BCRD inventado para las pruebas: el mismo valor todos los días de sep. 2026 a dic. 2027. */
+function tasasDiarias(valor: string): TasasUSD {
+  const serie: TasasUSD["serie"] = [];
+  for (let d = new Date(Date.UTC(2026, 8, 1)); d <= new Date(Date.UTC(2027, 11, 31)); d.setUTCDate(d.getUTCDate() + 1)) serie.push({ fecha: d.toISOString().slice(0, 10), valor, url: null });
+  return { hoy: "2027-12-31", serie };
+}
+
 function datos(p: Partial<DatosCaja> = {}): DatosCaja {
   return {
     config: { inicio: "2026-10-01", colchon: "0", margen: "0", tasaUSD: "60" },
@@ -35,6 +43,7 @@ function datos(p: Partial<DatosCaja> = {}): DatosCaja {
     omitidos: [],
     saldos: [],
     notas: [],
+    tasasUSD: tasasDiarias("60"),
     ...p,
   };
 }
@@ -151,7 +160,7 @@ describe("estado de resultados", () => {
   });
 
   it("US$ sin tasa no se suma y se avisa", () => {
-    const d = datos({ config: { inicio: "2026-10-01", colchon: "0", margen: "0", tasaUSD: null }, categorias: [cat("c", "gasto")], movimientos: [mov({ id: "u", moneda: "USD", monto: "5", categoria: "c" })] });
+    const d = datos({ tasasUSD: null, categorias: [cat("c", "gasto")], movimientos: [mov({ id: "u", moneda: "USD", monto: "5", categoria: "c" })] });
     const r = estadoDeResultados(d, "2026-10");
     expect(r.secciones.gasto.real).toBe("0");
     expect(r.sinTasa).toBe(1);
