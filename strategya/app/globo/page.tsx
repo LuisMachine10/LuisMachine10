@@ -168,6 +168,9 @@ export default async function Globo() {
           repositorio. Los avisos de ciclones y sismos no reemplazan a los oficiales del NHC, USGS, COE ni ONAMET.
         </p>
         <p>Strategya no es asesoría de inversión. Cifras de fuentes oficiales; ninguna sale de un modelo de lenguaje.</p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
       <Actualizador />
     </>

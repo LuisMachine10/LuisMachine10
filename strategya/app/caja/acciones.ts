@@ -304,15 +304,53 @@ export async function guardarRecurrente(_p: EstadoAccion, form: FormData): Promi
   const r = validarRecurrente(c);
   if (!r.ok) return mal(r.error);
   const v = r.valor;
+  const datos = await cajaParaValidar();
+  if (typeof datos === "string") return mal(datos);
+  const lista = await revisarListas({ fecha: hoyRD(), tipo: v.tipo, monto: v.monto, moneda: v.moneda, tasa: null, cuenta: v.cuenta, destino: v.destino, registroDestino: v.registroDestino ?? null, categoria: v.categoria, nota: null, recurrenteId: null }, datos);
+  if (lista) return mal(lista);
   return guardarEn(
     "caja_recurrentes",
     c.id || undefined,
     {
       nombre: v.nombre, tipo: v.tipo, monto: v.monto, moneda: v.moneda, pago_total: v.pagoTotal, cuenta: v.cuenta, destino: v.destino,
       categoria: v.categoria, frecuencia: v.frecuencia, dias: v.dias, cada_n: v.cadaN, fecha: v.fecha, desde: v.desde, hasta: v.hasta, activo: v.activo,
-      parte: v.parte ?? null,
+      parte: v.parte ?? null, registro_destino: v.registroDestino ?? null,
     },
     "el pago fijo",
+  );
+}
+
+/**
+ * Plan del mes: una línea de «Ahorro e inversión» = un fijo «Mover entre mis cuentas» hacia el instrumento EXACTO, con su
+ * monto en su moneda, el día y la cuenta de donde sale (manual, sección C). Lleva la categoría de ahorro e inversión
+ * (si no hay ninguna, se crea «Ahorro e inversión»). Valida las listas del manual igual que un movimiento.
+ */
+export async function guardarLineaAhorro(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const c = campos(form);
+  const datos = await cajaParaValidar();
+  if (typeof datos === "string") return mal(datos);
+  let categoria = datos.categorias.find((k) => k.id === c.categoria && k.tipo === "ahorro_inversion")?.id ?? datos.categorias.find((k) => k.tipo === "ahorro_inversion")?.id ?? null;
+  const db = await personal();
+  if (!categoria) {
+    const nueva = await db.from("caja_categorias").insert({ nombre: "Ahorro e inversión", tipo: "ahorro_inversion" }).select("id").single();
+    const e = errorBase(nueva.error, "crear la categoría de ahorro");
+    if (e) return e;
+    categoria = (nueva.data as { id: string }).id;
+  }
+  const destinoNombre = String(c.destinoNombre ?? "").trim();
+  const r = validarRecurrente({ ...c, tipo: "transferencia", categoria, frecuencia: c.frecuencia || "mensual", nombre: (c.nombre || `Ahorro: ${destinoNombre || "inversión"}`).slice(0, 120) });
+  if (!r.ok) return mal(r.error);
+  const v = r.valor;
+  const lista = await revisarListas({ fecha: hoyRD(), tipo: "transferencia", monto: v.monto, moneda: v.moneda, tasa: null, cuenta: v.cuenta, destino: v.destino, registroDestino: v.registroDestino ?? null, categoria, nota: null, recurrenteId: null }, datos);
+  if (lista) return mal(lista);
+  return guardarEn(
+    "caja_recurrentes",
+    c.id || undefined,
+    {
+      nombre: v.nombre, tipo: "transferencia", monto: v.monto, moneda: v.moneda, pago_total: false, cuenta: v.cuenta, destino: v.destino, registro_destino: v.registroDestino ?? null,
+      categoria, frecuencia: v.frecuencia, dias: v.dias, cada_n: v.cadaN, fecha: v.fecha, desde: v.desde, hasta: v.hasta, activo: v.activo,
+    },
+    "la línea de ahorro",
   );
 }
 

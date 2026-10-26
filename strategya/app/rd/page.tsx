@@ -106,6 +106,9 @@ export default async function PaginaRD() {
           <li>Carga manual de Mena, con el enlace de cada dato.</li>
         </ul>
         <p>Strategya no es asesoría de inversión. Cifras de fuentes oficiales; ninguna sale de un modelo de lenguaje.</p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
       <Actualizador />
     </>

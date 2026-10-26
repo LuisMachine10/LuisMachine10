@@ -32,6 +32,9 @@ export default function Ayuda() {
           <h1>Guía de uso</h1>
           <p>Aquí encuentras, por pantalla, las respuestas a las dudas más comunes. Escribe tu duda en el buscador o toca una pregunta.</p>
           <BotonVerBienvenida />
+          <p className="chico" style={{ marginTop: 12 }}>
+            <Link href="/terminos">Términos y privacidad</Link> · <a href="https://github.com/LuisMachine10/LuisMachine10/blob/main/strategya/docs/manual-financiero.md">Manual de lógica financiera</a>
+          </p>
         </header>
 
         <GuiaPreguntas grupos={GUIA} />

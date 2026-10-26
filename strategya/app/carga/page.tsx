@@ -94,6 +94,9 @@ export default async function PaginaCarga() {
       </main>
       <footer className="pie">
         <p>Strategya no es asesoría de inversión. Ninguna cifra sale de un modelo de lenguaje.</p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
     </>
   );

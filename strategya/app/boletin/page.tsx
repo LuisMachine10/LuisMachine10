@@ -141,6 +141,9 @@ export default async function PaginaBoletin({ searchParams }: { searchParams: Pr
           El Boletín se arma por reglas con los datos ya guardados en Strategya: ninguna cifra sale de una inteligencia artificial. Cada cifra lleva su
           fuente y su fecha; lo que falta dice «no confirmado». Es información, no asesoría de inversión.
         </p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
       <Actualizador />
     </>

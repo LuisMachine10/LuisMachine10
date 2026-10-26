@@ -117,7 +117,10 @@ async function Pie({ ahora, estado }: { ahora: Date; estado: Awaited<ReturnType<
         </a>
         .
       </p>
-    </footer>
+      <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
+      </footer>
   );
 }
 

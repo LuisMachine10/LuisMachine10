@@ -66,6 +66,9 @@ export default async function Dashboard() {
           Strategya no es asesoría de inversión. Cada cifra viene de una fuente oficial con su enlace y su fecha; ninguna sale de un modelo de
           lenguaje. Página generada {fechaHoraRD(ahora.toISOString())} (hora RD).
         </p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
       <Actualizador />
       <Bienvenida />

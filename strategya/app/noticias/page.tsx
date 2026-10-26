@@ -59,6 +59,9 @@ export default function PaginaNoticias() {
           <li>Mapa: Natural Earth vía world-atlas (dominio público).</li>
         </ul>
         <p>Strategya no es asesoría de inversión. Ninguna cifra sale de un modelo de lenguaje.</p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
       <Actualizador cadaSegundos={120} />
     </>

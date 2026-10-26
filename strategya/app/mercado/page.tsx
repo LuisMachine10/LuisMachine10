@@ -81,6 +81,9 @@ export default async function Mercado() {
           </a>
           .
         </p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
       <Actualizador />
     </>

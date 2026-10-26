@@ -45,6 +45,9 @@ export function MarcoCaja({
           Presupuesto: las cifras salen de lo que tú anotas (categorías, pagos fijos, movimientos, saldos de hoy y cuadres con tu banco).
           Lo presupuestado es lo que tú planificaste, no un pronóstico. No es asesoría de inversión.
         </p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
     </div>
   );

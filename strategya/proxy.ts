@@ -4,6 +4,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { configServidor } from "@/lib/config";
+import { COOKIE_TERMINOS, pideTerminos, RUTA_TERMINOS } from "@/lib/terminos";
 
 const PUBLICAS = ["/login"];
 
@@ -48,6 +49,24 @@ export async function proxy(request: NextRequest) {
     destino.pathname = "/";
     destino.search = "";
     return NextResponse.redirect(destino);
+  }
+  // Términos y privacidad: la casilla se acepta una vez por versión (lib/terminos.ts). Solo páginas (GET), nunca las
+  // acciones de los formularios ni los archivos.
+  if (
+    pideTerminos({
+      ruta,
+      metodo: request.method,
+      cookie: request.cookies.get(COOKIE_TERMINOS)?.value,
+      conSesion: !!email,
+      esAccion: request.headers.has("next-action"),
+    })
+  ) {
+    const destino = request.nextUrl.clone();
+    destino.pathname = RUTA_TERMINOS;
+    destino.search = `?volver=${encodeURIComponent(`${ruta}${request.nextUrl.search}`)}`;
+    const r = NextResponse.redirect(destino);
+    for (const c of respuesta.cookies.getAll()) r.cookies.set(c);
+    return r;
   }
   return respuesta;
 }

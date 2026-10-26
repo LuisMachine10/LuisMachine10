@@ -51,6 +51,9 @@ export default async function Ajustes() {
           Las alertas y los textos con IA informan; no son asesoría de inversión. Ninguna cifra sale de un modelo de lenguaje: la IA solo
           redacta a partir de datos y titulares ya guardados, y cada texto que no pasa la validación queda como «no confirmado».
         </p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
       <Actualizador />
     </>

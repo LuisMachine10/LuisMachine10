@@ -106,6 +106,9 @@ export function Marco({
           .
           {actualizado ? ` Última edición de tus datos: ${fechaHoraRD(actualizado)} (hora RD).` : ""}
         </p>
+        <p className="pie-legal">
+          <a href="/terminos">Términos y privacidad</a>
+        </p>
       </footer>
     </>
   );
