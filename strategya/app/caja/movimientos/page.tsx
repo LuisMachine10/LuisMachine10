@@ -59,7 +59,19 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
   for (const m of t.movimientos) porDia.set(m.fecha, [...(porDia.get(m.fecha) ?? []), m]);
   const dias = [...porDia.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
   const netoDia = (ms: MovimientoAplicado[]) =>
-    ms.reduce((s, m) => (m.montoDOP == null ? s : m.tipo === "ingreso" ? s.plus(m.montoDOP) : m.tipo === "gasto" ? s.minus(m.montoDOP) : s), new Big(0));
+    ms.reduce(
+      (s, m) =>
+        m.montoDOP == null
+          ? s
+          : m.tipo === "ingreso"
+            ? s.plus(m.montoDOP)
+            : m.tipo === "gasto"
+              ? s.minus(m.montoDOP)
+              : m.tipo === "pago_tarjeta" && m.interes
+                ? s.minus(new Big(m.montoDOP).times(m.interes).div(m.monto).round(2, Big.roundHalfUp))
+                : s,
+      new Big(0),
+    );
 
   return (
     <MarcoCaja actual="movimientos" mes={mes} editadoEn={editadoEn} sub={SUB} acciones={<BotonesNuevo />}>
@@ -184,22 +196,22 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
                                 {m.destino ? ` → ${cuenta(m.destino)}` : ""}
                                 {nombreCat && m.nota ? ` · ${nombreCat}` : ""}
                               </span>
+                              {m.moneda === "USD" ? (
+                                <span className="caja-item-detalle">
+                                  {m.montoDOP ? `≈ ${rd(m.montoDOP)} · tasa ${describirTasa(m.tasaUsada ?? null)}` : <span className="baja">no confirmado: sin tasa, no se suma</span>}
+                                </span>
+                              ) : null}
+                              {m.tipo === "pago_tarjeta" && m.interes ? (
+                                <span className="caja-item-detalle">
+                                  capital {enMoneda(new Big(m.monto).minus(m.interes).toFixed(), m.moneda)} · interés {enMoneda(m.interes, m.moneda)}
+                                </span>
+                              ) : null}
                             </span>
                             <span className="caja-item-monto-col">
                               <span className={`caja-item-monto ${m.tipo === "ingreso" ? "sube" : m.tipo === "gasto" ? "baja" : ""}`}>
                                 {m.tipo === "ingreso" ? "+" : m.tipo === "gasto" ? "−" : ""}
                                 {enMoneda(m.monto, m.moneda)}
                               </span>
-                              {m.moneda === "USD" ? (
-                                <span className="chico tenue mono">
-                                  {m.montoDOP ? `≈ ${rd(m.montoDOP)} · ${describirTasa(m.tasaUsada ?? null)}` : <span className="baja">no confirmado: sin tasa</span>}
-                                </span>
-                              ) : null}
-                              {m.tipo === "pago_tarjeta" && m.interes ? (
-                                <span className="chico tenue">
-                                  capital {enMoneda(new Big(m.monto).minus(m.interes).toFixed(), m.moneda)} · interés {enMoneda(m.interes, m.moneda)}
-                                </span>
-                              ) : null}
                             </span>
                           </div>
                         </li>

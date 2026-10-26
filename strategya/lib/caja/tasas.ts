@@ -62,6 +62,15 @@ export function tasaPara(moneda: Moneda, tasaPropia: string | null | undefined, 
   return tasaBcrd(tasas, fecha);
 }
 
+/**
+ * Tasa para mover un monto entre una cuenta en RD$ y una en US$ (sea cual sea la moneda del monto): la propia
+ * del movimiento o el dólar del BCRD de la fecha.
+ */
+export function tasaDeCambio(tasaPropia: string | null | undefined, tasas: TasasUSD | null | undefined, fecha: Fecha): TasaUsada | null {
+  if (tasaPropia && !new Big(tasaPropia).eq(0)) return { valor: tasaPropia, origen: "propia", fecha: null, url: null };
+  return tasaBcrd(tasas, fecha);
+}
+
 /** Monto en RD$. US$ sin tasa → null (no se inventa). */
 export function aDOP(monto: string, moneda: Moneda, tasaPropia: string | null | undefined, tasas: TasasUSD | null | undefined, fecha: Fecha): Big | null {
   const m = new Big(monto);

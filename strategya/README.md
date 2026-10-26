@@ -216,3 +216,18 @@ conexión con AISStream. Cada archivo adaptado lo dice arriba y la licencia comp
 View, tráfico simulado, vuelos y satélites, la voz con OpenAI, los mosaicos 3D de Google (cuestan) y los
 cables submarinos de TeleGeography (licencia no comercial). Cesium se copia a `public/cesium` al instalar
 (`scripts/copiar-cesium.mjs`); si el navegador no tiene WebGL, el globo cae a un mapa 2D con las mismas capas.
+
+## 12. Caché y mantenimiento (Fase F)
+
+- **Caché de `mercado`** (`lib/supabase/cache-mercado.ts`): las lecturas del esquema `mercado` (iguales para todos:
+  cotizaciones, dólar BCRD, RD, noticias, agenda, Tesoro, precios de la cartera) pasan por `unstable_cache` de Next
+  con `revalidate` (60 s cotizaciones y movimientos, 120 s noticias y Portafolio, 300 s RD, Tesoro, agenda, dólar)
+  y etiquetas (`mercado`, `mercado:rd`…). Se eligió el modelo sin Cache Components (`"use cache"` exige
+  `cacheComponents`, incompatible con las páginas `force-dynamic` actuales). Antes de usar la caché se exige la sesión
+  del dueño; dentro no se leen cookies (la consulta va con el token de esa sesión, que no es parte de la clave). La
+  carga manual invalida la etiqueta (`revalidateTag(…, { expire: 0 })`); lo que trae la ingesta se ve al vencer el
+  tiempo. **Nada del esquema `personal` se cachea entre peticiones**: solo se comparte dentro de la misma petición
+  (React `cache`).
+- **Limpieza de pg_cron** (`20261027000200_mantenimiento_cron.sql`): tarea semanal `strategya-limpiar-historial-cron`
+  (domingo 04:17 UTC) que borra `cron.job_run_details` de más de 14 días. La limpieza diaria `strategya-limpieza` ya
+  recortaba a 7 días; esta es la red de seguridad semanal.

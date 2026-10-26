@@ -215,3 +215,25 @@ Cuatro riesgos (liquidez y colchón, concentración, dólar, presupuesto y deuda
 SAFI/emisor, dólar 20–50 %, gasto > 10 % sobre lo presupuestado = alto, tarjetas > 30 % del ingreso mensual = alto.
 Cada riesgo dice qué evalúa, el dato que lo dispara con su fuente y qué se puede hacer, sin recomendar inversiones.
 Los avisos puntuales de antes (vencimientos, tipo de cambio viejo…) siguen bajo «Otros avisos del mes».
+
+## Fase F (oct. 2026)
+
+- **Aportes del mes** (`lib/capital/aportes.ts`, `componentes/capital/Aportes.tsx`): junto a «Sí, lo hice» está
+  «Omitir este mes» (motivo opcional; se guarda en `personal.preferencias`, clave `aportes`: instrumento, mes y
+  motivo, sin cifras; «Deshacer» lo vuelve pendiente). Debajo, «De meses anteriores, sin responder»: los aportes de
+  los meses desde que empezó el Presupuesto (máx. 12) sin confirmar ni omitir, con el ahorro presupuestado de ese mes
+  × el reparto de hoy. «Sí, lo hice» acepta un mes anterior y, desde una cuenta del Presupuesto, exige la misma moneda
+  que la inversión (RD$ o US$).
+- **Vencidos**: un instrumento vencido ya no pasa su parte sola a los demás. Queda «sin destino» y Proyecciones muestra
+  «Venció una inversión: ¿a dónde va su parte?». Elegir el destino abre la **pantalla de confirmación** (antes y
+  después); solo «Sí, pasar su parte» escribe el reparto (`reubicarParte`: misma categoría → `aporte_pct`; otra
+  categoría → también `parametros.planClases`).
+- **Préstamos y tarjetas**: el saldo de una deuda enlazada baja solo por el capital de cada pago (ver docs/caja.md).
+- **Ajustes → «Revisar conexión con el Presupuesto»** (`lib/capital/conexion.ts`): por cada cuenta enlazada, el saldo
+  de hoy en Mis cuentas y en el calendario del Presupuesto, ✓ o la diferencia y por qué (fijos de hoy sin confirmar,
+  nombre/tipo/límite/moneda distintos, saldo escrito que no llegó). Solo lee.
+- **Mis cuentas**: al pulsar Guardar, el botón cambia al instante a «Guardando…» con un aviso de lo que se guarda
+  (`BotonEnviar`, `useFormStatus`); borrar una fila pide confirmación.
+- **Velocidad**: `datosCapital()` y `leerCaja()` se leen una sola vez por petición (React `cache`) y cada página empieza a
+  leerlos de inmediato (`precargarCapital`). Lo de `mercado` (dólar, precios, referencias) pasa por la caché
+  compartida (README §12).

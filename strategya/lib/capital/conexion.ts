@@ -10,6 +10,7 @@
 //     saldo escrito en el Portafolio haya llegado al Presupuesto (como saldo inicial o como cuadre).
 
 import Big from "big.js";
+import { enMoneda } from "../caja/formato";
 import { simular } from "../caja/motor";
 import { type DatosCaja, esDeuda as esDeudaCaja, monedaDe, type Moneda } from "../caja/tipos";
 import { esDeuda, type ItemRegistro, tipoCajaDe } from "./registro";
@@ -61,7 +62,7 @@ export function revisarConexion(registro: ItemRegistro[], caja: DatosCaja | null
     const diferencia = presupuesto ? portafolio.minus(presupuesto) : null;
     const motivos: string[] = [];
     const moneda = monedaDe(c);
-    const m = (b: Big) => `${moneda === "USD" ? "US$" : "RD$"} ${fmt(b.abs())}`;
+    const m = (b: Big) => enMoneda(fmt(b.abs()), moneda);
 
     if (diferencia && !diferencia.eq(0)) {
       // ¿Lo explica lo programado para hoy que todavía no se confirma?
@@ -90,7 +91,9 @@ export function revisarConexion(registro: ItemRegistro[], caja: DatosCaja | null
         dia.setUTCDate(dia.getUTCDate() - 1);
         const f = dia.toISOString().slice(0, 10);
         const cuadre = caja.saldos.find((s) => s.cuentaId === c.id && s.fecha === f);
-        if (!cuadre || !new Big(cuadre.saldo).eq(escrito)) motivos.push(`El saldo que escribiste en Mis cuentas (${m(escrito)}) no está como cuadre del ${f} en el Presupuesto.`);
+        // Si se movió la fecha de inicio del Presupuesto hacia atrás, el saldo escrito quedó como saldo inicial: también vale.
+        const comoInicial = !cuadre && new Big(c.saldoInicial || "0").eq(escrito);
+        if (!comoInicial && (!cuadre || !new Big(cuadre.saldo).eq(escrito))) motivos.push(`El saldo que escribiste en Mis cuentas (${m(escrito)}) no está como cuadre del ${f} en el Presupuesto.`);
       } else if (!new Big(c.saldoInicial || "0").eq(escrito)) {
         motivos.push(`El saldo inicial del Presupuesto (${m(new Big(c.saldoInicial || "0"))}) no es el que escribiste en Mis cuentas (${m(escrito)}).`);
       }

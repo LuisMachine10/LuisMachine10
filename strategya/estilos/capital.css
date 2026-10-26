@@ -1599,7 +1599,7 @@ textarea::placeholder {
 .caja-asistente .caja-registro-item .caja-fila-icono { flex: none; }
 
 /* ───────── Fase F: aportes (omitir, meses anteriores) y vencidos ───────── */
-.ap-acciones { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: flex-start; }
+.ap-acciones { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: flex-start; }
 .ap-acciones > .ap-confirmar > summary { margin-left: 0; }
 .ap-acciones:has(details[open]) { grid-column: 1 / -1; justify-content: flex-start; }
 .ap-acciones > details[open] { flex: 1 1 100%; order: -1; }

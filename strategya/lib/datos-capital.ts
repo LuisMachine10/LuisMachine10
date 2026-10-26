@@ -214,6 +214,11 @@ export const datosCapital = cache(async (): Promise<DatosCapital> => {
   };
 });
 
+/** Empieza la lectura del Portafolio sin esperarla (la página la usa después; React cache la comparte). */
+export function precargarCapital(): void {
+  void datosCapital().catch(() => {});
+}
+
 /** Parámetros guardados (o los neutros si no hay fila), para las server actions. */
 export async function parametrosGuardados(): Promise<Parametros> {
   const db = await personal();

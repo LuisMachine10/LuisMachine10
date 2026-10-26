@@ -149,6 +149,10 @@ export function CamposMovimiento({
   const [tipo, setTipo] = useState<TipoMovimiento>(v.tipo ?? "gasto");
   const [moneda, setMoneda] = useState<Moneda>(v.moneda ?? "DOP");
   const [destino, setDestino] = useState<string>(v.destino ?? "");
+  const [origen, setOrigen] = useState<string>(v.cuenta ?? "");
+  const enDolares = (cid: string) => cuentas.find((c) => c.id === cid)?.moneda === "USD";
+  // La tasa se pide si el monto es en US$ o si el dinero entra o sale de una cuenta en US$.
+  const pideTasa = moneda === "USD" || enDolares(origen) || (tipo !== "ingreso" && tipo !== "gasto" && enDolares(destino));
   const id = useId();
   const conDestino = tipo === "transferencia" || tipo === "pago_tarjeta";
   const deuda = tipo === "pago_tarjeta" ? cuentas.find((c) => c.id === destino && esDeuda(c.tipo)) : undefined;
@@ -156,6 +160,7 @@ export function CamposMovimiento({
   const capitalPrevio = v.interes && v.monto ? new Big(v.monto).minus(v.interes).toFixed() : "";
   // Al elegir una cuenta en US$, el monto pasa a US$ (y al revés): se puede cambiar a mano.
   const alCambiarCuenta = (cid: string) => {
+    setOrigen(cid);
     const c = cuentas.find((x) => x.id === cid);
     if (c) setMoneda(c.moneda ?? "DOP");
   };
@@ -188,7 +193,7 @@ export function CamposMovimiento({
           ))}
         </select>
       </label>
-      {moneda === "USD" ? (
+      {pideTasa ? (
         <label className="ancho">
           Tasa: cuántos RD$ por US$ (opcional)
           <input name="tasa" inputMode="decimal" autoComplete="off" defaultValue={v.tasa ?? ""} placeholder="Vacío = el dólar oficial del BCRD de ese día" />

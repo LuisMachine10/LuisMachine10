@@ -155,7 +155,7 @@ export function PanelPlan({ datos, mes }: Props) {
   const ahorro = ahorroPresupuestado(ctx);
   const plan = ctx.p.planClases;
   const suma = plan ? CLASES.reduce((s, c) => s.plus(n(plan[c.id])), CERO) : null;
-  const aportes = new Map(aportesDelPlan(ctx, ahorro).map((x) => [x.activo.id, x.monto]));
+  const aportes = new Map(aportesDelPlan(ctx, ahorro).filter((x) => !x.vencido).map((x) => [x.activo.id, x.monto]));
   return (
     <Panel titulo="Tu plan de aportes" id="cap-t-plan" ancho extra={<span className="tenue chico">{rep?.origen === "plan" ? "reparto propio" : "según tu Política"}</span>}>
       <form action={guardarParametros} className="cap-form" key={JSON.stringify(plan)}>

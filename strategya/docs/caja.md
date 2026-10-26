@@ -107,10 +107,30 @@ Auxiliar: `personal.caja_fijos_mes(p_mes)` (fijos que caen en el mes, veces y to
   ingreso, menos el colchón (nunca negativo). Sin ingreso a la vista, usa todo el horizonte.
 - **Tasa de ahorro** del mes (Movimientos) = lo transferido a cuentas de ahorro ÷ ingresos registrados.
 - **«¿Ya se hizo?»** (antes «por confirmar»): los fijos se planifican solos; en el día, «Sí, ya se hizo» los anota como movimiento (con su categoría) y «Este mes no» los omite.
-- **US$**: se convierte con la tasa propia del movimiento o, si no tiene, con la tasa general de Ajustes.
-  *Diferencia con el artefacto*: allí, sin tasa general, se usaba 60. Aquí no se inventa una tasa: el monto
-  no se aplica y la pantalla lo avisa.
+- **US$** (Fase F, `lib/caja/tasas.ts`): se convierte con la tasa propia del movimiento o, si no tiene, con el
+  **dólar de venta oficial del BCRD de la fecha** (`USDDOP_VENTA`: el último publicado hasta esa fecha, como
+  mucho 7 días antes; una fecha futura usa el de hoy). Sin ninguna: «no confirmado», no se aplica ni se suma, y
+  la pantalla lo avisa. La pantalla dice qué tasa se usó (propia o «BCRD del AAAA-MM-DD», con enlace). La tasa
+  general de Configuración ya no se usa para convertir (queda guardada solo para importar/exportar). El € no
+  aplica: no hay serie oficial EUR/DOP y `caja_movimientos` solo admite DOP y US$.
 - Todo con `big.js`; ningún monto pasa por float.
+
+## Fase F: cuentas en US$ y pagos de deudas (migración `20261027000100_deudas_y_dolares.sql`)
+
+- **Cuentas en US$.** `caja_cuentas.moneda` (`DOP` | `USD`) sale del registro único: una cuenta en US$ de Mis cuentas
+  se puede usar en el Presupuesto. Su saldo inicial, cuadres y posición van en US$; sus movimientos se guardan en su
+  moneda. Mover entre una cuenta en RD$ y una en US$ usa la tasa del movimiento o la del BCRD del día. El disponible,
+  los totales y el estado de resultados van en RD$ (la cuenta en US$ × dólar BCRD del día; sin dato, no se suma y se
+  avisa). La moneda no cambia mientras el Presupuesto usa la cuenta (trigger `activos_despues`). € no se enlaza.
+- **Pago de tarjeta o préstamo** (`tipo = pago_tarjeta`, destino = tarjeta o préstamo). `caja_movimientos.interes` =
+  la parte que fue interés o cargos: la deuda baja solo por `monto − interes` y el interés es **gasto financiero**
+  (en la categoría de gasto financiero del pago, o en «Intereses de tus deudas»). Al guardar
+  (`lib/caja/deudas.ts · separarPago`): si Mena escribe «¿cuánto fue capital?», manda eso; si no, en un **préstamo con
+  tasa** en el Portafolio, interés = lo que se debía al cierre del día anterior × tasa ÷ 12 (a centavos, nunca más que
+  el pago); sin tasa (o tarjeta): todo capital. El interés queda guardado en el movimiento: el Presupuesto, Mis cuentas
+  y los cierres usan la misma cifra. `personal.resultado_mes` suma ese interés como gasto financiero (las pruebas de base
+  comparan SQL y TypeScript).
+- `personal.tasa_usd_bcrd(fecha)`: el dólar del BCRD vigente en esa fecha (misma regla que `tasaBcrd`).
 
 ## Formato del JSON a importar
 

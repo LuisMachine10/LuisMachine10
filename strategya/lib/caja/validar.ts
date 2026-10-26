@@ -121,7 +121,8 @@ export function validarMovimiento(c: Campos): Resultado<Omit<Movimiento, "id">> 
   if (!esUno(MONEDAS, moneda)) return mal("Moneda inválida.");
   const monto = leerMonto(c.monto, "Monto", { requerido: true, positivo: true });
   if (!monto.ok) return monto;
-  const tasa = moneda === "USD" ? leerMonto(c.tasa, "Tasa", { positivo: true }) : ok(null);
+  // La tasa también sirve en pesos cuando el dinero entra o sale de una cuenta en US$.
+  const tasa = leerMonto(c.tasa, "Tasa", { positivo: true });
   if (!tasa.ok) return tasa;
   const cuenta = opcional(c.cuenta);
   const destino = c.tipo === "transferencia" || c.tipo === "pago_tarjeta" ? opcional(c.destino) : null;

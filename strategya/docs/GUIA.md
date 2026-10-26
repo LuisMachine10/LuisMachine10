@@ -128,6 +128,18 @@ anotes después en el Presupuesto (gastos, ingresos, pagos, «cuadrar con tu ban
 pantallas muestran el mismo saldo. Si antes tenías una cuenta anotada en los dos lugares, Mis cuentas te muestra
 una sola vez «Unir cuentas repetidas»: confirmas cada par y nada se borra.
 
+### Pagos de préstamos y tarjetas, y cuentas en dólares
+
+- **Pagar un préstamo o una tarjeta**: en el Presupuesto, «Pago de tarjeta o préstamo», de tu banco a la deuda. Lo que
+  debes baja solo por la parte de **capital**; el **interés** va a gastos financieros. Si el préstamo tiene tasa en Mis
+  cuentas, el interés se calcula solo (lo que debías × tasa ÷ 12); si no, escribe cuánto fue capital (vacío = todo).
+- **Cuentas en dólares**: una cuenta en US$ de Mis cuentas se puede usar en el Presupuesto. Sus movimientos van en US$;
+  los totales en RD$ usan el dólar oficial del Banco Central de ese día (se ve cuál) o la tasa que anotes. Sin dato:
+  «no confirmado» y no se suma.
+- **Aportes**: en Proyecciones, cada aporte tiene «Sí, lo hice» u «Omitir este mes»; los de meses anteriores sin
+  responder aparecen aparte. Si una inversión vence, te preguntamos a dónde pasar su parte (nada cambia sin tu «Sí»).
+- **¿Cuadra todo?**: Portafolio → Ajustes → «Revisar conexión con el Presupuesto».
+
 ### Boletín por correo
 
 En **Más → Ajustes y alertas → Boletín por correo** marcas qué ediciones quieres recibir y si llevan

@@ -170,7 +170,7 @@ export interface Movimiento {
   tipo: TipoMovimiento;
   monto: string;
   moneda: Moneda;
-  /** Tasa propia del movimiento en US$; si es null se usa la tasa general. */
+  /** Tasa propia del movimiento (RD$ por US$); si es null se usa el dólar del BCRD de su fecha (lib/caja/tasas.ts). */
   tasa: string | null;
   cuenta: string | null;
   destino: string | null;

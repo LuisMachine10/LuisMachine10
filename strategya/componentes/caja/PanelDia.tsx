@@ -295,6 +295,11 @@ export function PanelDia({
                         {m.recurrenteId ? <span className="etiqueta ok">fijo confirmado</span> : null}
                       </span>
                       <Ruta tipo={m.tipo} cuenta={m.cuenta} destino={m.destino} categoria={m.categoria} cat={cat} />
+                      {m.moneda === "USD" ? (
+                        <span className="caja-item-detalle">
+                          <TasaUSD dop={m.montoDOP} tasa={m.tasaUsada} />
+                        </span>
+                      ) : null}
                       {m.tipo === "pago_tarjeta" && m.interes ? (
                         <span className="caja-item-detalle">
                           capital {enMoneda(new Big(m.monto).minus(m.interes).toFixed(), m.moneda)} · interés {enMoneda(m.interes, m.moneda)} (gasto financiero)
@@ -304,7 +309,6 @@ export function PanelDia({
                     <span className={`caja-item-monto ${m.tipo === "ingreso" ? "sube" : m.tipo === "gasto" ? "baja" : ""}`}>
                       <Signo tipo={m.tipo} />
                       {enMoneda(m.monto, m.moneda)}
-                      {m.moneda === "USD" ? <TasaUSD dop={m.montoDOP} tasa={m.tasaUsada} /> : null}
                     </span>
                   </div>
                   <details className="caja-desplegable">

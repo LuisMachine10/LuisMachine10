@@ -314,7 +314,7 @@ export function parsearImportacion(texto: string): ResultadoImportacion {
     const nota = txt(dia.nota);
     if (nota) notas.push({ fecha, nota });
   }
-  if (sinTasa) advertencias.push(`${sinTasa} movimiento(s) en US$ sin tasa propia y sin tasa general: no moverán saldos hasta que pongas la tasa US$.`);
+  if (sinTasa) advertencias.push(`${sinTasa} movimiento(s) en US$ sin tasa propia: se pasarán a RD$ con el dólar del BCRD de su fecha; si no hay dato, quedan «no confirmado».`);
 
   fechas.sort();
   Object.assign(resumen, {
