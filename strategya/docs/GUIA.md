@@ -100,13 +100,14 @@ La página se actualiza sola.
 | **RD** | Dólar del Banco Central, tasas de los bancos, combustibles, subastas de bonos del Gobierno y rendimientos de fondos de inversión (Excel y AFI Reservas se leen solos). |
 | **News → Todos los titulares** | Titulares de WSJ, FT, CNBC, Bloomberg Línea, elEconomista, Expansión y prensa dominicana, por tema, más la agenda. |
 | **Mapa** | Globo 3D: bolsas, conflictos, rutas de barcos, sismos y huracanes. Toca un punto para ver su tarjeta. |
-| **Portafolio Financiero** | Tus finanzas en un solo lugar. **Mis cuentas**: anotas una sola vez tus cuentas, efectivo, inversiones, bienes, tarjetas y préstamos (el Presupuesto usa esas mismas). **Resumen**: tablero de tarjetas que mueves a tu gusto (patrimonio, participación por categoría, retorno esperado, futuro de cada categoría, aportes del mes, puente e indicadores, riesgos). **Proyecciones**: cómo crece tu dinero con el ahorro de tu Presupuesto y el interés compuesto; confirmas cada aporte con «Sí, lo hice». **Riesgos**: matriz de impacto × probabilidad. También Cartera, Cierre, Política (IPS) y Ajustes. |
-| **Presupuesto** | Cuánto puedes gastar hoy sin pasarte, los pagos que vienen y el saldo de tus cuentas. La primera vez te guía en 4 pasos; en el paso de cuentas eliges las de tu Portafolio (o agregas una nueva, que queda guardada allí). |
+| **Portafolio Financiero** | Tus finanzas en un solo lugar. **Mis cuentas**: anotas una sola vez tus cuentas, efectivo, inversiones, bienes, tarjetas y préstamos, cada una con su **tipo** (el tipo decide cómo rinde y en qué listas sale; ver [`manual-financiero.md`](manual-financiero.md)); el Presupuesto las usa solas. **Resumen**: tablero de tarjetas que mueves a tu gusto (patrimonio, participación por categoría, retorno esperado, futuro de cada categoría, «Lo que planeaste ahorrar este mes», puente e indicadores, riesgos). **Proyecciones**: cómo crece tu dinero con tus líneas de ahorro del Plan del mes, según el tipo de cada instrumento (mutuos con sus renovaciones). **Riesgos**: matriz de impacto × probabilidad. También Cartera, Cierre, Política (IPS) y Ajustes. |
+| **Presupuesto** | Cuánto puedes gastar hoy sin pasarte, los pagos que vienen y el saldo de tus cuentas. **Plan del mes**: tu mes en montos (Ingreso + Otros ingresos − Costos − Gastos − Ahorro − Pagos = Sobrante), tus líneas de ahorro con su instrumento, los cobros de tus inversiones y los pagos de tarjeta con el uso del crédito. La primera vez te guía en 4 pasos (lo que te entra, lo que gastas, tus cuentas y tu colchón); tus cuentas salen solas de Mis cuentas. |
 | **Más → Boletín** | Los boletines que te llegan al correo: Bitácora AM (7:35 AM), Cierre (5:05 PM), Fin de semana (sábado y domingo 7:35 AM) y Tasas RD (lunes 6:40 AM). Cada uno se ve igual que el correo. **Vista previa ahora** lo arma con los datos de este momento sin enviarlo; **Enviar prueba** te lo manda solo a ti. Se arman por reglas, sin IA. Detalle en [`boletin.md`](boletin.md). |
 | **Más → Agregar un dato** | Para escribir a mano una cifra oficial que no llega sola (por ejemplo, un fondo de BHD), siempre con su enlace. |
 | **Más → Ajustes y alertas** | Cuándo quieres que te avisemos (por ejemplo, si el oro sube más de 2 %). |
 | **Más → Estado de las fuentes** | Si una cifra se ve vieja, aquí ves qué fuente falló y por qué. |
 | **Más → Ayuda** | La guía de uso por preguntas, con buscador. |
+| **Términos y privacidad** (`/terminos`, enlace en Ayuda y en el pie) | Tu información es tuya, no se vende ni se comparte, puedes descargarla o borrarla; no es asesoría. La casilla «Acepto los términos y condiciones» se marca una vez por versión (se guardan la versión y la fecha). |
 
 En el celular, la barra de abajo trae Dashboard, News, Mercados, Presupuesto, Portafolio y **Más** (RD y Mapa
 están dentro de Más).
@@ -136,8 +137,13 @@ una sola vez «Unir cuentas repetidas»: confirmas cada par y nada se borra.
 - **Cuentas en dólares**: una cuenta en US$ de Mis cuentas se puede usar en el Presupuesto. Sus movimientos van en US$;
   los totales en RD$ usan el dólar oficial del Banco Central de ese día (se ve cuál) o la tasa que anotes. Sin dato:
   «no confirmado» y no se suma.
-- **Aportes**: en Proyecciones, cada aporte tiene «Sí, lo hice» u «Omitir este mes»; los de meses anteriores sin
-  responder aparecen aparte. Si una inversión vence, te preguntamos a dónde pasar su parte (nada cambia sin tu «Sí»).
+- **Lo que planeaste ahorrar este mes**: en Presupuesto → Plan del mes escribes cada línea (instrumento exacto y monto).
+  Queda **hecha** cuando anotas la transferencia a ese destino (a medias si fue menos); al cerrar el mes dice «más o
+  menos de lo planeado». Las proyecciones usan exactamente esas líneas. El reparto por porcentajes ya no existe.
+- **Préstamo con seguro dentro de la cuota**: en Mis cuentas escribe «Cargos dentro de la cuota». Son gasto aparte y no
+  bajan lo que debes.
+- **Rescate o venta**: una inversión nunca sirve para pagar; para gastar de ella, primero anota «Rescate o venta de
+  inversión» hacia una cuenta.
 - **¿Cuadra todo?**: Portafolio → Ajustes → «Revisar conexión con el Presupuesto».
 
 ### Tarjetas de crédito: corte, fecha límite y dólares
@@ -159,7 +165,7 @@ una sola vez «Unir cuentas repetidas»: confirmas cada par y nada se borra.
 ### Boletín por correo
 
 En **Más → Ajustes y alertas → Boletín por correo** marcas qué ediciones quieres recibir y si llevan
-«Tu dinero» (tu utilidad del mes, patrimonio, aportes pendientes y riesgos altos; solo te llega a ti).
+«Tu dinero» (tu utilidad del mes, patrimonio, lo que planeaste ahorrar y riesgos altos; solo te llega a ti).
 Necesita `RESEND_API_KEY`; sin ella, las ediciones se guardan y se ven en **Más → Boletín**.
 
 ### Alertas

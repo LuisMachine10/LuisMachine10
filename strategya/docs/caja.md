@@ -10,6 +10,7 @@ movimientos, recurrentes y cuadres con su banco); nada se estima ni se rellena.
 | Ruta | Pestaña | Qué hace |
 | --- | --- | --- |
 | `/caja` | Calendario | Puedes gastar hasta…, disponible hoy, deuda en tarjetas, «¿Ya se hizo?», calendario del mes y panel del día |
+| `/caja/plan` | Plan del mes | Núcleo v2 (manual, sección C): Ingreso + Otros ingresos − Costos − Gastos − 1.º Ahorro e inversión − 2.º Pagos = SOBRANTE, plan contra real; líneas de ahorro (instrumento + monto, hecha / a medias / por hacer); cobros de inversiones como Otros ingresos; pagos de tarjeta (varios por ciclo) con el uso del crédito antes y después |
 | `/caja/movimientos` | Movimientos | Lo anotado o marcado como hecho en el mes, por día; asignar categoría a lo que no la tiene |
 | `/caja/resultados` | Estado de resultados | El mes: presupuestado, real, diferencia (a favor / en contra) y % cumplido, con barras |
 | `/caja/ajustes` | Configuración | **El único lugar** de las categorías (por tipo) con sus fijos y su monto adicional; cuentas; general; importar |
@@ -23,10 +24,16 @@ lo que viene en 7 días.
 ## Las cuentas salen del Portafolio (registro único)
 
 Las cuentas del Presupuesto son las de Portafolio → Mis cuentas (`caja_cuentas.registro_id`, ver docs/capital.md).
-El asistente, en «Tus cuentas hoy», elige del registro (o agrega una nueva, que queda en el Portafolio);
-Configuración permite «Usar una cuenta que ya está en tu Portafolio» y «Quitar del Presupuesto» (sigue en el
-Portafolio). Tipo nuevo de cuenta: `prestamo` (deuda, como la tarjeta). El saldo de hoy es el mismo en las dos
-pantallas.
+Núcleo v2: **todas** las filas del registro de tipos que pagan o reciben dinero se enlazan **solas**
+(`personal.enlazar_registro()`, trigger al crear o cambiar una fila; la migración `20261029000100_nucleo_v2.sql` enlazó
+las existentes sin borrar nada). Ya no existen «Usar una cuenta que ya está en tu Portafolio» ni «Quitar del
+Presupuesto». Cada formulario muestra solo las cuentas que sirven según su tipo (`lib/finanzas/catalogo.ts`, la misma
+tabla que valida la base: trigger `caja_validar_cuentas`). Las inversiones por unidades (acciones, fondos por cuotas)
+no viven en el Presupuesto: se eligen como destino de un ahorro o origen de un rescate («r:<id>» → `registro_destino` /
+`registro_origen`). El asistente ya no pide un monto de ahorro: el ahorro se arma en Plan del mes, línea por línea.
+Tipo de cuenta `prestamo` (deuda, como la tarjeta); los **cargos dentro de la cuota** (`caja_movimientos.cargos`) son
+gasto aparte y no bajan la deuda. El saldo de hoy es el mismo en las dos pantallas. Reglas completas en
+[`manual-financiero.md`](manual-financiero.md).
 
 ## Todo enlazado: la categoría es la única fuente
 

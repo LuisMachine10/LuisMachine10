@@ -10,15 +10,8 @@ import { CamposMovimiento, cuentasDe, type Modo, type OpcionCategoria, type Opci
 import { FormAccion } from "./FormAccion";
 import { Icono } from "./Iconos";
 
-const TEXTO: Record<Modo, { titulo: string; boton: string }> = {
-  ingreso: { titulo: "Anotar un ingreso", boton: "Guardar ingreso" },
-  gasto: { titulo: "Anotar un gasto", boton: "Guardar gasto" },
-  ahorro: { titulo: "Ahorrar o invertir", boton: "Guardar ahorro" },
-  mover: { titulo: "Mover entre mis cuentas", boton: "Guardar" },
-  pago_deuda: { titulo: "Pagar una tarjeta o un préstamo", boton: "Guardar pago" },
-  cambio: { titulo: "Cambio de moneda", boton: "Guardar cambio" },
-  rescate: { titulo: "Rescate o venta de inversión", boton: "Guardar rescate" },
-};
+// Un solo título: «¿Qué pasó?» dice el tipo y se puede cambiar dentro de la ventana (el título no queda desfasado).
+const TEXTO = { titulo: "Anotar un movimiento", boton: "Guardar" };
 
 export function NuevoMovimiento({
   tipo,
@@ -40,7 +33,7 @@ export function NuevoMovimiento({
     if (tipo && !d.open) d.showModal();
     if (!tipo && d.open) d.close();
   }, [tipo]);
-  const t = TEXTO[tipo ?? "gasto"];
+  const t = TEXTO;
   return (
     <dialog ref={ref} className="caja-dialogo" aria-labelledby="t-nuevo-mov" onClose={cerrar} onClick={(e) => e.target === ref.current && cerrar()}>
       {tipo ? (

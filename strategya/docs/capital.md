@@ -1,7 +1,7 @@
 # Portafolio Financiero (antes «Mis inversiones» / Mena Capital)
 
 > **Novedades (oct. 2026):** registro único «Mis cuentas, activos y deudas» enlazado con el Presupuesto,
-> Resumen con widgets editables, proyecciones con aportes del Presupuesto y matriz de riesgo 3×3. Ver la
+> Resumen con widgets editables, proyecciones con las líneas de ahorro del Plan del mes y matriz de riesgo 3×3. Ver la
 > sección «Registro único» al final.
 
 
@@ -195,18 +195,25 @@ registro.
 `WIDGETS_PORTAFOLIO` (`lib/dashboard/widgets.ts`), guardado en `personal.preferencias` clave `portafolio`.
 Componentes en `componentes/capital/WidgetsPortafolio.tsx`.
 
-## Proyecciones con aportes del Presupuesto (`lib/capital/proyeccion.ts`, con pruebas)
+## Proyecciones con las líneas del Plan del mes (Núcleo v2, `lib/capital/proyeccion.ts`, con pruebas)
 
-Ahorro del mes = `presupuestado.ahorro` de `personal.resultado_mes` (= `presupuesto_ahorro_mensual`). Reparto por
-clase (`parametros.planClases`, o la meta de la Política) y por instrumento (`aporte_pct`, o partes iguales).
-Mes a mes con big.js: tasa anual ÷ 12; capitaliza o paga cada 1/3/6/12 meses o al vencer; reinvierte o cobra;
-aporte al final del mes desde `plan_inicio`; al vencer deja de ganar y de recibir aportes. Sin plan escrito se
-supone que capitaliza (los de cupón cobran cada mes) y la pantalla lo dice.
+Reglas completas en [`manual-financiero.md`](manual-financiero.md). Cada fila de `personal.activos` tiene un `tipo`
+del catálogo (`lib/finanzas/catalogo.ts`; columna `tipo`, `tipo_confirmado`, y lo elegible: `capitaliza`, `paga_a`,
+`retencion`, `comision_admin`, `plazo_dias`, `renovaciones`, `tiene_debito`, `cargos_cuota`; cada cambio de tipo se
+anota en `cambios_tipo`). El tipo decide cómo rinde en la proyección: cuenta de ahorro con tasa 0; alto rendimiento
+capitaliza; certificado **elegible** (sin elegir, su interés no se proyecta y se pide elegir); mutuo con renovaciones
+manuales (`lib/finanzas/mutuo.ts`); bono y acción pagan a una cuenta; fondo abierto implícito en el valor cuota.
+Retención por defecto 10 % en certificados; comisión de puesto de bolsa opcional («no confirmada» si falta).
 
-«Sí, lo hice» (`confirmarAporte`): una compra en `personal.transacciones` con `aporte_mes` y, si salió de una
-cuenta del Presupuesto, un movimiento allá (transferencia a la cuenta enlazada, o gasto con categoría de ahorro e
-inversión) guardado en `movimiento_id`: cuenta como ahorro realizado en el estado de resultados, sin anotarlo dos
-veces. Si el instrumento no está enlazado, su saldo sube directo.
+Aportes = **exactamente** las líneas de «Lo que planeaste ahorrar este mes» (`aportesProyeccion` en
+`lib/finanzas/plan.ts`): cada fijo de ahorro e inversión del Presupuesto hacia un instrumento exacto, en su moneda.
+Se acabaron el reparto por porcentajes (`parametros.planClases`, `aporte_pct`), «Sí, lo hice / Omitir este mes»,
+«De meses anteriores» y «¿a dónde va su parte?» de los vencidos: esos datos viejos quedan en la base sin usarse (no se
+borró nada; no se convirtieron a montos porque no había montos equivalentes) y la pantalla lo dice en una línea. Una
+línea se marca hecha registrando la transferencia (`registrarLinea`).
+
+El € se valora con el cruce BCE EUR/USD × BCRD USD/DOP de la misma fecha (`cruceEurDop`); el € manual de Ajustes ya
+no se usa (se conserva lo guardado).
 
 ## Matriz de riesgo (`lib/capital/matriz.ts`, con pruebas)
 
@@ -218,16 +225,8 @@ Los avisos puntuales de antes (vencimientos, tipo de cambio viejo…) siguen baj
 
 ## Fase F (oct. 2026)
 
-- **Aportes del mes** (`lib/capital/aportes.ts`, `componentes/capital/Aportes.tsx`): junto a «Sí, lo hice» está
-  «Omitir este mes» (motivo opcional; se guarda en `personal.preferencias`, clave `aportes`: instrumento, mes y
-  motivo, sin cifras; «Deshacer» lo vuelve pendiente). Debajo, «De meses anteriores, sin responder»: los aportes de
-  los meses desde que empezó el Presupuesto (máx. 12) sin confirmar ni omitir, con el ahorro presupuestado de ese mes
-  × el reparto de hoy. «Sí, lo hice» acepta un mes anterior y, desde una cuenta del Presupuesto, exige la misma moneda
-  que la inversión (RD$ o US$).
-- **Vencidos**: un instrumento vencido ya no pasa su parte sola a los demás. Queda «sin destino» y Proyecciones muestra
-  «Venció una inversión: ¿a dónde va su parte?». Elegir el destino abre la **pantalla de confirmación** (antes y
-  después); solo «Sí, pasar su parte» escribe el reparto (`reubicarParte`: misma categoría → `aporte_pct`; otra
-  categoría → también `parametros.planClases`).
+- **Aportes del mes** y **vencidos «¿a dónde va su parte?»**: reemplazados en el Núcleo v2 por las líneas del Plan del
+  mes (ver «Proyecciones…» arriba). `lib/capital/aportes.ts` ya no existe.
 - **Préstamos y tarjetas**: el saldo de una deuda enlazada baja solo por el capital de cada pago (ver docs/caja.md).
 - **Ajustes → «Revisar conexión con el Presupuesto»** (`lib/capital/conexion.ts`): por cada cuenta enlazada, el saldo
   de hoy en Mis cuentas y en el calendario del Presupuesto, ✓ o la diferencia y por qué (fijos de hoy sin confirmar,

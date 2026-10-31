@@ -143,7 +143,7 @@ export function PanelPlanAhorro({ datos, mes, volver = "/capital/futuro", compac
     >
       {plan.lineas.length ? (
         <>
-          <ul className="ap-lista">
+          <ul className={compacto ? "ap-lista compacta" : "ap-lista"}>
             {plan.lineas.map((l) => (
               <Linea key={l.recurrente.id} l={l} datos={datos} mes={plan.mes} volver={volver} compacto={compacto} />
             ))}

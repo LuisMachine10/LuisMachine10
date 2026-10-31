@@ -132,17 +132,15 @@ export function VistaAjustes({ datos, mes }: Props) {
         <form action={guardarParametros} className="cap-form" key={JSON.stringify([p.fx, p.fxUpdated])}>
           <Comun seccion="fx" mes={mes} />
           <p className="tenue chico" style={{ margin: 0 }}>
-            Para US$ se usa el dólar de venta del BCRD cuando está guardado; este queda de respaldo. Para € siempre se usa este.
+            Respaldo: solo si no hay dólar de venta del BCRD guardado. El € usa el cruce oficial BCE × BCRD.
           </p>
           <div className="cap-campos">
             <label className="cap-campo">
               US$ → RD$
               <input name="fx.USD" defaultValue={p.fx.USD ?? ""} inputMode="decimal" placeholder="Ej.: 60.25" />
             </label>
-            <label className="cap-campo">
-              € → RD$
-              <input name="fx.EUR" defaultValue={p.fx.EUR ?? ""} inputMode="decimal" placeholder="Ej.: 66.10" />
-            </label>
+            {/* El € a mano ya no se usa (manual, sección A); se conserva lo guardado sin mostrarlo. */}
+            <input type="hidden" name="fx.EUR" value={p.fx.EUR ?? ""} />
             <label className="cap-campo">
               Actualizado el
               <input type="date" name="fxUpdated" defaultValue={p.fxUpdated ?? ""} />
