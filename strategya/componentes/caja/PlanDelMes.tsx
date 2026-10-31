@@ -7,7 +7,8 @@
 
 import type Big from "big.js";
 import Link from "next/link";
-import { eliminarRecurrente, guardarLineaAhorro, guardarRecurrente } from "@/app/caja/acciones";
+import { agregarCobroFijo, eliminarRecurrente, guardarLineaAhorro, guardarRecurrente } from "@/app/caja/acciones";
+import { type CobroEsperado, nombreCobro } from "@/lib/finanzas/cobros";
 import { type Fecha, fechaBreve, nombreMes } from "@/lib/caja/fechas";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import type { Simulacion } from "@/lib/caja/motor";
@@ -56,7 +57,9 @@ export function VistaPlanDelMes({
   categorias,
   hoy,
   nombres,
+  cobros = [],
 }: {
+  cobros?: CobroEsperado[];
   plan: PlanDelMes;
   tarjetas: PlanTarjeta[];
   datos: DatosCaja;
@@ -117,6 +120,58 @@ export function VistaPlanDelMes({
           {plan.sinTasa ? <p className="chico tenue">{plan.sinTasa} monto(s) en US$ sin dólar del BCRD de su fecha: no se sumaron (no confirmado).</p> : null}
         </div>
       </section>
+
+      {cobros.length ? (
+        <section className="panel panel-ancho" aria-labelledby="t-plan-cobros">
+          <div className="panel-cabecera">
+            <h2 className="panel-titulo" id="t-plan-cobros">
+              Otros ingresos: lo que te pagan tus inversiones
+            </h2>
+            <span className="chico tenue">intereses, cupones y dividendos a tus cuentas</span>
+          </div>
+          <div className="panel-cuerpo">
+            <ul className="caja-lista">
+              {cobros.map((x) => (
+                <li key={x.instrumento.id} className="caja-item">
+                  <div className="caja-item-fila">
+                    <span className="caja-item-texto">
+                      <span className="caja-item-nombre">{x.instrumento.nombre}</span>
+                      <span className="caja-item-detalle">
+                        cae en {nombres[x.cuentaCaja ?? ""] ?? "una cuenta que no está en el Presupuesto"} · calculado con tu tasa y la retención (lo real es lo que te llegue)
+                      </span>
+                    </span>
+                    <span className="caja-item-monto">≈ {enMoneda(x.alMes.toFixed(2), x.instrumento.moneda === "USD" ? "USD" : "DOP")} al mes</span>
+                  </div>
+                  {x.fijo ? (
+                    <p className="chico tenue" style={{ margin: "4px 0 0" }}>
+                      Ya está en tu plan como «{x.fijo.nombre}» (Otros ingresos).
+                    </p>
+                  ) : x.cuentaCaja && (x.instrumento.moneda === "DOP" || x.instrumento.moneda === "USD") ? (
+                    <details className="caja-desplegable">
+                      <summary>Agregar como cobro fijo (Otros ingresos)</summary>
+                      <FormAccion accion={agregarCobroFijo} boton="Agregar al plan" etiqueta={`Cobro de ${x.instrumento.nombre}`}>
+                        <input type="hidden" name="nombre" value={nombreCobro(x.instrumento)} />
+                        <input type="hidden" name="cuenta" value={x.cuentaCaja} />
+                        <input type="hidden" name="moneda" value={x.instrumento.moneda} />
+                        <div className="caja-campos">
+                          <label>
+                            Monto cada mes
+                            <input name="monto" inputMode="decimal" required defaultValue={x.alMes.toFixed(2)} autoComplete="off" />
+                          </label>
+                          <label>
+                            Día del mes en que te llega
+                            <input name="dias" required defaultValue="30" inputMode="numeric" autoComplete="off" />
+                          </label>
+                        </div>
+                      </FormAccion>
+                    </details>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ) : null}
 
       <section className="panel panel-ancho" aria-labelledby="t-plan-lineas" id="t-plan-lineas">
         <div className="panel-cabecera">

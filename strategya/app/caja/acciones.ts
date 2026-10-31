@@ -354,6 +354,35 @@ export async function guardarLineaAhorro(_p: EstadoAccion, form: FormData): Prom
   );
 }
 
+/**
+ * «Agregar como cobro fijo»: el interés, cupón o dividendo que una inversión paga a una cuenta entra al plan como
+ * «Otros ingresos» (categoría «Intereses y dividendos», de tipo otro ingreso; se crea si no hay ninguna).
+ */
+export async function agregarCobroFijo(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
+  const c = campos(form);
+  const datos = await cajaParaValidar();
+  if (typeof datos === "string") return mal(datos);
+  const db = await personal();
+  let categoria = datos.categorias.find((k) => k.tipo === "otro_ingreso" && k.nombre === "Intereses y dividendos")?.id ?? datos.categorias.find((k) => k.tipo === "otro_ingreso")?.id ?? null;
+  if (!categoria) {
+    const nueva = await db.from("caja_categorias").insert({ nombre: "Intereses y dividendos", tipo: "otro_ingreso" }).select("id").single();
+    const e = errorBase(nueva.error, "crear la categoría de otros ingresos");
+    if (e) return e;
+    categoria = (nueva.data as { id: string }).id;
+  }
+  const r = validarRecurrente({ ...c, tipo: "ingreso", categoria, frecuencia: "mensual" });
+  if (!r.ok) return mal(r.error);
+  const v = r.valor;
+  const lista = await revisarListas({ fecha: hoyRD(), tipo: "ingreso", monto: v.monto, moneda: v.moneda, tasa: null, cuenta: v.cuenta, destino: null, categoria, nota: null, recurrenteId: null }, datos);
+  if (lista) return mal(lista);
+  return guardarEn(
+    "caja_recurrentes",
+    undefined,
+    { nombre: v.nombre, tipo: "ingreso", monto: v.monto, moneda: v.moneda, pago_total: false, cuenta: v.cuenta, destino: null, categoria, frecuencia: "mensual", dias: v.dias, activo: true },
+    "el cobro fijo",
+  );
+}
+
 /** Los movimientos que ya lo confirmaron se quedan (son historia); sus omitidos se borran. */
 export async function eliminarRecurrente(_p: EstadoAccion, form: FormData): Promise<EstadoAccion> {
   const id = String(form.get("id") ?? "");

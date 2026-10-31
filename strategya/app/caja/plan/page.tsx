@@ -11,6 +11,7 @@ import { esMes, hoyRD, mesDe, ultimoDia } from "@/lib/caja/fechas";
 import { horizonte, simular } from "@/lib/caja/motor";
 import { catalogos } from "@/lib/caja/vista";
 import { leerRegistro } from "@/lib/capital/datos-registro";
+import { cobrosEsperados } from "@/lib/finanzas/cobros";
 import { planTarjetas } from "@/lib/finanzas/credito";
 import { planDelMes } from "@/lib/finanzas/plan";
 
@@ -58,7 +59,7 @@ export default async function PaginaPlan({ searchParams }: { searchParams: Promi
           d={{ fuente: "Tus registros · fijos, líneas de ahorro y movimientos", url: null, fechaDato: hoy, verificadoEn: editadoEn, desactualizado: false, ultimaCorridaFallo: false }}
         />
       </div>
-      <VistaPlanDelMes plan={plan} tarjetas={tarjetas} datos={datos} cuentas={cuentas} categorias={categorias} hoy={hoy} nombres={nombres} />
+      <VistaPlanDelMes plan={plan} tarjetas={tarjetas} datos={datos} cuentas={cuentas} categorias={categorias} hoy={hoy} nombres={nombres} cobros={cobrosEsperados(registro, datos)} />
     </MarcoCaja>
   );
 }
