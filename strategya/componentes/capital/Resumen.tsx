@@ -362,7 +362,6 @@ export function VistaResumen({ datos, mes, disposicion, avisoDisposicion, prefRe
           intro={
             <header className="pf-intro">
               <h2>Resumen de {mesLargo(mes)}</h2>
-              <p>Mueve, agranda u oculta cada tarjeta con «Editar mi resumen».</p>
             </header>
           }
         />

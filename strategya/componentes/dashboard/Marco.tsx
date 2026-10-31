@@ -35,7 +35,6 @@ export function Marco({
             {ficha.titulo}
             {extra ? <> {extra}</> : null}
           </h2>
-          <p className="dash-w-que">{ficha.que}</p>
         </div>
         {enlace ? (
           <Link href={enlace.href} className="dash-w-enlace">
@@ -45,10 +44,7 @@ export function Marco({
         ) : null}
       </header>
       <div className="dash-w-cuerpo">{children}</div>
-      {pie ? <footer className="dash-w-pie">{pie}  <p className="pie-legal">
-          <a href="/terminos">Términos y privacidad</a>
-        </p>
-      </footer> : null}
+      {pie ? <footer className="dash-w-pie">{pie}</footer> : null}
     </section>
   );
 }

@@ -19,7 +19,7 @@ import { MarcoCaja } from "@/componentes/caja/MarcoCaja";
 import { PanelError } from "@/componentes/PanelError";
 import { leerCaja } from "@/lib/caja/datos";
 import { leerRegistro } from "@/lib/capital/datos-registro";
-import { fechaBreve, hoyRD, mesDe, nombreMes } from "@/lib/caja/fechas";
+import { fechaBreve, hoyRD, mesDe } from "@/lib/caja/fechas";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { estadoDeResultados, fijosDelMes } from "@/lib/caja/resultados";
 import {
@@ -28,7 +28,6 @@ import {
   type Cuenta,
   esDeuda,
   NOMBRE_FRECUENCIA,
-  NOMBRE_TIPO,
   NOMBRE_TIPO_CATEGORIA,
   NOMBRE_TIPO_CATEGORIA_UNO,
   NOMBRE_TIPO_CUENTA,
@@ -40,11 +39,11 @@ import {
 } from "@/lib/caja/tipos";
 import { catalogos } from "@/lib/caja/vista";
 import { cicloVigente, lineaCiclo } from "@/lib/caja/ciclo";
+import { nombreDeMovimiento } from "@/lib/caja/nombre-movimiento";
 
 export const metadata: Metadata = { title: "Configuración · Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
 
-const SUB = "Aquí, en un solo lugar, pones tus categorías con lo que esperas de cada una y tus pagos fijos. El calendario, los movimientos y el estado de resultados usan esta misma lista.";
 
 const EJEMPLO_CATEGORIA: Record<TipoCategoria, string> = {
   ingreso: "Ej.: Sueldo",
@@ -186,7 +185,7 @@ export default async function PaginaConfiguracion() {
     lectura = await leerCaja();
   } catch (e) {
     return (
-      <MarcoCaja actual="configuracion" editadoEn={null} sub={SUB}>
+      <MarcoCaja actual="configuracion" editadoEn={null}>
         <PanelError titulo="Configuración del presupuesto" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
@@ -218,7 +217,7 @@ export default async function PaginaConfiguracion() {
               {r.activo ? null : <span className="etiqueta neutra">en pausa</span>}
             </span>
             <span className="caja-item-detalle">
-              {NOMBRE_TIPO[r.tipo]} · {nombreCuenta(r.cuenta)}
+              {nombreDeMovimiento(r, datos.cuentas, datos.categorias)} · {nombreCuenta(r.cuenta)}
               {r.destino ? ` → ${nombreCuenta(r.destino)}` : ""} · {describirRecurrente(r)}
             </span>
           </span>
@@ -242,7 +241,7 @@ export default async function PaginaConfiguracion() {
   };
 
   return (
-    <MarcoCaja actual="configuracion" editadoEn={editadoEn} sub={SUB}>
+    <MarcoCaja actual="configuracion" editadoEn={editadoEn}>
       {!cfg ? (
         <section className="panel panel-ancho caja-aviso-panel">
           <div>
@@ -256,46 +255,12 @@ export default async function PaginaConfiguracion() {
         </section>
       ) : null}
 
-      <section className="panel panel-ancho caja-conf-mes" aria-labelledby="t-conf-mes">
-        <div className="panel-cabecera">
-          <h2 className="panel-titulo" id="t-conf-mes">
-            Así queda tu mes presupuestado · {nombreMes(mes)}
-          </h2>
-          <Link href="/caja/resultados" className="caja-enlace-flecha">
-            Ver el estado de resultados <Icono n="derecha" tam={16} />
-          </Link>
-        </div>
-        <ol className="caja-conf-cadena" aria-label="Cuenta del mes presupuestado">
-          <li>
-            <span>Ingresos</span>
-            <strong className="mono">{rd(new Big(e.secciones.ingreso.presupuestado).plus(e.secciones.otro_ingreso.presupuestado).toString())}</strong>
-          </li>
-          <li>
-            <span>− Costos y gastos</span>
-            <strong className="mono">{rd(e.gastosTotales.presupuestado)}</strong>
-          </li>
-          <li className="total">
-            <span>= Utilidad neta</span>
-            <strong className={`mono ${new Big(e.utilidadNeta.presupuestado).lt(0) ? "baja" : "sube"}`}>{rd(e.utilidadNeta.presupuestado)}</strong>
-          </li>
-          <li>
-            <span>− Ahorro e inversión</span>
-            <strong className="mono">{rd(e.secciones.ahorro_inversion.presupuestado)}</strong>
-          </li>
-          <li className="total">
-            <span>= Te queda disponible</span>
-            <strong className={`mono ${new Big(e.disponible.presupuestado).lt(0) ? "baja" : ""}`}>{rd(e.disponible.presupuestado)}</strong>
-          </li>
-        </ol>
-      </section>
-
       {sinCategoria.length ? (
         <section className="panel panel-ancho caja-conf-sin" id="sin-categoria" aria-labelledby="t-sin-cat">
           <div className="panel-cabecera">
             <h2 className="panel-titulo" id="t-sin-cat">
               <Icono n="aviso" tam={18} /> Asígnale una categoría ({sinCategoria.length})
             </h2>
-            <span className="chico tenue">Estos pagos fijos no tienen categoría: así no caen en su línea del estado de resultados.</span>
           </div>
           <ul className="panel-cuerpo caja-lista caja-conf-rejilla">
             {sinCategoria.map((r) => (
@@ -304,7 +269,7 @@ export default async function PaginaConfiguracion() {
                   <span className="caja-item-texto">
                     <span className="caja-item-nombre">{r.nombre}</span>
                     <span className="caja-item-detalle">
-                      {NOMBRE_TIPO[r.tipo]} · {describirRecurrente(r)}
+                      {nombreDeMovimiento(r, datos.cuentas, datos.categorias)} · {describirRecurrente(r)}
                     </span>
                   </span>
                   <span className={`caja-item-monto ${r.tipo === "ingreso" ? "sube" : ""}`}>{enMoneda(r.monto, r.moneda)}</span>
@@ -394,9 +359,7 @@ export default async function PaginaConfiguracion() {
                       );
                     })}
                   </ul>
-                ) : (
-                  <p className="chico tenue caja-conf-vacio">{AYUDA_TIPO_CATEGORIA[t]}</p>
-                )}
+                ) : null}
                 <details className="caja-desplegable caja-conf-nueva" open={!cats.length && (t === "ingreso" || t === "gasto")}>
                   <summary>+ Agregar en {NOMBRE_TIPO_CATEGORIA[t].toLowerCase()}</summary>
                   <FormAccion accion={guardarCategoria} boton="Crear categoría" reiniciar etiqueta={`Nueva categoría en ${NOMBRE_TIPO_CATEGORIA[t]}`}>
@@ -419,11 +382,7 @@ export default async function PaginaConfiguracion() {
           </Link>
         </div>
         <div className="panel-cuerpo">
-          <p className="chico tenue" style={{ marginTop: 0 }}>
-            Salen SOLAS de tu Portafolio Financiero («Mis cuentas, activos y deudas») según su tipo: efectivo, cuentas, tarjetas, préstamos y las inversiones de saldo
-            aparecen aquí sin que hagas nada. Cada formulario muestra solo las que sirven (por ejemplo, una inversión nunca sale en «¿Con qué pagaste?»). Lo que cambies aquí
-            también cambia allá.
-          </p>
+          <p className="chico tenue" style={{ marginTop: 0 }}>Salen solas de Mis cuentas según su tipo.</p>
           <ul className="caja-lista">
             {[...datos.cuentas]
               .sort((a, b) => a.orden - b.orden)

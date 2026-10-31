@@ -144,7 +144,6 @@ export function SelectParte({ valor, alCambiar }: { valor?: Moneda | null; alCam
         <option value="DOP">La parte en RD$ (pesos)</option>
         <option value="USD">La parte en US$ (dólares)</option>
       </select>
-      <span className="caja-campo-ayuda">Esta tarjeta tiene límite en pesos y en dólares. Si pagas la parte en US$ desde una cuenta en RD$, se convierte con la tasa que escribas o el dólar del BCRD de ese día.</span>
     </label>
   );
 }
@@ -269,6 +268,12 @@ export function CamposMovimiento({
     const c = buscar(cid);
     if (c && modo !== "cambio") setMoneda(c.moneda ?? "DOP");
   };
+  // Al cambiar de «¿Qué pasó?», se suelta la cuenta que no va en la lista nueva (no queda «elegida» una que no sirve).
+  const cambiarModo = (m: Modo) => {
+    setModo(m);
+    if (origen && !cuentasDe(cuentas, m, "origen").some((c) => c.id === origen)) setOrigen("");
+    if (destino && !cuentasDe(cuentas, m, "destino").some((c) => c.id === destino)) setDestino("");
+  };
   const f = FORMULARIO_DE[modo];
   const pregunta = (rol: Rol) => (modo === "mover" ? (rol === "origen" ? "Sale de" : "Entra a") : (PREGUNTA[f][modo === "ingreso" || modo === "gasto" ? "cuenta" : rol] ?? ""));
   return (
@@ -283,7 +288,7 @@ export function CamposMovimiento({
       </div>
       <label>
         ¿Qué pasó?
-        <select value={modo} onChange={(e) => setModo(e.target.value as Modo)} aria-describedby={`${id}-ayuda-modo`}>
+        <select value={modo} onChange={(e) => cambiarModo(e.target.value as Modo)} aria-describedby={`${id}-ayuda-modo`}>
           {MODOS.map((m) => (
             <option key={m} value={m}>
               {NOMBRE_MODO[m]}
@@ -305,7 +310,6 @@ export function CamposMovimiento({
         <label className="ancho">
           Tasa: cuántos RD$ por US$ {modo === "cambio" ? "(la que te dieron)" : "(opcional)"}
           <input name="tasa" inputMode="decimal" autoComplete="off" defaultValue={v.tasa ?? ""} placeholder="Vacío = el dólar oficial del BCRD de ese día" />
-          <span className="caja-campo-ayuda">Si tu banco te cobró otra tasa, escríbela. Sin ninguna, el monto queda «no confirmado» en tus totales en RD$.</span>
         </label>
       ) : null}
       <SelectCuenta key={`o-${modo}`} nombre="cuenta" valor={origen || null} cuentas={origenes} className={conDestino ? undefined : "ancho"} etiqueta={pregunta("origen")} alCambiar={alCambiarCuenta} />
@@ -325,7 +329,6 @@ export function CamposMovimiento({
         <label className="ancho">
           {modo === "ahorro" ? "Unidades que compraste" : "Unidades que vendiste"} <span className="tenue">(opcional)</span>
           <input name="unidades" inputMode="decimal" autoComplete="off" placeholder="Ej.: 2" />
-          <span className="caja-campo-ayuda">Si no las escribes, actualízalas luego en Mis cuentas (no las adivinamos).</span>
         </label>
       ) : null}
       {tipo === "pago_tarjeta" ? (
@@ -334,8 +337,8 @@ export function CamposMovimiento({
           <input name="capital" inputMode="decimal" autoComplete="off" defaultValue={capitalPrevio} placeholder={tasaDeuda ? "Vacío = lo calculamos con tu tasa" : "Vacío = todo fue capital"} />
           <span className="caja-campo-ayuda">
             {tasaDeuda
-              ? `Lo que debes baja solo por el capital. Vacío: el interés del mes se calcula con la tasa de «${deuda!.nombre}» en tu Portafolio (${tasaDeuda.times(100).toFixed(2)} % al año: lo que debías × tasa ÷ 12) y va a gastos financieros.`
-              : "Lo que debes baja solo por el capital. En una tarjeta, el interés es solo el que dice tu estado de cuenta: escribe aquí el capital y el resto va a gastos financieros. Vacío = todo fue capital."}
+              ? `Vacío: interés = lo que debías × ${tasaDeuda.times(100).toFixed(2)} % ÷ 12.`
+              : "El resto va a gastos financieros (en tarjeta, el interés de tu estado de cuenta)."}
           </span>
         </label>
       ) : null}

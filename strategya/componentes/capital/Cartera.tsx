@@ -2,7 +2,6 @@
 // precios de mercado, retorno realizado, P&L por posición, libro de transacciones y ajustes
 // (tipo de cambio manual y tarjetas). Importar queda como opción secundaria en la cabecera.
 
-import Link from "next/link";
 import { agregarInstrumento, eliminarActivo, eliminarTransaccion, guardarActivo, registrarTransaccion } from "@/app/capital/acciones";
 import { CERO, desdeFlotante, n } from "@/lib/capital/decimal";
 import { aPct } from "@/lib/capital/formulario";
@@ -65,7 +64,6 @@ function AgregarInstrumento({ datos, mes }: Props) {
           <Icono nombre="mas" />
           Agregar instrumento
         </span>
-        <span className="tenue chico">Nombre, clase, moneda y monto. Lo demás es opcional.</span>
       </summary>
       <div className="cuerpo">
         <form action={agregarInstrumento} className="cap-form cap-form-instrumento">
@@ -610,10 +608,6 @@ export function VistaCartera({ datos, mes }: Props) {
       <PanelPrecios datos={datos} />
       <PanelPL datos={datos} />
       <Transacciones datos={datos} mes={mes} />
-      <p className="cap-nota cap-ancho">
-        Tus cuentas de banco, tarjetas y deudas se anotan en <Link href={`/capital/cuentas?mes=${mes}`}>Mis cuentas</Link>; el tipo de cambio manual y tus datos, en{" "}
-        <Link href={`/capital/ajustes?mes=${mes}`}>Ajustes</Link>.
-      </p>
     </>
   );
 }

@@ -9,14 +9,14 @@ import { Icono } from "./Iconos";
 import { SelectorMes } from "./SelectorMes";
 
 export const PESTANAS = [
-  { id: "resumen", ruta: "/capital", nombre: "Resumen", para: "Tu dinero de un vistazo: cuánto tienes por categoría, cuánto rinde y hacia dónde va. Arma el tablero a tu gusto." },
-  { id: "cuentas", ruta: "/capital/cuentas", nombre: "Mis cuentas", para: "Aquí anotas una sola vez tus cuentas, inversiones, bienes y deudas. El Presupuesto usa estas mismas cuentas." },
-  { id: "cartera", ruta: "/capital/cartera", nombre: "Cartera", para: "Tus inversiones una por una: cuánto vale cada una, qué ganó y el libro de compras y ventas." },
-  { id: "futuro", ruta: "/capital/futuro", nombre: "Proyecciones", para: "Cómo crecería tu dinero con lo que ahorras cada mes y el interés compuesto. Confirmas cada aporte cuando lo haces." },
-  { id: "analisis", ruta: "/capital/analisis", nombre: "Riesgos", para: "Qué tan expuesto estás: liquidez, concentración, dólar y deuda, en una matriz fácil de leer." },
-  { id: "cierre", ruta: "/capital/cierre", nombre: "Cierre", para: "Cierras el mes: anotas lo que entró y salió, y se congela la foto de tu patrimonio." },
-  { id: "ips", ruta: "/capital/ips", nombre: "Política", para: "Tus reglas de inversión por escrito, comparadas con tu cartera real." },
-  { id: "ajustes", ruta: "/capital/ajustes", nombre: "Ajustes", para: "Los límites que usan los riesgos, el tipo de cambio manual y tus datos." },
+  { id: "resumen", ruta: "/capital", nombre: "Resumen" },
+  { id: "cuentas", ruta: "/capital/cuentas", nombre: "Mis cuentas" },
+  { id: "cartera", ruta: "/capital/cartera", nombre: "Cartera" },
+  { id: "futuro", ruta: "/capital/futuro", nombre: "Proyecciones" },
+  { id: "analisis", ruta: "/capital/analisis", nombre: "Riesgos" },
+  { id: "cierre", ruta: "/capital/cierre", nombre: "Cierre" },
+  { id: "ips", ruta: "/capital/ips", nombre: "Política" },
+  { id: "ajustes", ruta: "/capital/ajustes", nombre: "Ajustes" },
 ] as const;
 /** «importar» no es pestaña: es una acción secundaria en la cabecera. */
 export type Pestana = (typeof PESTANAS)[number]["id"] | "importar";
@@ -61,9 +61,6 @@ export function Marco({
         <div className="cap-cabeza-fila">
           <div>
             <h1 className="cap-h1">Portafolio Financiero</h1>
-            <p className="cap-bajada">
-              <strong>Tus finanzas en un solo lugar.</strong> {PESTANAS.find((p) => p.id === actual)?.para ?? "Importa el archivo de tu artefacto, si lo tienes."} Solo tú lo ves.
-            </p>
           </div>
           <div className="cap-cabeza-acciones">
             {actual !== "importar" && actual !== "ips" && actual !== "cuentas" && actual !== "ajustes" ? <SelectorMes mes={mes} opciones={opcionesDeMes(hoyMes, conCierre, cerrados)} /> : null}

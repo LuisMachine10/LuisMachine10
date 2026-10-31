@@ -10,14 +10,14 @@ import { CamposMovimiento, cuentasDe, type Modo, type OpcionCategoria, type Opci
 import { FormAccion } from "./FormAccion";
 import { Icono } from "./Iconos";
 
-const TEXTO: Record<Modo, { titulo: string; sub: string; boton: string }> = {
-  ingreso: { titulo: "Anotar un ingreso", sub: "Dinero que te entró ese día. Cae en su categoría del estado de resultados.", boton: "Guardar ingreso" },
-  gasto: { titulo: "Anotar un gasto", sub: "Lo que pagaste ese día. Baja tu disponible y cae en su categoría del estado de resultados.", boton: "Guardar gasto" },
-  ahorro: { titulo: "Ahorrar o invertir", sub: "Lo que apartas hacia tu ahorro o una inversión. Si es una línea de tu plan del mes, cuenta para ella.", boton: "Guardar ahorro" },
-  mover: { titulo: "Mover entre mis cuentas", sub: "Pasar dinero de una cuenta tuya a otra. No es ingreso ni gasto: solo cambia de lugar.", boton: "Guardar" },
-  pago_deuda: { titulo: "Pagar una tarjeta o un préstamo", sub: "Sale de tu banco y baja lo que debes por la parte de capital; el interés va a gastos financieros.", boton: "Guardar pago" },
-  cambio: { titulo: "Cambio de moneda", sub: "Pasar dinero entre monedas, de una cuenta tuya a otra, con la tasa que te dieron.", boton: "Guardar cambio" },
-  rescate: { titulo: "Rescate o venta de inversión", sub: "Sacar dinero de una inversión hacia efectivo o una cuenta.", boton: "Guardar rescate" },
+const TEXTO: Record<Modo, { titulo: string; boton: string }> = {
+  ingreso: { titulo: "Anotar un ingreso", boton: "Guardar ingreso" },
+  gasto: { titulo: "Anotar un gasto", boton: "Guardar gasto" },
+  ahorro: { titulo: "Ahorrar o invertir", boton: "Guardar ahorro" },
+  mover: { titulo: "Mover entre mis cuentas", boton: "Guardar" },
+  pago_deuda: { titulo: "Pagar una tarjeta o un préstamo", boton: "Guardar pago" },
+  cambio: { titulo: "Cambio de moneda", boton: "Guardar cambio" },
+  rescate: { titulo: "Rescate o venta de inversión", boton: "Guardar rescate" },
 };
 
 export function NuevoMovimiento({
@@ -50,7 +50,6 @@ export function NuevoMovimiento({
               <h2 id="t-nuevo-mov" className="panel-titulo">
                 {t.titulo}
               </h2>
-              <p className="chico tenue">{t.sub}</p>
             </div>
             <button type="button" className="caja-quitar" onClick={cerrar} aria-label="Cerrar sin guardar">
               <Icono n="cerrar" />

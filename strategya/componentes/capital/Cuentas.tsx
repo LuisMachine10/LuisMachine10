@@ -47,11 +47,11 @@ function SelloSaldo({ i }: { i: ItemRegistro }) {
   if (esDeuda(i) && i.saldoFecha === null && i.vigente.fuente === "escrito") {
     return <span className="cap-sin-dato">sin dato: escribe cuánto debes</span>;
   }
-  const escrito = i.saldoFecha ? `escrito el ${fechaCorta(diaDelSaldo(i.saldoFecha))}` : "escrito por ti";
+  const escrito = i.saldoFecha ? fechaCorta(diaDelSaldo(i.saldoFecha)) : "escrito por ti";
   return (
-    <span className="sello">
+    <span className="sello" title="Lo que escribiste, más lo anotado en el Presupuesto desde ese día">
       Tus registros · {escrito}
-      {i.vigente.fuente === "presupuesto" ? ` · + lo anotado en el Presupuesto (${i.vigente.movimientos} mov.)` : ""}
+      {i.vigente.fuente === "presupuesto" && i.vigente.movimientos > 0 ? ` · + ${i.vigente.movimientos} mov. del Presupuesto` : ""}
     </span>
   );
 }
@@ -335,7 +335,6 @@ function Fila({ i, datos, mes }: { i: ItemRegistro; datos: DatosCapital; mes: st
         <summary>
           <span className="nombre">
             {i.nombre}
-            {i.cajaId ? <span className="etiqueta reg-en-presupuesto">En el Presupuesto</span> : null}
             {i.tipoConfirmado ? null : <span className="etiqueta alerta">tipo por confirmar</span>}
             <span className="detalle">{detalle.join(" · ")}</span>
             {ciclo ? <span className="detalle reg-ciclo">{ciclo.linea}</span> : null}
@@ -540,7 +539,6 @@ export function PanelBalance({ datos }: { datos: DatosCapital }) {
         <h2 className="panel-titulo" id="cap-t-balance">
           Tu balance de hoy
         </h2>
-        <span className="tenue chico">lo que tienes − lo que debes</span>
       </div>
       <div className="panel-cuerpo reg-balance">
         <div className="cap-kpi">
@@ -557,7 +555,7 @@ export function PanelBalance({ datos }: { datos: DatosCapital }) {
             <small className="antes">RD$</small>
             {num(b.deudas)}
           </div>
-          <div className="meta">{b.deudasSinDato.length ? <span className="cap-sin-dato">{b.deudasSinDato.length} sin saldo escrito</span> : "tarjetas, préstamos y otras deudas"}</div>
+          <div className="meta">{b.deudasSinDato.length ? <span className="cap-sin-dato">{b.deudasSinDato.length} sin saldo escrito</span> : null}</div>
         </div>
         <div className="cap-kpi reg-patrimonio">
           <div className="rotulo">Patrimonio</div>
@@ -565,7 +563,7 @@ export function PanelBalance({ datos }: { datos: DatosCapital }) {
             <small className="antes">RD$</small>
             {num(b.patrimonio)}
           </div>
-          <div className="meta">lo que te quedaría si pagaras todo hoy</div>
+          <div className="meta">lo que tienes − lo que debes</div>
         </div>
       </div>
       <div className="panel-cuerpo" style={{ paddingTop: 0 }}>
@@ -595,7 +593,6 @@ export function VistaCuentas({ datos, mes, pref, revisar }: Props) {
             <Icono nombre="mas" />
             Agregar cuenta, bien o deuda
           </span>
-          <span className="tenue chico">Se anota una vez: según su tipo, aparece sola en el Presupuesto donde sirve.</span>
         </summary>
         <div className="cuerpo">
           {vacio ? (

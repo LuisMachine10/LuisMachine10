@@ -6,7 +6,6 @@
 // antes y después de cada uno.
 
 import type Big from "big.js";
-import Link from "next/link";
 import { agregarCobroFijo, eliminarRecurrente, guardarLineaAhorro, guardarRecurrente } from "@/app/caja/acciones";
 import { type CobroEsperado, nombreCobro } from "@/lib/finanzas/cobros";
 import { type Fecha, fechaBreve, nombreMes } from "@/lib/caja/fechas";
@@ -81,7 +80,6 @@ export function VistaPlanDelMes({
           <h2 className="panel-titulo" id="t-plan-formula">
             Tu mes en montos · {nombreMes(plan.mes)}
           </h2>
-          <span className="chico tenue">plan contra lo que de verdad pasó</span>
         </div>
         <div className="panel-cuerpo">
           <div className="desplazable">
@@ -105,18 +103,15 @@ export function VistaPlanDelMes({
                   signo="−"
                   nombre="Gastos"
                   c={plan.gastos}
-                  nota={plan.conTarjeta.plan.gt(0) || plan.conTarjeta.real.gt(0) ? `sin las compras con tarjeta (${rd(plan.conTarjeta.real.gt(0) ? plan.conTarjeta.real.toString() : plan.conTarjeta.plan.toString())}): se pagan con la tarjeta` : undefined}
+                  nota={plan.conTarjeta.plan.gt(0) || plan.conTarjeta.real.gt(0) ? `sin compras con tarjeta (${rd(plan.conTarjeta.real.gt(0) ? plan.conTarjeta.real.toString() : plan.conTarjeta.plan.toString())})` : undefined}
                 />
-                <Fila signo="−" nombre="1.º Ahorro e inversión" c={plan.ahorro} nota="cada línea con su instrumento" />
+                <Fila signo="−" nombre="1.º Ahorro e inversión" c={plan.ahorro} />
                 <Fila signo="−" nombre="2.º Pagos de tarjetas y préstamos" c={plan.pagos} />
                 <Fila signo="=" nombre="SOBRANTE" c={plan.sobrante} total />
               </tbody>
             </table>
           </div>
-          <p className="chico" style={{ marginBottom: 0 }}>
-            <strong>El sobrante no se planifica:</strong> es lo que queda. Se queda en la cuenta donde entró el dinero o lo pasas a efectivo. Cada peso tiene cuenta de origen y
-            de destino, así que el sobrante real es lo que de verdad quedó en tus cuentas.
-          </p>
+          <p className="chico tenue" style={{ marginBottom: 0 }}>El sobrante no se planifica: es lo que queda en tus cuentas.</p>
           {plan.sinTasa ? <p className="chico tenue">{plan.sinTasa} monto(s) en US$ sin dólar del BCRD de su fecha: no se sumaron (no confirmado).</p> : null}
         </div>
       </section>
@@ -127,7 +122,6 @@ export function VistaPlanDelMes({
             <h2 className="panel-titulo" id="t-plan-cobros">
               Otros ingresos: lo que te pagan tus inversiones
             </h2>
-            <span className="chico tenue">intereses, cupones y dividendos a tus cuentas</span>
           </div>
           <div className="panel-cuerpo">
             <ul className="caja-lista">
@@ -137,7 +131,7 @@ export function VistaPlanDelMes({
                     <span className="caja-item-texto">
                       <span className="caja-item-nombre">{x.instrumento.nombre}</span>
                       <span className="caja-item-detalle">
-                        cae en {nombres[x.cuentaCaja ?? ""] ?? "una cuenta que no está en el Presupuesto"} · calculado con tu tasa y la retención (lo real es lo que te llegue)
+                        cae en {nombres[x.cuentaCaja ?? ""] ?? "una cuenta que no está en el Presupuesto"} · calculado con tu tasa y la retención
                       </span>
                     </span>
                     <span className="caja-item-monto">≈ {enMoneda(x.alMes.toFixed(2), x.instrumento.moneda === "USD" ? "USD" : "DOP")} al mes</span>
@@ -219,8 +213,7 @@ export function VistaPlanDelMes({
           )}
           {plan.sinInstrumento.gt(0) ? (
             <p className="caja-aviso">
-              <Icono n="aviso" tam={16} /> Tienes {rd(plan.sinInstrumento.toString())} de ahorro presupuestado sin decir a dónde va (monto adicional de una categoría de ahorro).
-              No entra en este plan: conviértelo en una línea con su instrumento.
+              <Icono n="aviso" tam={16} /> {rd(plan.sinInstrumento.toString())} de ahorro sin instrumento (monto adicional de una categoría): no entra en el plan. Conviértelo en una línea.
             </p>
           ) : null}
           {plan.ahorroSuelto.gt(0) ? <p className="chico tenue">Además, {rd(plan.ahorroSuelto.toString())} fueron a ahorro sin línea en el plan (cuenta en lo real).</p> : null}
@@ -238,7 +231,6 @@ export function VistaPlanDelMes({
           <h2 className="panel-titulo" id="t-plan-pagos">
             2.º Pagos de tarjetas y préstamos
           </h2>
-          <span className="chico tenue">puedes hacer varios pagos en el ciclo</span>
         </div>
         <div className="panel-cuerpo">
           {tarjetas.length ? (
@@ -292,19 +284,12 @@ export function VistaPlanDelMes({
               </ul>
             </>
           ) : null}
-          <p className="chico tenue">
-            Comprar con la tarjeta es gasto del mes y sube lo que debes; pagarla es «Pago de tarjeta o préstamo» (no es gasto) y la baja. Los intereses de la tarjeta son
-            solo los que anotes de tu estado de cuenta.
-          </p>
           <details className="caja-desplegable caja-conf-nueva">
             <summary>+ Agregar un pago (otro pago en el ciclo también)</summary>
             <FormAccion accion={guardarRecurrente} boton="Guardar pago" reiniciar etiqueta="Nuevo pago de tarjeta o préstamo">
               <CamposRecurrente inicial={{ tipo: "pago_tarjeta" }} cuentas={cuentas} categorias={categorias} />
             </FormAccion>
           </details>
-          <p className="chico">
-            <Link href="/capital/futuro#cap-t-aportes">Ver «Lo que planeaste ahorrar este mes» en el Portafolio</Link>
-          </p>
         </div>
       </section>
     </>

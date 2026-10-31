@@ -57,15 +57,17 @@ function Linea({ l, datos, mes, volver, compacto }: { l: LineaAhorro; datos: Dat
         <span className={`cap-muestra ${reg?.clase ?? "ahorros"}`} aria-hidden="true" />
         <span className="ap-nombre">
           <strong>{nombre}</strong>
-          <span className="chico tenue">
-            {l.recurrente.nombre}
-            {l.veces > 1 ? ` · ${l.veces} veces este mes` : ""}
-          </span>
+          {l.recurrente.nombre !== `Ahorro: ${nombre}` || l.veces > 1 ? (
+            <span className="chico tenue">
+              {l.recurrente.nombre !== `Ahorro: ${nombre}` ? l.recurrente.nombre : null}
+              {l.veces > 1 ? `${l.recurrente.nombre !== `Ahorro: ${nombre}` ? " · " : ""}${l.veces} veces este mes` : ""}
+            </span>
+          ) : null}
         </span>
         <span className="mono ap-monto">{enSuMoneda(l.planeado, l.moneda)}</span>
       </div>
       <Estado l={l} cerrado={cerrado} />
-      {vencido ? <p className="cap-nota baja">«{nombre}» venció: cambia el destino de esta línea en el Plan del mes (no pasamos tu dinero solo a otro lado).</p> : null}
+      {vencido ? <p className="cap-nota baja">Venció: cambia el destino de esta línea en el Plan del mes.</p> : null}
       {compacto || cerrado || l.estado === "hecha" ? null : (
         <details className="ap-confirmar">
           <summary className="boton chico">Registrar la transferencia</summary>
@@ -106,9 +108,6 @@ function Linea({ l, datos, mes, volver, compacto }: { l: LineaAhorro; datos: Dat
                 </label>
               ) : null}
             </div>
-            <p className="tenue chico" style={{ margin: 0 }}>
-              Queda en tu Presupuesto como «Mover entre mis cuentas» hacia «{nombre}»: es ahorro, no gasto. Si fue menos, queda a medias.
-            </p>
             <div className="cap-botones">
               <button type="submit" className="boton">
                 Anotar la transferencia
@@ -156,18 +155,17 @@ export function PanelPlanAhorro({ datos, mes, volver = "/capital/futuro", compac
         </>
       ) : (
         <SinDatos accion={{ href: "/caja/plan#t-plan-lineas", texto: "Escribir mi plan de ahorro" }}>
-          Este mes no escribiste cuánto vas a ahorrar ni en qué. Escribe cada línea con su instrumento y su monto: así se ve qué hiciste y tus proyecciones usan esos montos.
+          Escribe cada línea con su instrumento y su monto.
         </SinDatos>
       )}
-      {plan.sinInstrumento.gt(0) ? (
+      {plan.sinInstrumento.gt(0) && !compacto ? (
         <p className="cap-nota baja">
-          Tienes {rd(plan.sinInstrumento)} de ahorro presupuestado sin decir a dónde va: no entra en el plan ni en las proyecciones. Conviértelo en una línea con su instrumento.
+          {rd(plan.sinInstrumento)} de ahorro sin instrumento: no se proyecta. Escríbelo como línea en el Plan del mes.
         </p>
       ) : null}
       {viejo && !compacto ? (
         <p className="cap-nota">
-          Tu plan anterior repartía el ahorro por porcentajes que decidía el sistema. Ya no se usa (dijiste que no hiciste esos aportes): no se convirtió a montos porque no
-          había montos que convertir. Nada se borró.
+          Tu reparto anterior por porcentajes ya no se usa. No se borró nada.
         </p>
       ) : null}
       <p className="sello" style={{ marginTop: 8 }}>

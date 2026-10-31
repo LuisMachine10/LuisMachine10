@@ -17,13 +17,12 @@ import { leerRegistro } from "@/lib/capital/datos-registro";
 import { esMes, fechaLarga, hoyRD, mesDe, nombreMes } from "@/lib/caja/fechas";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { type MovimientoAplicado, movimientosDelMes } from "@/lib/caja/motor";
-import { NOMBRE_TIPO } from "@/lib/caja/tipos";
 import { catalogos } from "@/lib/caja/vista";
+import { nombreDeMovimiento } from "@/lib/caja/nombre-movimiento";
 
 export const metadata: Metadata = { title: "Movimientos · Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
 
-const SUB = "Aquí ves todo lo que anotaste o marcaste como hecho en el mes, día por día, con su categoría.";
 const ICONO: Record<string, NombreIcono> = { ingreso: "ingreso", gasto: "gasto", transferencia: "transferir", pago_tarjeta: "tarjeta" };
 
 export default async function PaginaMovimientos({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
@@ -35,7 +34,7 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
     lectura = await leerCaja();
   } catch (e) {
     return (
-      <MarcoCaja actual="movimientos" editadoEn={null} sub={SUB}>
+      <MarcoCaja actual="movimientos" editadoEn={null}>
         <PanelError titulo="Movimientos del mes" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
@@ -43,7 +42,7 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
   const { datos, editadoEn } = lectura;
   if (!datos.config) {
     return (
-      <MarcoCaja actual="movimientos" editadoEn={editadoEn} sub={SUB}>
+      <MarcoCaja actual="movimientos" editadoEn={editadoEn}>
         <SinDatosCaja que="movimientos" />
       </MarcoCaja>
     );
@@ -75,7 +74,7 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
     );
 
   return (
-    <MarcoCaja actual="movimientos" mes={mes} editadoEn={editadoEn} sub={SUB} acciones={<BotonesNuevo />}>
+    <MarcoCaja actual="movimientos" mes={mes} editadoEn={editadoEn} acciones={<BotonesNuevo />}>
       <section className="panel panel-ancho" aria-labelledby="t-totales">
         <div className="panel-cabecera caja-cabecera-mes">
           <h2 className="sr-solo" id="t-totales">
@@ -136,9 +135,9 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
               <li key={m.id} className="caja-item">
                 <div className="caja-item-fila">
                   <span className="caja-item-texto">
-                    <span className="caja-item-nombre">{m.nota || NOMBRE_TIPO[m.tipo]}</span>
+                    <span className="caja-item-nombre">{m.nota || nombreDeMovimiento(m, datos.cuentas, datos.categorias)}</span>
                     <span className="caja-item-detalle">
-                      {NOMBRE_TIPO[m.tipo]} · {fechaLarga(m.fecha).replace(/ de \d{4}$/, "")} · {cuenta(m.cuenta)}
+                      {nombreDeMovimiento(m, datos.cuentas, datos.categorias)} · {fechaLarga(m.fecha).replace(/ de \d{4}$/, "")} · {cuenta(m.cuenta)}
                     </span>
                   </span>
                   <span className={`caja-item-monto ${m.tipo === "ingreso" ? "sube" : "baja"}`}>
@@ -191,9 +190,9 @@ export default async function PaginaMovimientos({ searchParams }: { searchParams
                               <Icono n={ICONO[m.tipo]} tam={16} />
                             </span>
                             <span className="caja-item-texto">
-                              <span className="caja-item-nombre">{m.nota || nombreCat || NOMBRE_TIPO[m.tipo]}</span>
+                              <span className="caja-item-nombre">{m.nota || nombreCat || nombreDeMovimiento(m, datos.cuentas, datos.categorias)}</span>
                               <span className="caja-item-detalle">
-                                {NOMBRE_TIPO[m.tipo]} · {cuenta(m.cuenta)}
+                                {nombreDeMovimiento(m, datos.cuentas, datos.categorias)} · {cuenta(m.cuenta)}
                                 {m.destino ? ` → ${cuenta(m.destino)}` : ""}
                                 {nombreCat && m.nota ? ` · ${nombreCat}` : ""}
                               </span>

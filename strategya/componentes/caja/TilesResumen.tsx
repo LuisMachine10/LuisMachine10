@@ -63,7 +63,7 @@ export function TilesResumen({ r, colchon }: { r: ResumenCalculado; colchon: str
       <div className="caja-mosaico">
         <div className="caja-mosaico-titulo">Deuda en tarjetas</div>
         <p className="caja-mosaico-cifra chica">{r.deudaTarjetas ? rd(r.deudaTarjetas) : "—"}</p>
-        <p className="caja-mosaico-nota">{r.deudaTarjetas && new Big(r.deudaTarjetas).gt(0) ? "Lo que debes hoy" : "No debes nada"}</p>
+        {r.deudaTarjetas && new Big(r.deudaTarjetas).gt(0) ? null : <p className="caja-mosaico-nota">No debes nada</p>}
       </div>
 
       <div className="caja-mosaico">

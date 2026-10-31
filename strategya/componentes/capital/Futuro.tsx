@@ -233,8 +233,7 @@ function PanelIndependencia({ datos, mes }: Props) {
         <Dato rotulo="Lo puso el rendimiento">{pct(parte(b.proy.rendimiento), 0)}</Dato>
       </div>
       <p className="cap-nota">
-        El {pct(parte(b.proy.inicial), 0)} restante es la posición con la que arrancas hoy. En horizontes cortos el aporte suele pesar más que el
-        rendimiento: el interés compuesto todavía no ha tenido tiempo de dominar.
+        El {pct(parte(b.proy.inicial), 0)} restante es lo que ya tienes hoy.
       </p>
     </Panel>
   );

@@ -1,8 +1,8 @@
 "use client";
 
 // Asistente de bienvenida del Presupuesto: cuando no hay nada, guía en 4 pasos en el orden de un estado
-// de resultados (1 lo que te entra, 2 costos y gastos, 3 cuentas y saldos de hoy, 4 ahorro e inversión y
-// colchón) y al final guarda todo de una vez. Cada ingreso o gasto queda como categoría (y, si tiene día,
+// de resultados (1 lo que te entra, 2 costos y gastos, 3 cuentas y saldos de hoy, 4 colchón; lo que se ahorra se
+// arma luego en «Plan del mes», línea por línea con su instrumento) y al final guarda todo de una vez. Cada ingreso o gasto queda como categoría (y, si tiene día,
 // también como pago fijo enlazado): no hay que anotar dos veces. El borrador se recuerda en este
 // navegador mientras se llena (si el navegador lo permite).
 
@@ -59,7 +59,7 @@ const NUEVO: Borrador = {
   colchon: "",
 };
 
-const PASOS = ["Lo que te entra", "Costos y gastos", "Tus cuentas hoy", "Ahorro y colchón"] as const;
+const PASOS = ["Lo que te entra", "Costos y gastos", "Tus cuentas hoy", "Tu colchón"] as const;
 const ICONO_TIPO: Record<TipoCuenta, NombreIcono> = { banco: "banco", efectivo: "efectivo", ahorro: "ahorro", tarjeta: "tarjeta", prestamo: "tarjeta" };
 const EJEMPLO_NOMBRE: Record<TipoCuenta, string> = { banco: "Ej.: Banco Popular", efectivo: "Ej.: Cartera", ahorro: "Ej.: Ahorro APAP", tarjeta: "Ej.: Visa", prestamo: "Ej.: Préstamo del carro" };
 const AGREGAR_CUENTA: { tipo: TipoCuenta; texto: string }[] = [
@@ -192,7 +192,6 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
   const totalGastos = sumar(b.gastos.map((g) => alMes(g.monto, g.dias)));
   const fijosGasto = sumar(b.gastos.filter((g) => g.dias.trim()).map((g) => alMes(g.monto, g.dias)));
   const utilidad = totalIngresos.minus(totalGastos);
-  const ahorro = sumar([b.ahorro]);
   const hayFijos = b.ingresos.some((g) => g.dias.trim()) || b.gastos.some((g) => g.dias.trim());
   const noTarjeta = b.cuentas.find((c) => !esDeudaTipo(c.tipo))?.k ?? "";
 
@@ -217,7 +216,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
       cuentas: b.cuentas.map(({ tipo, nombre, saldo, limite, diaPago, reg }) => (reg ? { tipo, nombre: "", saldo: "", limite: "", diaPago, registroId: reg } : { tipo, nombre, saldo, limite, diaPago })),
       cuentaIngresos: indice(b.cuentaIngresos || noTarjeta),
       cuentaGastos: indice(b.cuentaGastos || noTarjeta),
-      ahorro: b.ahorro,
+      ahorro: "",
       colchon: b.colchon,
     };
     const f = new FormData();
@@ -235,7 +234,6 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
         <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1}>
           Bienvenido a tu presupuesto
         </h2>
-        <p className="caja-bienvenida-sub">Anotas una sola vez lo que te entra y lo que gastas; Strategya arma tu mes como un estado de resultados y tu calendario de cada día.</p>
         <ol className="caja-como">
           <li>
             <span className="caja-como-num">1</span>
@@ -252,7 +250,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
           <li>
             <span className="caja-como-num">3</span>
             <span>
-              <strong>Tus cuentas hoy</strong> y, al final, cuánto quieres ahorrar al mes y tu colchón.
+              <strong>Tus cuentas hoy</strong> y tu colchón.
             </span>
           </li>
         </ol>
@@ -263,7 +261,6 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
         <p className="caja-privado">
           <Icono n="escudo" tam={16} /> No te pedimos números de cuenta, de tarjeta ni cédula: basta un nombre que reconozcas.
         </p>
-        <p className="chico tenue">Toma unos 3 minutos. Todo se puede cambiar después en Configuración.</p>
       </section>
     );
   }
@@ -334,9 +331,6 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
             </li>
           ))}
         </ol>
-        <p className="tenue chico">
-          Paso {b.paso} de 4 · {PASOS[b.paso - 1]}
-        </p>
       </div>
 
       {b.paso === 1 ? (
@@ -344,7 +338,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
           <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
             ¿Qué dinero te entra cada mes?
           </h2>
-          <p className="caja-asistente-sub">Tu sueldo, la quincena, tus ventas. Si llega siempre los mismos días, ponlos y el calendario lo anota solo; si no, deja el día vacío.</p>
+          <p className="caja-asistente-sub">Con día fijo, el calendario lo anota solo.</p>
           <div className="caja-agregar" role="group" aria-label="Agregar un ingreso">
             {EJEMPLOS_INGRESO.map((e) => (
               <button key={e.texto} type="button" className="caja-chip" onClick={() => agregar("ingresos", { nombre: e.nombre, dias: e.dias, monto: "", tipo: e.tipo })}>
@@ -367,7 +361,6 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
           <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
             ¿En qué se te va el dinero cada mes?
           </h2>
-          <p className="caja-asistente-sub">Toca para agregar y elige su tipo. Si no sabes el monto exacto, pon lo que calculas al mes. Con día fijo, el calendario lo pone solo.</p>
           <ul className="caja-tipos-explica" aria-label="Los tipos, en palabras simples">
             <li>
               <strong>Costo:</strong> lo que gastas para generar tu ingreso (mercancía, materiales).
@@ -404,11 +397,7 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
           <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
             ¿Dónde tienes tu dinero hoy?
           </h2>
-          <p className="caja-asistente-sub">
-            {registro.length
-              ? "Tus cuentas salen solas de tu Portafolio Financiero según su tipo: todas estas entran a tu Presupuesto (cada formulario muestra solo las que sirven). Si falta alguna, agrégala abajo y queda guardada en el Portafolio."
-              : "Anota cada cuenta con lo que tiene hoy (en una tarjeta, lo que debes). Quedan guardadas en tu Portafolio Financiero, en «Mis cuentas, activos y deudas»: no tendrás que escribirlas otra vez."}
-          </p>
+          {registro.length ? null : <p className="caja-asistente-sub">Quedan guardadas en Mis cuentas del Portafolio: no las escribes otra vez.</p>}
           {registro.length ? (
             <section className="caja-registro" aria-labelledby={`${uid}-reg`}>
               <h3 id={`${uid}-reg`} className="caja-registro-titulo">
@@ -547,23 +536,9 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
       {b.paso === 4 ? (
         <>
           <h2 id={`${uid}-t`} ref={titulo} tabIndex={-1} className="caja-asistente-titulo">
-            ¿Cuánto quieres apartar y cuál es tu mínimo?
+            ¿Cuál es tu colchón mínimo?
           </h2>
-          <p className="caja-asistente-sub">Lo que apartas al mes va a tu Portafolio Financiero. El colchón es el dinero que nunca quieres bajar.</p>
           <div className="caja-colchon">
-            <Monto
-              id="as-ahorro"
-              valor={b.ahorro}
-              cambiar={(v) => setB((x) => ({ ...x, ahorro: v }))}
-              etiqueta="Ahorro e inversión al mes"
-              ejemplo="Ej.: 5,000"
-              ayuda="Sale de lo que te sobra (tu utilidad) y es lo que el Portafolio espera recibir cada mes."
-            />
-            {utilidad.gt(0) && !ahorro.gt(0) ? (
-              <button type="button" className="caja-chip" onClick={() => setB((x) => ({ ...x, ahorro: utilidad.div(10).round(0, Big.roundDown).toString() }))}>
-                Apartar el 10 % de lo que te sobra: {rd(utilidad.div(10).round(0, Big.roundDown).toString())}
-              </button>
-            ) : null}
             <Monto
               id="as-colchon"
               valor={b.colchon}
@@ -600,18 +575,11 @@ export function AsistenteCaja({ registro = [] }: { registro?: CuentaDelRegistro[
                 <dd className={`mono ${utilidad.lt(0) ? "baja" : ""}`}>{rd(utilidad.toString())}</dd>
               </div>
               <div>
-                <dt>− Ahorro e inversión</dt>
-                <dd className="mono">{rd(ahorro.toString())}</dd>
-              </div>
-              <div className="total">
-                <dt>= Te queda disponible</dt>
-                <dd className={`mono ${utilidad.minus(ahorro).lt(0) ? "baja" : ""}`}>{rd(utilidad.minus(ahorro).toString())}</dd>
-              </div>
-              <div>
                 <dt>Cuentas</dt>
                 <dd>{b.cuentas.length ? b.cuentas.map(nombreCuenta).join(", ") : "ninguna"}</dd>
               </div>
             </dl>
+            <p className="chico tenue">Lo que ahorras lo armas después en «Plan del mes»: cada línea con su instrumento y su monto.</p>
           </div>
         </>
       ) : null}

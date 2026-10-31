@@ -17,7 +17,6 @@ import { armarVistaMes, avisosTarjetas, catalogos, ultimoCuadre } from "@/lib/ca
 export const metadata: Metadata = { title: "Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
 
-const SUB = "Aquí ves, día por día, cuánto dinero tendrás y cuánto puedes gastar sin bajar de tu mínimo. Toca un día para responder «¿Ya se hizo?».";
 
 export default async function PaginaCaja({ searchParams }: { searchParams: Promise<{ mes?: string; dia?: string }> }) {
   const ahora = new Date();
@@ -31,7 +30,7 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
     lectura = await leerCaja();
   } catch (e) {
     return (
-      <MarcoCaja actual="calendario" editadoEn={null} sub={SUB}>
+      <MarcoCaja actual="calendario" editadoEn={null}>
         <PanelError titulo="Presupuesto" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
@@ -41,7 +40,7 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
     // Paso 3 del asistente: se eligen las cuentas del registro único del Portafolio (no se anotan dos veces).
     const registro = await leerRegistro(datos, lectura.enlaces, hoy).then(cuentasParaPresupuesto, () => []);
     return (
-      <MarcoCaja actual="calendario" editadoEn={editadoEn} sub="Aquí anotas una sola vez lo que te entra, lo que gastas y dónde tienes tu dinero; lo demás se calcula solo." sinPestanas>
+      <MarcoCaja actual="calendario" editadoEn={editadoEn} sinPestanas>
         <AsistenteCaja registro={registro} />
       </MarcoCaja>
     );
@@ -57,7 +56,7 @@ export default async function PaginaCaja({ searchParams }: { searchParams: Promi
   const avisos = [...avisosTarjetas(datos, hoy), ...sim.advertencias];
 
   return (
-    <MarcoCaja actual="calendario" mes={mes} editadoEn={editadoEn} sub={SUB} acciones={<BotonesNuevo />}>
+    <MarcoCaja actual="calendario" mes={mes} editadoEn={editadoEn} acciones={<BotonesNuevo />}>
       <section className="panel panel-ancho caja-resumen" aria-labelledby="t-resumen">
         <h2 className="sr-solo" id="t-resumen">
           Tu caja hoy

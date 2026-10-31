@@ -18,7 +18,6 @@ import { planDelMes } from "@/lib/finanzas/plan";
 export const metadata: Metadata = { title: "Plan del mes · Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
 
-const SUB = "Aquí planeas tu mes en montos: primero lo que ahorras (cada línea con su instrumento), luego la tarjeta, y ves lo que te sobra.";
 
 export default async function PaginaPlan({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   const ahora = new Date();
@@ -30,7 +29,7 @@ export default async function PaginaPlan({ searchParams }: { searchParams: Promi
     lectura = await leerCaja();
   } catch (e) {
     return (
-      <MarcoCaja actual="plan" editadoEn={null} sub={SUB}>
+      <MarcoCaja actual="plan" editadoEn={null}>
         <PanelError titulo="Plan del mes" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
@@ -38,7 +37,7 @@ export default async function PaginaPlan({ searchParams }: { searchParams: Promi
   const { datos, editadoEn, enlaces } = lectura;
   if (!datos.config) {
     return (
-      <MarcoCaja actual="plan" editadoEn={editadoEn} sub={SUB}>
+      <MarcoCaja actual="plan" editadoEn={editadoEn}>
         <SinDatosCaja que="resultados" />
       </MarcoCaja>
     );
@@ -51,7 +50,7 @@ export default async function PaginaPlan({ searchParams }: { searchParams: Promi
   const { cuentas, categorias } = catalogos(datos, registro);
   const nombres = Object.fromEntries(cuentas.map((c) => [c.id, c.nombre]));
   return (
-    <MarcoCaja actual="plan" mes={mes} editadoEn={editadoEn} sub={SUB} acciones={<BotonesNuevo />}>
+    <MarcoCaja actual="plan" mes={mes} editadoEn={editadoEn} acciones={<BotonesNuevo />}>
       <div className="panel-ancho caja-er-cabeza">
         <NavMes mes={mes} ruta="/caja/plan" hoyMes={mesDe(hoy)} />
         <SelloFuente

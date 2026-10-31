@@ -17,12 +17,13 @@ import {
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { NOMBRE_ESTADO, type Ocurrencia } from "@/lib/caja/motor";
 import { describirTasa, type TasaUsada } from "@/lib/caja/tasas";
-import { esDeuda, NOMBRE_TIPO, NOMBRE_TIPO_CUENTA } from "@/lib/caja/tipos";
+import { esDeuda, NOMBRE_TIPO_CUENTA, type TipoMovimiento } from "@/lib/caja/tipos";
 import type { PanelDiaVista } from "@/lib/caja/vista";
 import { BotonesAnotar } from "./BotonesNuevo";
 import { CamposMovimiento, type Modo, type OpcionCategoria, type OpcionCuenta, SelectCategoria } from "./CamposMovimiento";
 import { BotonEliminar, FormAccion } from "./FormAccion";
 import { Ayuda, Icono, type NombreIcono } from "./Iconos";
+import { nombreDeMovimiento } from "@/lib/caja/nombre-movimiento";
 
 type Catalogos = { cuentas: OpcionCuenta[]; categorias: OpcionCategoria[] };
 
@@ -60,11 +61,12 @@ function Signo({ tipo }: { tipo: string }) {
   return <>{tipo === "ingreso" ? "+" : tipo === "gasto" ? "−" : "⇄ "}</>;
 }
 
-function Ruta({ tipo, cuenta, destino, categoria, cat, parte }: { tipo: string; cuenta: string | null; destino: string | null; categoria: string | null; cat: Catalogos; parte?: string | null }) {
+function Ruta({ tipo, cuenta, destino, categoria, cat, parte, registroDestino, sinTipo = false }: { tipo: TipoMovimiento; cuenta: string | null; destino: string | null; categoria: string | null; cat: Catalogos; parte?: string | null; registroDestino?: string | null; sinTipo?: boolean }) {
   const c = nombreCategoria(categoria, cat.categorias);
   return (
     <span className="caja-item-detalle">
-      {NOMBRE_TIPO[tipo as keyof typeof NOMBRE_TIPO]} · {nombreCuenta(cuenta, cat.cuentas)}
+      {sinTipo ? null : `${nombreDeMovimiento({ tipo, cuenta, destino, categoria, registroDestino }, cat.cuentas, cat.categorias)} · `}
+      {nombreCuenta(cuenta, cat.cuentas)}
       {tipo === "transferencia" || tipo === "pago_tarjeta" ? ` → ${nombreCuenta(destino, cat.cuentas)}` : ""}
       {parte ? ` (parte en ${parte === "USD" ? "US$" : "RD$"})` : ""}
       {c ? ` · ${c}` : ""}
@@ -103,7 +105,7 @@ function Planificado({ o, fecha, pendiente, cat }: { o: Ocurrencia; fecha: strin
             {faltaCategoria ? <span className="etiqueta alerta">sin categoría</span> : null}
             {o.pagoTotal ? <span className="tenue chico"> · paga todo lo que debas</span> : null}
           </span>
-          <Ruta tipo={o.tipo} cuenta={o.cuenta} destino={o.destino} categoria={o.categoria} cat={cat} parte={o.parte} />
+          <Ruta tipo={o.tipo} cuenta={o.cuenta} destino={o.destino} categoria={o.categoria} cat={cat} parte={o.parte} registroDestino={o.registroDestino} />
         </span>
         <MontoOcurrencia o={o} />
       </div>
@@ -316,10 +318,10 @@ export function PanelDia({
                     <IconoTipo tipo={m.tipo} />
                     <span className="caja-item-texto">
                       <span className="caja-item-nombre">
-                        {m.nota || nombreCategoria(m.categoria, cat.categorias) || NOMBRE_TIPO[m.tipo]}
+                        {m.nota || nombreCategoria(m.categoria, cat.categorias) || nombreDeMovimiento(m, cat.cuentas, cat.categorias)}
                         {m.recurrenteId ? <span className="etiqueta ok">fijo confirmado</span> : null}
                       </span>
-                      <Ruta tipo={m.tipo} cuenta={m.cuenta} destino={m.destino} categoria={m.categoria} cat={cat} parte={m.parte} />
+                      <Ruta tipo={m.tipo} cuenta={m.cuenta} destino={m.destino} categoria={m.categoria} cat={cat} parte={m.parte} registroDestino={m.registroDestino} sinTipo={!m.nota && !nombreCategoria(m.categoria, cat.categorias)} />
                       {m.moneda === "USD" ? (
                         <span className="caja-item-detalle">
                           <TasaUSD dop={m.montoDOP} tasa={m.tasaUsada} />
@@ -393,8 +395,7 @@ export function PanelDia({
               <summary>Cuadrar con tu banco</summary>
               <div className="caja-form">
                 <p className="chico tenue" style={{ margin: 0 }}>
-                  ¿Tu banco dice otra cifra? Escribe lo que dice al cierre de este día y el calendario se corrige desde aquí. En tarjetas, lo
-                  que debes. Déjalo vacío para quitar el cuadre.
+                  Lo que dice tu banco al cierre de este día (en tarjetas, lo que debes). Vacío quita el cuadre.
                 </p>
                 <FormAccion accion={cuadrarSaldos} boton="Guardar lo que dice el banco" etiqueta="Cuadrar con tu banco">
                   <input type="hidden" name="fecha" value={p.fecha} />

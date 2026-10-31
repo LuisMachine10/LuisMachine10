@@ -22,7 +22,6 @@ import { catalogos } from "@/lib/caja/vista";
 export const metadata: Metadata = { title: "Estado de resultados · Presupuesto · Strategya" };
 export const dynamic = "force-dynamic";
 
-const SUB = "Aquí ves tu mes como un estado de resultados: lo que planificaste contra lo que de verdad pasó, hasta tu utilidad neta.";
 
 export default async function PaginaResultados({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   const ahora = new Date();
@@ -34,7 +33,7 @@ export default async function PaginaResultados({ searchParams }: { searchParams:
     lectura = await leerCaja();
   } catch (e) {
     return (
-      <MarcoCaja actual="resultados" editadoEn={null} sub={SUB}>
+      <MarcoCaja actual="resultados" editadoEn={null}>
         <PanelError titulo="Estado de resultados" mensaje={(e as Error).message} />
       </MarcoCaja>
     );
@@ -42,7 +41,7 @@ export default async function PaginaResultados({ searchParams }: { searchParams:
   const { datos, editadoEn } = lectura;
   if (!datos.config) {
     return (
-      <MarcoCaja actual="resultados" editadoEn={editadoEn} sub={SUB}>
+      <MarcoCaja actual="resultados" editadoEn={editadoEn}>
         <SinDatosCaja que="resultados" />
       </MarcoCaja>
     );
@@ -55,7 +54,7 @@ export default async function PaginaResultados({ searchParams }: { searchParams:
   const porResponder = sim.dias.filter((d) => mesDe(d.fecha) === mes).reduce((n, d) => n + d.porConfirmar.length, 0);
 
   return (
-    <MarcoCaja actual="resultados" mes={mes} editadoEn={editadoEn} sub={SUB} acciones={<BotonesNuevo />}>
+    <MarcoCaja actual="resultados" mes={mes} editadoEn={editadoEn} acciones={<BotonesNuevo />}>
       <div className="panel-ancho caja-er-cabeza">
         <NavMes mes={mes} ruta="/caja/resultados" hoyMes={mesDe(hoy)} />
         <SelloFuente

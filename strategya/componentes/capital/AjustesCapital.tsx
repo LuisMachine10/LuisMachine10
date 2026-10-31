@@ -36,7 +36,7 @@ export function PanelConexion({ datos }: { datos: DatosCapital }) {
       extra={r.cuentas.length ? <span className="tenue chico">{bien} de {r.cuentas.length} cuadran</span> : null}
     >
       <p className="cap-nota" style={{ marginTop: 0 }}>
-        Compara, sin cambiar nada, el saldo de hoy de cada cuenta en <strong>Mis cuentas</strong> y en el <strong>calendario del Presupuesto</strong>.
+        Solo compara: no cambia nada.
       </p>
       {datos.caja.error ? (
         <p className="cap-aviso">No se pudo leer el Presupuesto: {datos.caja.error}</p>

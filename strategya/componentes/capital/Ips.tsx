@@ -13,7 +13,6 @@ import { riesgo } from "@/lib/capital/riesgo";
 import { CLASES, ipsVacia, SECCIONES_IPS, type SeccionIps } from "@/lib/capital/tipos";
 import type { DatosCapital } from "@/lib/datos-capital";
 import { fechaCorta } from "@/lib/formato";
-import { Icono } from "./Iconos";
 import { Estado, Panel } from "./Piezas";
 
 const EJEMPLOS: Record<SeccionIps, string> = {
@@ -30,30 +29,7 @@ const EJEMPLOS: Record<SeccionIps, string> = {
 const EJEMPLO_META: Record<string, string> = { efectivo: "5", ahorros: "15", rentafija: "50", rentavariable: "30" };
 
 function Explicacion() {
-  return (
-    <section className="panel cap-ancho" aria-labelledby="cap-t-que-es-ips">
-      <div className="panel-cuerpo cap-explica">
-        <Icono nombre="escudo" clase="cap-icono-grande" />
-        <div>
-          <h2 id="cap-t-que-es-ips">¿Para qué sirve la política de inversión (IPS)?</h2>
-          <p>
-            Son <strong>tus reglas de inversión escritas en frío</strong> (por ejemplo: «nunca más de 30 % en acciones», «siempre 6 meses de gastos en efectivo»), antes de que el mercado se mueva: tu objetivo, tu horizonte, cuánta caída
-            toleras, qué % quieres en cada clase, la banda para rebalancear y cuántos meses de gastos guardas en efectivo. Capital las usa para
-            comparar tu cartera con tu meta y marcar lo que tienes <strong>más o menos de lo planeado</strong> (en Resumen y en Riesgos). No es una
-            recomendación: las reglas son tuyas.
-          </p>
-          <ul aria-label="Lo que incluye">
-            <li>Objetivo</li>
-            <li>Horizonte</li>
-            <li>Tolerancia al riesgo</li>
-            <li>% meta por clase</li>
-            <li>Banda de rebalanceo</li>
-            <li>Meses de gastos en efectivo</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
+  return <p className="cap-nota cap-ancho">Tus reglas de inversión, escritas en frío, contra tu cartera real. Las reglas son tuyas: no es una recomendación.</p>;
 }
 
 function Metas({ datos, mes }: { datos: DatosCapital; mes: string }) {
@@ -98,7 +74,7 @@ function Metas({ datos, mes }: { datos: DatosCapital; mes: string }) {
           </label>
         </div>
         <p className="tenue chico" style={{ margin: 0 }}>
-          Los valores en gris son solo ejemplos: no se guardan. «Meses de gastos en efectivo» es la meta del fondo de emergencia (efectivo + cuentas de ahorro).
+          Lo gris son ejemplos: no se guardan.
         </p>
         <div className="cap-botones">
           <button className="boton chico" type="submit">

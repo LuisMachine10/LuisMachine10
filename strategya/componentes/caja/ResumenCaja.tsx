@@ -12,11 +12,11 @@ import { fechaBreve, hoyRD, mesDe, nombreMes } from "@/lib/caja/fechas";
 import { enMoneda, rd } from "@/lib/caja/formato";
 import { horizonte, resumir, simular } from "@/lib/caja/motor";
 import { estadoDeResultados } from "@/lib/caja/resultados";
-import { NOMBRE_TIPO } from "@/lib/caja/tipos";
 import { proximos, ultimoCuadre } from "@/lib/caja/vista";
 import { Barra, Diferencia } from "./EstadoResultados";
 import { Ayuda } from "./Iconos";
 import { SelloCaja } from "./SelloCaja";
+import { nombreDeMovimiento } from "@/lib/caja/nombre-movimiento";
 
 const MAX_PROXIMOS = 4;
 
@@ -115,7 +115,7 @@ export async function ResumenCaja({ ahora = new Date() }: { ahora?: Date } = {})
               <li key={`${fecha}-${o.recurrenteId}`}>
                 <span>
                   <span className="tenue mono">{fechaBreve(fecha)}</span> {o.nombre}{" "}
-                  <span className="tenue chico">· {NOMBRE_TIPO[o.tipo].toLowerCase()}</span>
+                  <span className="tenue chico">· {nombreDeMovimiento(o, datos.cuentas, datos.categorias).toLowerCase()}</span>
                 </span>
                 <span className={`mono ${o.tipo === "ingreso" ? "sube" : ""}`}>
                   {o.tipo === "ingreso" ? "+" : o.tipo === "gasto" ? "−" : ""}

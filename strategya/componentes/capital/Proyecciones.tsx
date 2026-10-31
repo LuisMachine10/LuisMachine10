@@ -78,12 +78,11 @@ export function PanelProyeccion({ datos, mes, anios, compacto = false }: Props &
         <p className="cap-nota" style={{ marginTop: 0 }}>
           {ahorro ? (
             <>
-              Cada mes entran <strong>{rd(ahorro)}</strong>: exactamente las líneas de «Lo que planeaste ahorrar este mes», cada una a su instrumento. El área clara es lo que tú
-              pones; la de arriba, lo que ganan tus intereses (interés compuesto) según el tipo de cada instrumento.
+              Cada mes entran <strong>{rd(ahorro)}</strong>: tus líneas del <Link href="/caja/plan">Plan del mes</Link>, cada una a su instrumento.
             </>
           ) : (
             <>
-              Tu plan del mes no tiene líneas de ahorro: la proyección solo muestra cómo crece lo que ya tienes. <Link href="/caja/plan#t-plan-lineas">Escribe cuánto vas a ahorrar y en qué</Link>.
+              Sin líneas de ahorro: solo crece lo que ya tienes. <Link href="/caja/plan#t-plan-lineas">Escribir mi plan</Link>.
             </>
           )}
         </p>
@@ -138,10 +137,7 @@ export function PanelProyeccion({ datos, mes, anios, compacto = false }: Props &
           </table>
         </div>
         <div className="cap-pie-proy">
-          <span className="sello">
-            Fuente de los aportes: tu Plan del mes en el Presupuesto · <Link href="/caja/plan">ver</Link>
-          </span>
-          <span className="sello">Proyección con tus tasas y el tipo de cada instrumento: tasa anual ÷ 12 cada mes, en pesos de hoy, sin cambiar el dólar. No es un pronóstico.</span>
+          <span className="sello">Tus tasas ÷ 12 cada mes, según el tipo de cada instrumento, en pesos de hoy. No es un pronóstico.</span>
           {avisos.length && !compacto ? (
             <ul className="chico tenue" style={{ margin: 0, paddingLeft: 18 }}>
               {avisos.map(({ x, aviso }) => (
@@ -165,7 +161,7 @@ export function PanelPlan({ datos, mes }: Props) {
   const { ctx } = datos;
   const cuentas = (datos.caja.datos?.cuentas ?? []).filter((c) => c.tipoFin && aparece({ tipo: c.tipoFin, debito: c.debito }, "ingreso", "cuenta"));
   return (
-    <Panel titulo="Cómo rinde cada instrumento" id="cap-t-plan" ancho extra={<span className="tenue chico">según su tipo</span>}>
+    <Panel titulo="Cómo rinde cada instrumento" id="cap-t-plan" ancho>
       <details className="cap-mas">
         <summary>¿Qué es capitalizar?</summary>
         <p className="cap-nota">
@@ -180,6 +176,8 @@ export function PanelPlan({ datos, mes }: Props) {
           const pl = a.plan;
           const cap = pl?.capitaliza === true ? "si" : pl?.capitaliza === false ? "no" : "";
           const aporte = datos.aportes.get(a.id);
+          // Lo que no rinde (efectivo, cuenta corriente, cuenta de ahorro con tasa 0) y no recibe ahorro no tiene nada que mostrar aquí.
+          if ((regla.capitaliza === "no_rinde" || tipo === "ahorro") && !aporte) return null;
           const deja = cuantoDejaAlMes(a);
           const mutuo = tipo === "mutuo" ? estadoMutuo(a.cantidad, a.renovaciones ?? []) : null;
           return (
@@ -195,10 +193,12 @@ export function PanelPlan({ datos, mes }: Props) {
                     </span>
                     {deja ? <span className="detalle">Te deja {rd(deja)} al mes</span> : null}
                   </span>
-                  <span className="monto">
-                    {aporte ? (aporte.moneda === "DOP" ? rd(aporte.monto) : `${aporte.moneda} ${num(aporte.monto, 2)}`) : rd(CERO)}
-                    <span className="detalle">al mes (plan)</span>
-                  </span>
+                  {aporte ? (
+                    <span className="monto">
+                      {aporte.moneda === "DOP" ? rd(aporte.monto) : `${aporte.moneda} ${num(aporte.monto, 2)}`}
+                      <span className="detalle">al mes (plan)</span>
+                    </span>
+                  ) : null}
                 </summary>
                 <div className="cuerpo">
                   <form action={guardarPlan} className="cap-form plan-form">

@@ -193,7 +193,6 @@ function FormularioCierre({ datos, mes }: { datos: DatosCapital; mes: string }) 
                   <span id="cap-t-paso-cerrar" style={{ fontWeight: 600 }}>
                     Paso {pasoCerrar} · {c?.cerrado ? "Mes cerrado" : "Revisar y cerrar"}
                   </span>
-                  <small>Congela la foto del patrimonio de hoy con el tipo de cambio vigente</small>
                 </span>
               </div>
               <label className="cap-campo">
@@ -209,8 +208,7 @@ function FormularioCierre({ datos, mes }: { datos: DatosCapital; mes: string }) 
                 </button>
               </div>
               <p className="tenue chico" style={{ margin: 0 }}>
-                Al cerrar se guarda lo escrito y se congela el patrimonio de hoy ({rd(fotoViva(ctx, mes).patrimonio)}, menos los pasivos que escribas).
-                Actualiza Cartera antes de cerrar.
+                Al cerrar se congela tu patrimonio de hoy ({rd(fotoViva(ctx, mes).patrimonio)}) con el dólar vigente.
               </p>
             </div>
           </section>
@@ -240,8 +238,7 @@ function Progreso({ datos, mes }: { datos: DatosCapital; mes: string }) {
           <span style={{ width: `${avance}%` }} />
         </div>
         <span className="tenue chico">
-          {hechos} de {total} pasos completos · registra lo que <strong>realmente</strong> pasó; la cifra junto a cada partida es el desvío contra tu
-          presupuesto.
+          {hechos} de {total} pasos completos
         </span>
       </div>
       {ind.ing.gt(0) ? (

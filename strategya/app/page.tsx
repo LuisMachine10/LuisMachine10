@@ -54,9 +54,6 @@ export default async function Dashboard() {
             <header className="dash-intro">
               <p className="dash-dia">{dia.charAt(0).toUpperCase() + dia.slice(1)}</p>
               <h1>{s.nombre}</h1>
-              <p>
-                {s.para} Muévelo a tu gusto con <strong>Editar mi dashboard</strong>.
-              </p>
             </header>
           }
         />
